@@ -1,0 +1,144 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* Centraliza o conteúdo horizontalmente também */
+  width: 100%;
+  height: 100%; /* Ocupa a altura total do Popup.jsx */
+  padding: 32px;
+  animation: fadeIn 0.6s ease-out;
+  position: relative;
+  overflow: hidden; /* Importante para o efeito de glow */
+}
+
+.glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 40%);
+  opacity: 0.08; /* Mais sutil */
+  animation: rotateGlow 20s linear infinite;
+  z-index: 0;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.title {
+  font-size: 32px; /* Maior */
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  margin-bottom: 12px; /* Mais espaço */
+  z-index: 1;
+}
+
+.subtitle {
+  font-size: 15px; /* Levemente maior */
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 40px; /* Mais espaço */
+  z-index: 1;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* Mais espaço entre os grupos de input */
+  width: 100%;
+  max-width: 360px; /* Limita a largura do formulário */
+  z-index: 1;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.label {
+  font-size: 13px; /* Levemente maior */
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px; /* Mais espaço */
+}
+
+.input {
+  background-color: rgba(31, 41, 55, 0.5);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 16px; /* Mais padding */
+  border-radius: 10px; /* Mais arredondado */
+  font-size: 15px; /* Levemente maior */
+  font-family: var(--font-sans);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: #6b7280;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--glow-color); /* Efeito de glow neon */
+}
+
+.loginButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px; /* Mais padding */
+  border: none;
+  border-radius: 10px; /* Mais arredondado */
+  background-image: linear-gradient(to right, var(--accent-primary), #67E8F9);
+  color: var(--bg-primary);
+  font-size: 17px; /* Levemente maior */
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px; /* Mais espaço */
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
+.loginButton:hover:not(:disabled) {
+  transform: scale(1.03) translateY(-2px);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+.loginButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #fca5a5; /* Vermelho claro para contraste */
+  font-size: 13px;
+  text-align: center;
+  margin: -16px 0 0 0; /* Ajuste da margem */
+}
+
+/* Animação do loader no botão */
+.loader {
+  width: 24px; /* Maior */
+  height: 24px; /* Maior */
+  border: 4px solid rgba(17, 24, 39, 0.2);
+  border-top-color: var(--bg-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

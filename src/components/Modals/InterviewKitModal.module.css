@@ -1,0 +1,110 @@
+/* src/components/Modals/InterviewKitModal.module.css */
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(17, 24, 39, 0.8);
+    z-index: 1100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.content {
+    width: 90%;
+    max-width: 450px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    animation: slideIn 0.3s ease-out;
+    overflow: hidden;
+}
+
+.header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center; /* Alinha itens verticalmente */
+    gap: 16px; /* Adiciona espaço */
+}
+
+/* ========================================================== */
+/* CORREÇÃO: Estilos para o botão de voltar e container do título */
+/* ========================================================== */
+.backButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 0;
+  padding: 0;
+}
+.backButton:hover {
+  color: var(--accent-primary);
+  transform: translateX(-3px);
+}
+
+.titleContainer {
+    flex-grow: 1; /* Faz o título ocupar o espaço */
+    text-align: center; /* Centraliza o título */
+}
+
+.title {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    font-size: 24px; /* Tamanho do ícone "X" */
+}
+
+.main {
+    padding: 24px;
+}
+
+.prompt {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.kitList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.kitButton {
+    width: 100%;
+    padding: 14px 18px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 15px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.kitButton:hover {
+    border-color: var(--accent-primary);
+    background-color: var(--bg-tertiary);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-20px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }

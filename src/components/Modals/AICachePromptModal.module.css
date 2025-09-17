@@ -1,0 +1,39 @@
+/* CRIE O ARQUIVO: src/components/Modals/AICachePromptModal.module.css */
+
+.modalOverlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 3000; animation: fadeIn 0.2s ease-out;
+}
+.modalContent {
+  background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: 12px; width: 90%; max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column;
+  animation: slideIn 0.3s ease-out; overflow: hidden;
+}
+.modalHeader {
+  padding: 18px 24px; border-bottom: 1px solid var(--border-color);
+  background-color: rgba(17, 24, 39, 0.5);
+}
+.modalHeader h3 { margin: 0; font-size: 18px; color: var(--text-primary); text-align: center; }
+.modalBody { padding: 24px; text-align: center; }
+.infoText { color: var(--text-secondary); font-size: 15px; margin: 0 0 8px 0; }
+.infoText strong { color: var(--accent-primary); }
+.questionText { color: var(--text-primary); font-size: 16px; font-weight: 500; margin: 0; }
+.modalActions { display: flex; flex-direction: column; gap: 12px; padding: 0 24px 24px 24px; }
+.primaryButton, .secondaryButton {
+  padding: 14px; border-radius: 10px; font-size: 16px;
+  font-weight: 700; cursor: pointer; transition: all 0.3s ease; width: 100%; border: none;
+}
+.primaryButton {
+  background-image: linear-gradient(to right, var(--accent-primary), #67E8F9);
+  color: var(--bg-primary); box-shadow: 0 0 20px var(--glow-color);
+}
+.primaryButton:hover { transform: scale(1.02); box-shadow: 0 0 30px var(--glow-color); }
+.secondaryButton { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); }
+.secondaryButton:hover { background-color: var(--bg-tertiary); color: var(--text-primary); border-color: var(--accent-primary); }
+.buttonHint { font-weight: 400; opacity: 0.8; font-size: 13px; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

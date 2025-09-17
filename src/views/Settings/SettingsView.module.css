@@ -1,0 +1,169 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.settingsContent {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px; /* Espaço entre as seções de configuração */
+
+  /* Estilização da barra de scroll */
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-tertiary) var(--bg-primary);
+}
+
+.settingsContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settingsContent::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.settingsContent::-webkit-scrollbar-thumb {
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+  border: 2px solid var(--bg-primary);
+}
+
+.settingSection {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settingLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settingDescription {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.settingDescription strong {
+    color: var(--accent-primary);
+}
+
+/* --- Toggle Switch Styles --- */
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 48px; /* Largura do switch */
+  height: 28px; /* Altura do switch */
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary); /* Cor de fundo quando off */
+  transition: 0.4s;
+  border-radius: 28px; /* Arredondado */
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 20px; /* Tamanho da bolinha */
+  width: 20px; /* Tamanho da bolinha */
+  left: 4px;
+  bottom: 4px;
+  background-color: var(--text-primary);
+  transition: 0.4s;
+  border-radius: 50%; /* Bolinha redonda */
+}
+
+/* Quando o input está checado (on) */
+.toggleSwitch input:checked + .toggleSlider {
+  background-color: var(--accent-primary); /* Cor de fundo quando on */
+}
+
+.toggleSwitch input:checked + .toggleSlider:before {
+  transform: translateX(20px); /* Move a bolinha para a direita */
+}
+
+/* Efeito de hover */
+.toggleSwitch input:not(:checked) + .toggleSlider:hover {
+    background-color: #556272; /* Um cinza um pouco mais claro para hover em off */
+}
+
+.toggleSwitch input:checked + .toggleSlider:hover {
+    background-color: #4edaff; /* Um ciano um pouco mais claro para hover em on */
+}
+
+
+/* Modo Automático/Manual (Com transição de background) */
+.modeToggle.toggleSwitch input:checked + .toggleSlider {
+    background-image: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+    background-color: transparent; /* Remove a cor sólida para usar o gradiente */
+}
+
+.modeToggle.toggleSwitch input:not(:checked) + .toggleSlider {
+    background-image: linear-gradient(to right, var(--bg-tertiary), #4B5563); /* Gradiente para off */
+    background-color: transparent;
+}
+
+.modeToggle.toggleSwitch input:checked + .toggleSlider:hover {
+    background-image: linear-gradient(to right, #4edaff, #b69efe); /* Gradiente de hover para on */
+}
+
+.modeToggle.toggleSwitch input:not(:checked) + .toggleSlider:hover {
+    background-image: linear-gradient(to right, #556272, #6a7482); /* Gradiente de hover para off */
+}
+
+
+/* Estilo para quando o toggle está desabilitado */
+.toggleSwitch input:disabled + .toggleSlider {
+    opacity: 0.5; /* Escurece o slider */
+    cursor: not-allowed;
+}
+
+.toggleSwitch input:disabled + .toggleSlider:before {
+    background-color: #A0AEC0; /* Cor da bolinha quando desabilitado */
+}
+
+/* Removendo hover quando desabilitado */
+.toggleSwitch input:disabled + .toggleSlider:hover {
+    background-color: var(--bg-tertiary); /* Reseta a cor de hover para a cor desabilitada */
+    background-image: none; /* Remove gradiente se for modeToggle */
+}
+.modeToggle.toggleSwitch input:disabled + .toggleSlider {
+    background-image: linear-gradient(to right, #616e7f, #7f8a9b); /* Gradiente desabilitado */
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

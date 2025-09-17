@@ -1,0 +1,51 @@
+/* src/index.css */
+
+/* Importando a fonte Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Tema "Cyberpunk Dark" */
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --bg-primary: #111827;
+  --bg-secondary: #1F2937;
+  --bg-tertiary: #374151;
+  --text-primary: #F9FAFB;
+  --text-secondary: #9CA3AF;
+  --accent-primary: #22D3EE;
+  --accent-secondary: #A78BFA;
+  --glow-color: rgba(34, 211, 238, 0.4);
+  --border-color: #374151;
+  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  
+  /* ========================================================== */
+  /* CORREÇÃO: Definindo um tamanho MÍNIMO para o modo popup    */
+  /* Isso não afetará a responsividade nos modos maiores.        */
+  /* ========================================================== */
+  min-width: 550px;
+  min-height: 600px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Animação de entrada para as telas */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}

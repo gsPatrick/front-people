@@ -1,0 +1,107 @@
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+}
+
+.scrollableArea {
+    padding: 24px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.scrollableArea::-webkit-scrollbar { width: 6px; }
+.scrollableArea::-webkit-scrollbar-track { background: var(--bg-primary); }
+.scrollableArea::-webkit-scrollbar-thumb { background-color: var(--bg-tertiary); border-radius: 3px; }
+
+
+.sectionTitle {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+.sectionTitle:first-child {
+    margin-top: 0;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputGroup label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.inputGroup input,
+.inputGroup select {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    transition: all 0.2s ease;
+}
+.inputGroup input:focus,
+.inputGroup select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--glow-color);
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.cancelButton, .saveButton {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancelButton {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+.cancelButton:hover {
+    background-color: #4B5563;
+    color: var(--text-primary);
+}
+
+.saveButton {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+.saveButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 25px var(--glow-color);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

@@ -1,0 +1,39 @@
+.formContainer {
+    padding: 24px;
+    background-color: var(--bg-primary); /* CORRIGIDO */
+    color: var(--text-primary); /* CORRIGIDO */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputGroup label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary); /* CORRIGIDO */
+}
+
+.inputGroup input,
+.inputGroup select {
+    background-color: var(--bg-secondary); /* CORRIGIDO */
+    border: 1px solid var(--border-color); /* CORRIGIDO */
+    color: var(--text-primary); /* CORRIGIDO */
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    transition: all 0.2s ease;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+    outline: none;
+    border-color: var(--accent-primary); /* CORRIGIDO */
+    box-shadow: 0 0 0 3px var(--glow-color); /* CORRIGIDO */
+}

@@ -1,0 +1,190 @@
+/* src/views/Manage/EditCandidateView.module.css */
+
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease;
+    background-color: var(--bg-primary);
+}
+
+/* NOVO: Estilo para as abas */
+.tabs { 
+  display: flex; 
+  align-items: center;
+  gap: 4px; 
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color); 
+  flex-shrink: 0;
+  margin-top: -1px; /* Para conectar com o header */
+}
+
+.tabButton { 
+    background: none; 
+    border: none; 
+    padding: 12px 16px; 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: var(--text-secondary); 
+    cursor: pointer; 
+    border-bottom: 3px solid transparent; 
+    transition: all 0.2s ease;
+}
+.tabButton:hover {
+    color: var(--text-primary);
+}
+.tabButton.active { 
+    color: var(--accent-primary); 
+    border-bottom-color: var(--accent-primary); 
+}
+
+.scrollableArea {
+    padding: 24px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.scrollableArea::-webkit-scrollbar { width: 6px; }
+.scrollableArea::-webkit-scrollbar-track { background: var(--bg-primary); }
+.scrollableArea::-webkit-scrollbar-thumb { background-color: var(--bg-tertiary); border-radius: 3px; }
+
+.sectionTitle {
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 16px 0 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+.sectionTitle:first-child {
+    margin-top: 0;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputGroup label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.inputGroup input,
+.inputGroup select,
+.inputGroup textarea {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    transition: all 0.2s ease;
+}
+.inputGroup input:focus,
+.inputGroup select:focus,
+.inputGroup textarea:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--glow-color);
+}
+.inputGroup textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Estilo para checkbox */
+.checkboxContainer {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.checkboxContainer input {
+    display: none; /* Esconde o checkbox padrão */
+}
+.checkboxMark {
+    height: 20px;
+    width: 20px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-right: 12px;
+    display: inline-block;
+    position: relative;
+    transition: all 0.2s ease;
+}
+.checkboxContainer:hover .checkboxMark {
+    border-color: var(--accent-primary);
+}
+.checkboxContainer input:checked + .checkboxMark {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+.checkboxMark::after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid var(--bg-primary);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+.checkboxContainer input:checked + .checkboxMark::after {
+    display: block;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    flex-shrink: 0;
+}
+
+.cancelButton, .saveButton {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancelButton {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+.cancelButton:hover {
+    background-color: #4B5563;
+    color: var(--text-primary);
+}
+
+.saveButton {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+.saveButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 25px var(--glow-color);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

@@ -1,0 +1,118 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 48px 32px 48px 32px; /* Ajuste do padding inferior e superior */
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+  position: relative;
+}
+
+.iconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 90px; /* Levemente maior */
+  height: 90px; /* Levemente maior */
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  margin-bottom: 32px; /* Mais espaço */
+}
+
+.iconContainer svg {
+  width: 38px; /* Ícone maior */
+  height: 38px; /* Ícone maior */
+  color: var(--accent-primary);
+}
+
+.prompt {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 15px; /* Levemente maior */
+}
+
+.candidateName {
+  color: var(--text-primary);
+  font-size: 24px; /* Maior e mais proeminente */
+  font-weight: 700;
+  margin: 8px 0 40px 0; /* Mais espaço */
+}
+
+.confirmButton {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Mais espaço entre ícone e texto */
+  padding: 16px 28px; /* Aumentado padding */
+  border: none;
+  border-radius: 12px; /* Mais arredondado */
+  background-image: linear-gradient(to right, var(--accent-primary), #67E8F9);
+  color: var(--bg-primary);
+  font-size: 17px; /* Levemente maior */
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px var(--glow-color);
+  margin-bottom: 16px; /* Espaço entre este botão e o secundário */
+}
+
+.confirmButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+.buttonIcon {
+  display: flex; /* Para centralizar o SVG */
+  align-items: center;
+  justify-content: center;
+  font-size: 26px; /* Ajuste para o tamanho do SVG */
+  line-height: 0; /* Importante para o alinhamento do SVG */
+}
+
+.buttonIcon svg {
+  width: 26px; /* Tamanho do ícone dentro do botão */
+  height: 26px; /* Tamanho do ícone dentro do botão */
+  color: var(--bg-primary); /* Cor do ícone */
+}
+
+/* Estilo para o botão secundário (ir para o Dashboard) */
+.secondaryButton {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espaço entre ícone e texto */
+  padding: 12px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background-color: transparent; /* Fundo transparente */
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0; /* Já que a margem vem do botão anterior */
+}
+
+.secondaryButton:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.secondaryButton svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.secondaryButton:hover svg {
+    color: var(--text-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

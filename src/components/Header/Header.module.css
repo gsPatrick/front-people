@@ -1,0 +1,27 @@
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 18px 24px; /* Aumentado ligeiramente o padding vertical */
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(17, 24, 39, 0.5);
+  flex-shrink: 0; /* Impede que o header encolha */
+}
+.backButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  cursor: pointer;
+  margin-right: 16px;
+  transition: all 0.2s ease;
+  line-height: 0; /* Garante que o ícone esteja centralizado verticalmente */
+  padding: 0; /* Remove padding padrão do botão */
+}
+.backButton:hover {
+  color: var(--accent-primary);
+  transform: translateX(-3px);
+}
+.titleContainer { line-height: 1.2; }
+.title { margin: 0; font-size: 19px; font-weight: 600; color: var(--text-primary); } /* Levemente maior */
+.subtitle { margin: 0; font-size: 13px; color: var(--text-secondary); }
