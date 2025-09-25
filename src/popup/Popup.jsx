@@ -25,20 +25,27 @@ import ScorecardView from '../views/Shared/Scorecard/ScorecardView';
 const LoadingView = () => ( <div className={styles.centeredContainer}><div className={styles.loadingSpinner}></div></div> );
 const ErrorView = ({ error, onRetry }) => ( <div className={`${styles.centeredContainer} ${styles.errorContainer}`}><p className={styles.errorTitle}>Ocorreu um Erro</p><p className={styles.errorMessage}>{String(error)}</p><button onClick={onRetry} className={styles.retryButton}>Tentar Novamente</button></div> );
 
-const PAGE_LIMIT = 15;
+const PAGE_LIMIT_JOBS = 3;
+const PAGE_LIMIT_TALENTS = 10;
 
 const Popup = () => {
     const [isOnLinkedInProfile, setIsOnLinkedInProfile] = useState(false);
     const [view, setView] = useState('loading');
     const [history, setHistory] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [settings, setSettings] = useState(null);
-    const [isPagingLoading, setIsPagingLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [jobs, setJobs] = useState([]);
+
+    // ESTADO DAS VAGAS
+    const [jobsData, setJobsData] = useState({ jobs: [], currentPage: 1, totalPages: 1, totalJobs: 0 });
+    
+    // ESTADO DOS TALENTOS
     const [talents, setTalents] = useState([]);
-    const [talentsNextPageKey, setTalentsNextPageKey] = useState(null); 
-    const [talentSearchFilters, setTalentSearchFilters] = useState({ searchTerm: '', selectedJobId: '' }); 
+    const [talentsCurrentPage, setTalentsCurrentPage] = useState(1);
+    const [talentsNextPageKey, setTalentsNextPageKey] = useState(null);
+    const [talentsPageKeyHistory, setTalentsPageKeyHistory] = useState([null]); // [null] é a chave para a página 1
+    const [isPagingLoading, setIsPagingLoading] = useState(false);
+    const [talentSearchFilters, setTalentSearchFilters] = useState({ searchTerm: '', selectedJobId: '' });
 
     const searchDebounceRef = useRef(null);
 
@@ -123,77 +130,85 @@ const Popup = () => {
         saveSessionState(stateToSave);
     }, [view, currentJob, currentTalent, settings, history, currentApplication, currentCandidates, currentJobStages, profileContext, talentsNextPageKey, talentSearchFilters]); 
     
-    const fetchTalentsWithFilters = useCallback(async (currentFilters, nextPage = null) => {
-        try {
-            const result = await api.fetchAllTalents(PAGE_LIMIT, nextPage); 
+    // FUNÇÃO PARA BUSCAR VAGAS PAGINADAS
+    const fetchAndSetJobs = useCallback(async (page) => {
+        executeAsync(async () => {
+            const data = await api.fetchJobsPaginated(page, PAGE_LIMIT_JOBS);
+            if (data) {
+                setJobsData(data);
+            }
+        });
+    }, [executeAsync]);
 
-            if (result.success && result.data && Array.isArray(result.data.talents)) {
-                let fetchedTalents = result.data.talents;
+    // FUNÇÃO PARA MUDAR A PÁGINA DE VAGAS
+    const handleJobsPageChange = (newPage) => {
+        if (newPage > 0 && newPage <= jobsData.totalPages) {
+            fetchAndSetJobs(newPage);
+        }
+    };
+    
+    // FUNÇÃO PARA BUSCAR TALENTOS PAGINADOS
+    const fetchAndSetTalents = useCallback(async (pageKey, direction = 'next') => {
+        executeAsync(async () => {
+            // A busca com filtro é tratada pelo useEffect que chama esta função com pageKey=null
+            const result = await api.fetchAllTalents(PAGE_LIMIT_TALENTS, pageKey);
+            if (result.success && result.data) {
+                let fetchedTalents = result.data.talents || [];
 
-                if (currentFilters.searchTerm) {
-                    fetchedTalents = fetchedTalents.filter(t => 
-                        t.name?.toLowerCase().includes(currentFilters.searchTerm.toLowerCase()) ||
-                        t.headline?.toLowerCase().includes(currentFilters.searchTerm.toLowerCase()) || 
-                        t.linkedinUsername?.toLowerCase().includes(currentFilters.searchTerm.toLowerCase())
+                // Lógica de filtro do lado do cliente se um termo de busca for fornecido
+                if (talentSearchFilters.searchTerm) {
+                     fetchedTalents = fetchedTalents.filter(t => 
+                        t.name?.toLowerCase().includes(talentSearchFilters.searchTerm.toLowerCase()) ||
+                        t.headline?.toLowerCase().includes(talentSearchFilters.searchTerm.toLowerCase()) || 
+                        t.linkedinUsername?.toLowerCase().includes(talentSearchFilters.searchTerm.toLowerCase())
                     );
                 }
-                if (currentFilters.selectedJobId) {
-                    console.warn("Filtro por JobId para talentos não implementado na API paginada. Exibindo todos os talentos carregados.");
-                }
-
-                fetchedTalents = fetchedTalents.filter(t => t && typeof t.id === 'string' && t.id.length > 0 && t.id !== 'paginated');
+                // Filtro por vaga não é implementado na API paginada, então não filtramos aqui
                 
-                setTalents(prev => nextPage ? [...prev, ...fetchedTalents] : fetchedTalents);
-                setTalentsNextPageKey(result.data.nextPageKey); 
+                setTalents(fetchedTalents.filter(t => t && t.id));
+                setTalentsNextPageKey(result.data.nextPageKey);
 
-            } else {
-                setTalents([]); 
-                setTalentsNextPageKey(null);
+                if (direction === 'next') {
+                    setTalentsCurrentPage(p => p + 1);
+                    setTalentsPageKeyHistory(hist => [...hist, result.data.nextPageKey]);
+                } else if (direction === 'prev') {
+                    setTalentsCurrentPage(p => p - 1);
+                }
+                // Se direction for 'reset', a paginação já foi resetada no useEffect
             }
-        } catch (err) {
-            setError(err.message || "Erro ao buscar talentos.");
-            setTalents([]);
-            setTalentsNextPageKey(null);
-        } 
-    }, []); 
-
+        }, true);
+    }, [executeAsync, talentSearchFilters.searchTerm]);
+    
+    const handleTalentsNextPage = () => {
+        if (talentsNextPageKey && !isPagingLoading) {
+            fetchAndSetTalents(talentsNextPageKey, 'next');
+        }
+    };
+    
+    const handleTalentsPrevPage = () => {
+        if (talentsCurrentPage > 1 && !isPagingLoading) {
+            const prevPageKey = talentsPageKeyHistory[talentsCurrentPage - 2];
+            setTalentsPageKeyHistory(hist => hist.slice(0, -1));
+            fetchAndSetTalents(prevPageKey, 'prev');
+        }
+    };
+    
     useEffect(() => {
-        if (searchDebounceRef.current) {
-            clearTimeout(searchDebounceRef.current);
-        }
+        if (view !== 'dashboard_talents') return;
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
-        if (view === 'dashboard_talents') {
-            if (isPagingLoading) return; 
+        searchDebounceRef.current = setTimeout(() => {
+            setTalentsCurrentPage(1);
+            setTalentsPageKeyHistory([null]);
+            fetchAndSetTalents(null, 'reset');
+        }, 500);
 
-            searchDebounceRef.current = setTimeout(() => {
-                executeAsync(() => fetchTalentsWithFilters(talentSearchFilters, null)); 
-            }, 500); 
-        } else {
-            setTalents([]);
-            setTalentsNextPageKey(null);
-        }
-
-        return () => {
-            if (searchDebounceRef.current) {
-                clearTimeout(searchDebounceRef.current);
-            }
-        };
-    }, [talentSearchFilters, view, fetchTalentsWithFilters, executeAsync, isPagingLoading]); 
-
-    const handleLoadMoreTalents = useCallback(async () => {
-        if (!talentsNextPageKey || isPagingLoading) return; 
-        executeAsync(() => fetchTalentsWithFilters(talentSearchFilters, talentsNextPageKey), true); 
-    }, [talentsNextPageKey, isPagingLoading, talentSearchFilters, fetchTalentsWithFilters, executeAsync]);
+        return () => clearTimeout(searchDebounceRef.current);
+    }, [talentSearchFilters, view]);
 
     const handleFilterChange = useCallback((newFilters) => {
         setTalentSearchFilters(newFilters);
     }, []);
-
-    const fetchAndSetJobs = async () => {
-      const jobsData = await api.fetchJobs();
-      setJobs(jobsData);
-      return jobsData; 
-    };
 
     const handleSelectTalentForDetails = useCallback((talent) => executeAsync(async () => {
         const talentResult = await api.fetchTalentDetails(talent.id);
@@ -225,13 +240,13 @@ const Popup = () => {
         } catch (e) { console.warn("Não foi possível acessar a URL da aba (normal em dev)."); }
   
         if (linkedInUrl && linkedInUrl.includes("linkedin.com/in/")) {
+            await fetchAndSetJobs(1);
             const validationResult = await api.validateProfile(linkedInUrl);
             setProfileContext(validationResult);
 
             if (validationResult.exists) {
                 navigateTo('add_confirm');
             } else {
-                await fetchAndSetJobs();
                 navigateTo('select_job_for_new_talent');
             }
             return;
@@ -248,17 +263,17 @@ const Popup = () => {
                 setProfileContext(savedState.profileContext);
                 setHistory(savedState.history || []);
                 setTalentSearchFilters(savedState.talentSearchFilters); 
+                await fetchAndSetJobs(1);
                 setView(savedState.view);
-                await fetchAndSetJobs();
                 return;
             }
         }
 
-        await fetchAndSetJobs(); 
+        await fetchAndSetJobs(1); 
         setTalentSearchFilters({ searchTerm: '', selectedJobId: '' }); 
         navigateTo('dashboard_jobs');
       });
-    }, [executeAsync]);
+    }, [executeAsync, fetchAndSetJobs]);
     
     useEffect(() => {
       initializeApp();
@@ -289,17 +304,15 @@ const Popup = () => {
             alert("Para capturar, por favor, navegue até um perfil válido no LinkedIn.");
         }
     }), [executeAsync]);
-
-    const handleSelectAllJobs = useCallback(() => executeAsync(async () => {
-        await fetchAndSetJobs(); 
-        navigateTo('dashboard_jobs');
-    }), [executeAsync]);
     
     const handleLayoutNavigate = (newView) => {
-        if (newView === 'dashboard_jobs') handleSelectAllJobs();
+        if (newView === 'dashboard_jobs') {
+            fetchAndSetJobs(1);
+            navigateTo('dashboard_jobs');
+        }
         if (newView === 'dashboard_talents') {
-            setTalentSearchFilters({ searchTerm: '', selectedJobId: '' }); 
-            navigateTo('dashboard_talents'); 
+            setTalentSearchFilters({ searchTerm: '', selectedJobId: '' });
+            navigateTo('dashboard_talents');
         }
         if (newView === 'settings') navigateTo(newView);
     };
@@ -307,9 +320,9 @@ const Popup = () => {
     const handleConfirmTalentCreation = useCallback((talentData, jobIdToApply = null) => executeAsync(async () => { 
         const payload = { ...talentData, jobId: jobIdToApply };
         const newTalent = await api.createTalent(payload);
-        await fetchAndSetJobs(); 
+        await fetchAndSetJobs(1); 
         await handleSelectTalentForDetails(newTalent);
-    }), [executeAsync, handleSelectTalentForDetails]);
+    }), [executeAsync, handleSelectTalentForDetails, fetchAndSetJobs]);
     
     const handleSelectJobForDetails = useCallback((job) => executeAsync(async () => {
         const result = await api.fetchCandidatesForJob(job.id);
@@ -572,7 +585,11 @@ const Popup = () => {
   
       switch (view) {
         case 'dashboard_jobs':
-          contentToRender = <JobsDashboardView jobs={jobs} onSelectJob={handleSelectJobForDetails} />;
+          contentToRender = <JobsDashboardView 
+              jobsData={jobsData} 
+              onSelectJob={handleSelectJobForDetails} 
+              onPageChange={handleJobsPageChange}
+            />;
           break;
         case 'job_details':
           contentToRender = <JobDetailsView job={currentJob} candidates={currentCandidates} availableStages={currentJobStages} onSelectCandidateForDetails={handleSelectCandidateForDetails} onUpdateApplicationStatus={handleUpdateApplicationStatus} onBack={goBack} />;
@@ -581,14 +598,18 @@ const Popup = () => {
           contentToRender = <TalentsDashboardView 
             talents={talents} 
             onSelectTalent={handleSelectTalentForDetails} 
-            onLoadMore={handleLoadMoreTalents} 
-            hasNextPage={!!talentsNextPageKey} 
+            onNextPage={handleTalentsNextPage}
+            onPrevPage={handleTalentsPrevPage}
+            hasNextPage={!!talentsNextPageKey}
+            hasPrevPage={talentsCurrentPage > 1}
+            currentPage={talentsCurrentPage}
+            totalTalentsText={`${talents.length} talentos nesta página`}
             isPagingLoading={isPagingLoading} 
             searchTerm={talentSearchFilters.searchTerm} 
             selectedJobId={talentSearchFilters.selectedJobId} 
             onFilterChange={handleFilterChange} 
-            jobs={jobs} 
-            isLoading={isLoading} 
+            jobs={jobsData.jobs} 
+            isLoading={isLoading && talents.length === 0} 
           />;
           break;
         case 'talent_profile':
@@ -611,25 +632,27 @@ const Popup = () => {
             />;
           break;
         case 'add_confirm':
-          contentToRender = <ConfirmProfileView profileContext={profileContext} onConfirmCreation={() => handleConfirmTalentCreation(profileContext.profileData)} onGoToProfile={() => handleSelectTalentForDetails(profileContext.talent)} onGoToDashboard={handleSelectAllJobs} />;
+          contentToRender = <ConfirmProfileView profileContext={profileContext} onConfirmCreation={() => handleConfirmTalentCreation(profileContext.profileData)} onGoToProfile={() => handleSelectTalentForDetails(profileContext.talent)} onGoToDashboard={() => handleLayoutNavigate('dashboard_jobs')} />;
           break;
         case 'select_job_for_new_talent':
             contentToRender = <JobsDashboardView
                 isSelectionMode={true}
-                jobs={jobs}
+                jobsData={jobsData}
                 onSelectJob={(selectedJob) => {
                     handleConfirmTalentCreation(profileContext.profileData, selectedJob.id);
                 }}
+                onPageChange={handleJobsPageChange}
                 onBack={() => navigateTo('dashboard_jobs')}
             />;
             break;
         case 'select_job_contextual_for_talent':
             contentToRender = <JobsDashboardView 
                 isSelectionMode={true} 
-                jobs={jobs} 
+                jobsData={jobsData} 
                 onSelectJob={async (job) => {
                     await handleApplyTalentToJob(job.id, currentTalent.id);
                 }} 
+                onPageChange={handleJobsPageChange}
                 onBack={goBack} 
             />;
             break;

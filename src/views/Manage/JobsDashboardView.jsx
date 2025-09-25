@@ -8,7 +8,35 @@ const AreaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" heig
 const SlaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> );
 const TagIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> );
 
-// CORREÇÃO: Usar os valores da API para o filtro e mapear para labels
+// ==========================================================
+// NOVO COMPONENTE DE PAGINAÇÃO
+// ==========================================================
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className={styles.pagination}>
+            <button 
+                onClick={() => onPageChange(currentPage - 1)} 
+                disabled={currentPage === 1}
+                className={styles.pageButton}
+            >
+                ‹ Anterior
+            </button>
+            <span className={styles.pageInfo}>
+                Página {currentPage} de {totalPages}
+            </span>
+            <button 
+                onClick={() => onPageChange(currentPage + 1)} 
+                disabled={currentPage === totalPages}
+                className={styles.pageButton}
+            >
+                Próxima ›
+            </button>
+        </div>
+    );
+};
+
 const JOB_STATUSES = [
     { value: 'open', label: 'Aberta' },
     { value: 'paused', label: 'Congelada' },
@@ -16,24 +44,30 @@ const JOB_STATUSES = [
     { value: 'canceled', label: 'Cancelada' }
 ];
 
-const JobsDashboardView = ({ jobs, onSelectJob, onBack, isSelectionMode = false }) => {
-  const [activeStatusFilter, setActiveStatusFilter] = useState('open'); // O estado agora armazena o valor da API
+const JobsDashboardView = ({ 
+    jobsData,
+    onSelectJob, 
+    onBack, 
+    isSelectionMode = false,
+    onPageChange 
+}) => {
+  const [activeStatusFilter, setActiveStatusFilter] = useState('open');
   const [selectedTag, setSelectedTag] = useState('all');
 
   const title = isSelectionMode ? "Selecione a Vaga" : "Dashboard de Vagas";
-  const subtitle = isSelectionMode ? "Associe o candidato à vaga." : "Filtre e gerencie suas vagas.";
+  const subtitle = isSelectionMode ? "Associe o candidato à vaga." : `${jobsData.totalJobs || 0} vagas no total`;
   
   const allTags = useMemo(() => {
     const tagsSet = new Set();
-    jobs.forEach(job => job.tags.forEach(tag => tagsSet.add(tag.name)));
+    (jobsData.jobs || []).forEach(job => job.tags.forEach(tag => tagsSet.add(tag.name)));
     return Array.from(tagsSet);
-  }, [jobs]);
+  }, [jobsData.jobs]);
 
   const filteredJobs = useMemo(() => {
-    return jobs
+    return (jobsData.jobs || [])
       .filter(job => job.status === activeStatusFilter)
       .filter(job => selectedTag === 'all' || job.tags.some(tag => tag.name === selectedTag));
-  }, [jobs, activeStatusFilter, selectedTag]);
+  }, [jobsData.jobs, activeStatusFilter, selectedTag]);
 
   return (
     <div className={styles.container}>
@@ -87,6 +121,16 @@ const JobsDashboardView = ({ jobs, onSelectJob, onBack, isSelectionMode = false 
           <p className={styles.emptyState}>Nenhuma vaga encontrada para os filtros selecionados.</p>
         )}
       </main>
+
+      {!isSelectionMode && (
+        <footer className={styles.footer}>
+            <Pagination 
+                currentPage={jobsData.currentPage}
+                totalPages={jobsData.totalPages}
+                onPageChange={onPageChange}
+            />
+        </footer>
+      )}
     </div>
   );
 };

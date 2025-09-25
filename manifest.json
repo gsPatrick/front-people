@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "InHire Helper",
+  "name": "Anna Isidoro",
   "version": "1.0.0",
-  "description": "Integração inteligente entre LinkedIn e InHire.",
+  "description": "Anna Isidoro Chrome Extension",
   "permissions": [
     "storage",
     "tabs", 
@@ -14,7 +14,7 @@
     "http://localhost:4000/*" 
   ],
   "action": {
-    "default_title": "Abrir InHire Helper",
+    "default_title": "Abrir Anna Isidoro",
     "default_popup": "index.html",
     "default_icon": {
       "16": "logo.png",

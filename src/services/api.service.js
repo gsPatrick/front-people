@@ -52,7 +52,7 @@ export const createTalent = async (talentData) => {
 
 // --- Gerenciamento de Talentos ---
 
-export const fetchAllTalents = async (limit = 20, nextPageKey = null) => {
+export const fetchAllTalents = async (limit = 10, nextPageKey = null) => { // Limite padrão de 10
   try {
     const params = { limit };
     if (nextPageKey) {
@@ -73,6 +73,16 @@ export const fetchTalentDetails = async (talentId) => {
     handleError(error);
   }
 };
+
+export const fetchJobsPaginated = async (page = 1, limit = 3) => {
+  try {
+    const response = await apiClient.get(`/jobs?page=${page}&limit=${limit}`);
+    return response.data; // A resposta já vem no formato { jobs, currentPage, totalPages, ... }
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 
 export const updateTalent = async (talentId, dataToUpdate) => {
   try {
