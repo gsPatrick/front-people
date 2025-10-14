@@ -1,9 +1,7 @@
-// src/views/Manage/CandidateDetailView.jsx
+// ATUALIZE O ARQUIVO: src/views/Manage/CandidateDetailView.jsx
 
 import React, { useState } from 'react';
 import styles from './CandidateDetailView.module.css';
-import { IoTrashOutline } from 'react-icons/io5';
-import { GoThumbsup, GoThumbsdown } from 'react-icons/go';
 import { MdEmail, MdPhone } from 'react-icons/md';
 import { FaLinkedin, FaBuilding, FaMapMarkerAlt } from 'react-icons/fa';
 import { BsCheckCircleFill, BsXCircleFill } from 'react-icons/bs';
@@ -119,8 +117,8 @@ const CandidateDetailView = ({
             <div className={styles.infoSection}>
                 <label className={styles.infoLabel}>Scorecards</label>
                 <div className={styles.buttonRow}>
-                    <button className={styles.outlineButton} onClick={() => onAccessScorecard(candidate.application, job)}>Resumo de Avaliações</button>
-                    <button className={styles.outlineButton} onClick={() => onStartNewEvaluation(candidate.application, job)}>Acessar kit de entrevista</button>
+                    <button className={styles.outlineButton} onClick={() => onAccessScorecard(job)}>Resumo de Avaliações</button>
+                    <button className={styles.outlineButton} onClick={() => onStartNewEvaluation(job)}>Acessar kit de entrevista</button>
                 </div>
             </div>
         </div>
