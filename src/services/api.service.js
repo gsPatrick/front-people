@@ -4,7 +4,6 @@ import axios from 'axios';
 
 // ATENÇÃO: Verifique se esta URL está correta para o seu ambiente de desenvolvimento.
 const API_BASE_URL = 'https://geral-people-api.r954jc.easypanel.host/api';
-
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -52,11 +51,17 @@ export const createTalent = async (talentData) => {
 
 // --- Gerenciamento de Talentos ---
 
-export const fetchAllTalents = async (limit = 10, nextPageKey = null) => { // Limite padrão de 10
+// ==========================================================
+// CORREÇÃO APLICADA AQUI
+// O nome do parâmetro recebido é `exclusiveStartKey` para consistência com o Popup.jsx.
+// O nome do parâmetro enviado para a API é `nextPageKey`, que é o que o backend espera.
+// ==========================================================
+export const fetchAllTalents = async (limit = 10, exclusiveStartKey = null) => {
   try {
     const params = { limit };
-    if (nextPageKey) {
-      params.nextPageKey = JSON.stringify(nextPageKey); 
+    if (exclusiveStartKey) {
+      // O backend espera o parâmetro como `nextPageKey`
+      params.nextPageKey = JSON.stringify(exclusiveStartKey); 
     }
     const response = await apiClient.get('/talents', { params });
     return response.data; 
@@ -74,10 +79,11 @@ export const fetchTalentDetails = async (talentId) => {
   }
 };
 
-export const fetchJobsPaginated = async (page = 1, limit = 3) => {
+export const fetchJobsPaginated = async (page = 1, limit = 3, status = 'open') => {
   try {
-    const response = await apiClient.get(`/jobs?page=${page}&limit=${limit}`);
-    return response.data; // A resposta já vem no formato { jobs, currentPage, totalPages, ... }
+    // Inclui o status como um parâmetro da URL
+    const response = await apiClient.get(`/jobs?page=${page}&limit=${limit}&status=${status}`);
+    return response.data;
   } catch (error) {
     handleError(error);
   }

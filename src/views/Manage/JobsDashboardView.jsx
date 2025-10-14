@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import styles from './JobsDashboardView.module.css';
 import Header from '../../components/Header/Header';
 
@@ -8,9 +8,7 @@ const AreaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" heig
 const SlaIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> );
 const TagIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> );
 
-// ==========================================================
-// NOVO COMPONENTE DE PAGINAÇÃO
-// ==========================================================
+// Componente de Paginação local, pois é usado apenas aqui
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     if (totalPages <= 1) return null;
 
@@ -49,25 +47,14 @@ const JobsDashboardView = ({
     onSelectJob, 
     onBack, 
     isSelectionMode = false,
-    onPageChange 
+    onPageChange,
+    activeStatusFilter,
+    onFilterChange
 }) => {
-  const [activeStatusFilter, setActiveStatusFilter] = useState('open');
-  const [selectedTag, setSelectedTag] = useState('all');
-
   const title = isSelectionMode ? "Selecione a Vaga" : "Dashboard de Vagas";
-  const subtitle = isSelectionMode ? "Associe o candidato à vaga." : `${jobsData.totalJobs || 0} vagas no total`;
+  const subtitle = isSelectionMode ? "Associe o candidato à vaga." : `${jobsData.totalJobs || 0} vagas com este status`;
   
-  const allTags = useMemo(() => {
-    const tagsSet = new Set();
-    (jobsData.jobs || []).forEach(job => job.tags.forEach(tag => tagsSet.add(tag.name)));
-    return Array.from(tagsSet);
-  }, [jobsData.jobs]);
-
-  const filteredJobs = useMemo(() => {
-    return (jobsData.jobs || [])
-      .filter(job => job.status === activeStatusFilter)
-      .filter(job => selectedTag === 'all' || job.tags.some(tag => tag.name === selectedTag));
-  }, [jobsData.jobs, activeStatusFilter, selectedTag]);
+  const jobsToDisplay = jobsData.jobs || [];
 
   return (
     <div className={styles.container}>
@@ -80,31 +67,21 @@ const JobsDashboardView = ({
                   <button 
                       key={status.value}
                       className={`${styles.filterButton} ${activeStatusFilter === status.value ? styles.active : ''}`}
-                      onClick={() => setActiveStatusFilter(status.value)}
+                      onClick={() => onFilterChange(status.value)}
                   >
                       {status.label}
                   </button>
               ))}
             </div>
-            {allTags.length > 0 && (
-                <div className={styles.tagSelectorWrapper}>
-                    <TagIcon />
-                    <select
-                        className={styles.tagSelector}
-                        value={selectedTag}
-                        onChange={(e) => setSelectedTag(e.target.value)}
-                    >
-                        <option value="all">Todas as Tags</option>
-                        {allTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-                    </select>
-                </div>
-            )}
+            {/* O filtro de tags foi removido temporariamente para simplificar, mas pode ser re-adicionado aqui
+                passando as `allTags` e `selectedTag` como props do Popup.jsx
+            */}
           </div>
       )}
 
       <main className={styles.jobList}>
-        {filteredJobs.length > 0 ? (
-          filteredJobs.map(job => (
+        {jobsToDisplay.length > 0 ? (
+          jobsToDisplay.map(job => (
             <button key={job.id} className={styles.jobCard} onClick={() => onSelectJob(job)}>
               <div className={styles.jobInfo}>
                 <span className={styles.jobName}>{job.name}</span>

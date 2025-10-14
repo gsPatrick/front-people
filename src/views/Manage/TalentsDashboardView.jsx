@@ -1,3 +1,5 @@
+// src/views/Manage/TalentsDashboardView.jsx
+
 import React from 'react';
 import styles from './TalentsDashboardView.module.css';
 import Header from '../../components/Header/Header';
@@ -5,9 +7,7 @@ import Header from '../../components/Header/Header';
 const SearchIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> );
 const BriefcaseIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg> );
 
-// ==========================================================
-// COMPONENTE DE PAGINAÇÃO
-// ==========================================================
+// Componente de Paginação para Talentos
 const Pagination = ({ onPrev, onNext, hasPrev, hasNext, currentPage }) => {
     // Não renderiza nada se não houver páginas para navegar
     if (!hasPrev && !hasNext) return null;
@@ -35,18 +35,15 @@ const Pagination = ({ onPrev, onNext, hasPrev, hasNext, currentPage }) => {
     );
 };
 
-
 const TalentsDashboardView = ({ 
     talents, 
     onSelectTalent, 
-    // Novas props de paginação
     onNextPage,
     onPrevPage,
     hasNextPage,
     hasPrevPage,
     currentPage,
-    totalTalentsText, // Prop para o texto do subtítulo
-    // Props de filtro e estado
+    totalTalentsText,
     isPagingLoading,
     searchTerm, 
     selectedJobId, 
@@ -88,7 +85,8 @@ const TalentsDashboardView = ({
                 onChange={handleSelectedJobIdChange}
             >
                 <option value="">Todas as Vagas</option>
-                {jobs.map(job => (
+                {/* Garante que `jobs` seja um array antes de mapear */}
+                {(jobs || []).map(job => (
                     <option key={job.id} value={job.id}>{job.name}</option>
                 ))}
             </select>
@@ -114,6 +112,7 @@ const TalentsDashboardView = ({
           <p className={styles.emptyState}>Nenhum talento encontrado para os filtros selecionados.</p>
         )}
       </main>
+
       <footer className={styles.footer}>
         <Pagination 
             onPrev={onPrevPage}
