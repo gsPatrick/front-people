@@ -1,38 +1,45 @@
-// src/background.js
+// ATENÇÃO: ESTE ARQUIVO DEVE ESTAR EM 'src/background.js'
 
-const DEFAULT_SETTINGS = {
-    isSidePanelModeEnabled: true,
-    isLinkedInPopupEnabled: true,
-    isPersistenceEnabled: false,
-    isOpenInTabEnabled: false,
-    isAIEnabled: false
-};
+import { extractProfileFromPdf } from './services/api.service.js';
 
-async function updateActionBehavior() {
-  try {
-    const data = await chrome.storage.local.get('app_settings');
-    const settings = data.app_settings || DEFAULT_SETTINGS;
-    const useSidePanel = settings.isSidePanelModeEnabled;
+// 1. Configura a ação do clique no ícone para abrir o side panel
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
 
-    if (useSidePanel) {
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-      await chrome.action.setPopup({ popup: '' });
-    } else {
-      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
-      await chrome.action.setPopup({ popup: 'index.html' });
-    }
-  } catch (error) {
-    console.error("Erro ao atualizar o comportamento da ação:", error);
+// 2. Listener para mensagens de outros scripts da extensão
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Processa a captura do PDF do LinkedIn
+  if (message.action === "processLinkedInPdf" && message.data) {
+    console.log("BACKGROUND: PDF (Base64) recebido do Content Script.");
+
+    // A API espera um Blob. Convertamos o Data URL (Base64) para Blob.
+    fetch(message.data)
+      .then(res => res.blob())
+      .then(async (pdfBlob) => {
+        try {
+          console.log("BACKGROUND: Blob convertido. Enviando para a API de extração...");
+          const extractedData = await extractProfileFromPdf(pdfBlob);
+          console.log("BACKGROUND: Dados extraídos com sucesso pela API!", extractedData);
+          
+          // Envia uma mensagem para a UI (Popup/Sidepanel) com o resultado.
+          chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: extractedData });
+          
+          sendResponse({ success: true, data: extractedData });
+        } catch (error) {
+          console.error("BACKGROUND: Erro ao chamar a API de extração:", error);
+          chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: error.message } });
+          sendResponse({ success: false, error: error.message });
+        }
+      })
+      .catch(error => {
+        console.error("BACKGROUND: Erro ao converter Base64 para Blob:", error);
+        sendResponse({ success: false, error: "Falha na conversão de Base64." });
+      });
+    
+    // Retorna true para indicar que a resposta será enviada de forma assíncrona.
+    return true;
   }
-}
 
-// Roda na primeira instalação para definir as configurações padrão.
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === 'install') {
-    chrome.storage.local.set({ app_settings: DEFAULT_SETTINGS });
-  }
-  updateActionBehavior();
+  // Você pode adicionar outros listeners 'if' aqui para diferentes ações no futuro.
 });
-
-// Roda toda vez que o navegador é iniciado.
-chrome.runtime.onStartup.addListener(updateActionBehavior);

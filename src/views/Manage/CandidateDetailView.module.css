@@ -229,3 +229,103 @@
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Manage/CandidateDetailView.module.css */
+
+.tabDivider {
+  height: 20px;
+  width: 1px;
+  background-color: var(--border-color);
+  margin: 0 8px;
+  align-self: center;
+}
+
+.noKitsContainer {
+    text-align: center;
+    padding: 40px 24px;
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+    margin: 24px;
+    background-color: rgba(31, 41, 55, 0.3);
+}
+
+.noKitsContainer p {
+    margin: 0 0 16px 0;
+    color: var(--text-secondary);
+}
+
+.createKitButton {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.createKitButton:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 4px solid var(--bg-tertiary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Manage/CandidateDetailView.module.css */
+
+.updateProfileButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.updateProfileButton:hover:not(:disabled) {
+    color: #2596be; /* Cor do LinkedIn */
+    border-color: #2596be;
+}
+
+.updateProfileButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.updateProfileButton svg {
+    width: 16px;
+    height: 16px;
+}
+
+.buttonLoader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,8 +1,9 @@
-// src/views/Manage/JobDetailsView.jsx
+// COLE ESTE CÓDIGO NO ARQUIVO: src/views/Manage/JobDetailsView.jsx
 
 import React, { useMemo, useState } from 'react';
 import styles from './JobDetailsView.module.css';
 import Header from '../../components/Header/Header';
+import { BsSearch } from 'react-icons/bs'; // Importa o ícone de busca
 
 const TABS = [
     { key: 'active', label: 'Ativos' },
@@ -10,26 +11,26 @@ const TABS = [
     { key: 'rejected', label: 'Reprovados' }
 ];
 
-// ATUALIZADO: Recebe a nova prop `availableStages`
 const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages }) => {
   const [activeTab, setActiveTab] = useState('active');
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(''); // <-- Estado para a busca
 
   const candidatesInTab = useMemo(() => {
     return candidates.filter(c => c.application.status === activeTab);
   }, [candidates, activeTab]);
-
-  // Este useMemo é apenas para o filtro na UI (no topo)
-  const stagesForFilter = useMemo(() => {
-    const stages = new Set(candidatesInTab.map(c => c.application.stageName));
-    return Array.from(stages);
-  }, [candidatesInTab]);
   
   const filteredAndSortedCandidates = useMemo(() => {
     return candidatesInTab
-      .filter(c => selectedStageFilter === 'all' || c.application.stageName === selectedStageFilter)
+      .filter(c => {
+        // Filtro por etapa
+        const stageMatch = selectedStageFilter === 'all' || c.application.stageId === selectedStageFilter;
+        // Filtro por termo de busca (case-insensitive)
+        const searchMatch = searchTerm === '' || c.name.toLowerCase().includes(searchTerm.toLowerCase());
+        return stageMatch && searchMatch;
+      })
       .sort((a, b) => new Date(b.application.createdAt) - new Date(a.application.createdAt));
-  }, [candidatesInTab, selectedStageFilter]);
+  }, [candidatesInTab, selectedStageFilter, searchTerm]);
 
 
   return (
@@ -41,6 +42,18 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
       />
       
       <div className={styles.filtersContainer}>
+        {/* Adiciona o campo de busca aqui */}
+        <div className={styles.searchBar}>
+            <BsSearch className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Buscar candidato por nome..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+        </div>
+
         <div className={styles.tabs}>
             {TABS.map(tab => (
                 <button 
@@ -62,9 +75,8 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
                 onChange={(e) => setSelectedStageFilter(e.target.value)}
             >
                 <option value="all">Todas as Etapas</option>
-                {/* O filtro da UI continua usando nomes */}
-                {stagesForFilter.map(stageName => (
-                    <option key={stageName} value={stageName}>{stageName}</option>
+                {availableStages.map(stage => (
+                    <option key={stage.id} value={stage.id}>{stage.name}</option>
                 ))}
             </select>
         </div>
@@ -87,15 +99,13 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
               </div>
               
               <div className={styles.statusSelectWrapper}>
-                {/* CORREÇÃO APLICADA AQUI */}
                 <select 
                   className={styles.statusSelect}
-                  value={candidate.application.stageId} // Usa o ID da etapa da aplicação
-                  onChange={(e) => onUpdateApplicationStatus(candidate.application.id, e.target.value)} // Envia o ID selecionado
+                  value={candidate.application.stageId}
+                  onChange={(e) => onUpdateApplicationStatus(candidate.application.id, e.target.value)}
                   onClick={(e) => e.stopPropagation()}
                   title="Alterar etapa da candidatura"
                 >
-                  {/* Itera sobre a prop `availableStages` que contém {id, name} */}
                   {availableStages.map(stage => (
                     <option key={stage.id} value={stage.id}>
                       {stage.name}

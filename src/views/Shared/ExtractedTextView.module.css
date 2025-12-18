@@ -1,0 +1,32 @@
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.content {
+  flex-grow: 1;
+  padding: 0 24px 24px 24px;
+  display: flex;
+}
+
+.textArea {
+  flex-grow: 1;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 13px;
+  font-family: monospace; /* Melhora a leitura de texto extraído */
+  line-height: 1.6;
+  resize: none; /* Impede que o usuário redimensione */
+}
+
+.textArea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}

@@ -1,4 +1,4 @@
-// COLE ESTE CÓDIGO NO ARQUIVO: src/hooks/useScorecard.js
+// ARQUIVO COMPLETO: src/hooks/useScorecard.js
 
 import { useState, useCallback } from 'react';
 import * as api from '../services/api.service';
@@ -7,7 +7,7 @@ import * as api from '../services/api.service';
  * Hook customizado para gerenciar todo o fluxo de scorecard.
  * @param {object} props - Propriedades para o hook.
  * @param {function} props.executeAsync - Função wrapper para chamadas de API.
- * @param {object} props.settings - O objeto de configurações da aplicação (para saber se a IA está ativa).
+ * @param {object} props.settings - O objeto de configurações da aplicação.
  * @param {object} props.currentTalent - O talento atualmente em contexto.
  * @param {object} props.currentJob - A vaga atualmente em contexto.
  * @param {object} props.currentApplication - A candidatura atualmente em contexto.
@@ -15,7 +15,7 @@ import * as api from '../services/api.service';
  */
 export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob, currentApplication }) => {
   const [isScorecardModalOpen, setIsScorecardModalOpen] = useState(false);
-  const [scorecardModalContent, setScorecardModalContent] = useState(null); // 'results', 'select_kit', 'create', 'evaluate'
+  const [scorecardModalContent, setScorecardModalContent] = useState(null);
   const [scorecardData, setScorecardData] = useState(null);
   const [selectedInterviewKit, setSelectedInterviewKit] = useState(null);
   const [currentEvaluationToEdit, setCurrentEvaluationToEdit] = useState(null);
@@ -76,6 +76,12 @@ export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob
 
   const handleScorecardSubmit = useCallback((evaluationData) => {
     executeAsync(async () => {
+      // ---- ADICIONE ESTAS LINHAS PARA DEPURAR ----
+      console.log('DEBUG: Submetendo Scorecard com o seguinte contexto:');
+      console.log('Kit Selecionado:', selectedInterviewKit);
+      console.log('Candidatura Atual:', currentApplication);
+      // ---------------------------------------------
+
       if (!selectedInterviewKit?.id || !currentApplication?.id) {
         throw new Error("Contexto de avaliação inválido. Kit ou candidatura não encontrados.");
       }
@@ -149,6 +155,7 @@ export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob
     selectedInterviewKit,
     currentEvaluationToEdit,
     aiAnalysisCache,
+    settings,
     handleAccessScorecard,
     handleStartNewEvaluation,
     handleCloseScorecard,

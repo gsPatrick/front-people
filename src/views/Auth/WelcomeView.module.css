@@ -1,0 +1,73 @@
+/* CRIE O ARQUIVO: src/views/Auth/WelcomeView.module.css */
+
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-primary);
+  z-index: 9999;
+  
+  /* Animação principal: fade in e fade out */
+  animation: fade-in-out 2s ease-in-out forwards;
+}
+
+.logo {
+  width: 140px;
+  height: auto;
+  margin-bottom: 24px;
+  
+  /* Animação para a logo aparecer */
+  animation: logo-appear 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: 0.2s;
+  opacity: 0; /* Começa invisível */
+}
+
+.welcomeText {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  
+  /* Animação para o texto aparecer */
+  animation: text-appear 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: 0.5s;
+  opacity: 0; /* Começa invisível */
+}
+
+/* Keyframes para a animação do container (ficar visível e depois sumir) */
+@keyframes fade-in-out {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Keyframes para a animação da logo (aparecer com um leve zoom) */
+@keyframes logo-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Keyframes para a animação do texto (aparecer deslizando de baixo) */
+@keyframes text-appear {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

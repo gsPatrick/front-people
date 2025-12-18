@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import styles from './ScorecardView.module.css';
 import { IoSparkles as FaSparkles } from 'react-icons/io5';
+import { BsBoxArrowUp } from 'react-icons/bs'; // NOVO ÍCONE
 
 // --- COMPONENTES INTERNOS ---
 
@@ -82,17 +83,18 @@ const ScorecardView = ({
     onSyncProfile,
     onSaveWeights,
     aiAnalysisCache,
-    onCacheAIResult
+    onCacheAIResult,
+    onSaveAsTemplate // <-- NOVA PROP
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [openWeightSelector, setOpenWeightSelector] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(isAIEnabled && !initialEvaluationData);
-  const [initializationStatusText, setInitializationStatusText] = useState('Iniciando avaliação...');
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [initializationStatusText, setInitializationStatusText] = useState('');
   
   const [weights, setWeights] = useState(() => {
     const initialWeights = {};
     scorecard.skillCategories.forEach(c => {
-      c.skills.forEach(s => {
+      (c.skills || []).forEach(s => {
         initialWeights[s.id] = scorecard.weights?.[s.id] || 2;
       });
     });
@@ -108,28 +110,39 @@ const ScorecardView = ({
     };
     const sourceData = initialEvaluationData || scorecard;
     sourceData.skillCategories.forEach(category => {
-        category.skills.forEach(skill => {
+        (category.skills || []).forEach(skill => {
+            const initialRating = initialEvaluationData ? 
+                (category.skills.find(s => s.name === skill.name) || {}) : 
+                {};
             initialState.ratings[skill.id] = {
-                score: skill.score || 0,
-                description: skill.description || ''
+                score: initialRating.score || 0,
+                description: initialRating.description || ''
             };
         });
     });
     return initialState;
   });
-  
-  useEffect(() => {
-    if (!isAIEnabled || initialEvaluationData) {
-        setIsInitializing(false);
-        return;
+
+  const runAIAssist = useCallback(async () => {
+    if (!isAIEnabled) return;
+    setIsInitializing(true);
+    const cacheKey = `${candidate.id}-${scorecard.id}`;
+    
+    if (aiAnalysisCache[cacheKey]) {
+        delete aiAnalysisCache[cacheKey];
     }
 
-    const runInitialization = async () => {
-        const cacheKey = `${candidate.id}-${scorecard.id}`;
-        
-        if (aiAnalysisCache[cacheKey]) {
-            setInitializationStatusText('Carregando análise anterior...');
-            const result = aiAnalysisCache[cacheKey];
+    setInitializationStatusText('Verificando perfil do candidato...');
+    try {
+        const cacheStatus = await onCheckCache();
+        if (!cacheStatus.hasCache) {
+            setInitializationStatusText('Perfil desatualizado. Sincronizando com o LinkedIn...');
+            await onSyncProfile();
+        }
+        setInitializationStatusText('Analisando perfil com IA (isso pode levar alguns segundos)...');
+        const result = await onAIAssistScorecard(scorecard, weights);
+        if (result) {
+            onCacheAIResult(cacheKey, result);
             setEvaluationData(prevData => {
                 const newRatings = { ...prevData.ratings };
                 result.evaluations.forEach(ev => {
@@ -137,58 +150,15 @@ const ScorecardView = ({
                         newRatings[ev.id] = { score: ev.score, description: ev.justification };
                     }
                 });
-                return {
-                    ...prevData,
-                    ratings: newRatings,
-                    feedback: result.overallFeedback,
-                    decision: result.finalDecision
-                };
+                return { ...prevData, ratings: newRatings, feedback: result.overallFeedback, decision: result.finalDecision };
             });
-            setIsInitializing(false);
-            return;
         }
-        
-        setInitializationStatusText('Verificando perfil do candidato...');
-        const cacheStatus = await onCheckCache();
-        if (!cacheStatus.hasCache) {
-            setInitializationStatusText('Perfil desatualizado. Sincronizando com o LinkedIn...');
-            try {
-                await onSyncProfile();
-            } catch (e) {
-                alert(`Falha na sincronização: ${e.message}. A avaliação manual está disponível.`);
-                setIsInitializing(false);
-                return;
-            }
-        }
-        setInitializationStatusText('Analisando perfil com IA (isso pode levar alguns segundos)...');
-        try {
-            const result = await onAIAssistScorecard(scorecard, weights);
-            if (result) {
-                onCacheAIResult(cacheKey, result);
-                setEvaluationData(prevData => {
-                    const newRatings = { ...prevData.ratings };
-                    result.evaluations.forEach(ev => {
-                        if (newRatings[ev.id] !== undefined) {
-                            newRatings[ev.id] = { score: ev.score, description: ev.justification };
-                        }
-                    });
-                    return {
-                        ...prevData,
-                        ratings: newRatings,
-                        feedback: result.overallFeedback,
-                        decision: result.finalDecision
-                    };
-                });
-            }
-        } catch (error) {
-            alert(`Ocorreu um erro com a IA: ${error.message}. A avaliação manual está disponível.`);
-        } finally {
-            setIsInitializing(false);
-        }
-    };
-
-    runInitialization();
-  }, []);
+    } catch (error) {
+        alert(`Ocorreu um erro com a IA: ${error.message}.`);
+    } finally {
+        setIsInitializing(false);
+    }
+  }, [isAIEnabled, candidate.id, scorecard, onCheckCache, onSyncProfile, onAIAssistScorecard, weights, onCacheAIResult, aiAnalysisCache]);
 
   const handleWeightChange = useCallback((skillId, newWeight) => {
     const newWeights = { ...weights, [skillId]: newWeight };
@@ -228,25 +198,50 @@ const ScorecardView = ({
   const handleSubmit = async () => {
     setIsLoading(true);
     await onSaveWeights(scorecard.id, weights);
-    await onSubmit(evaluationData);
+    const finalEvaluationData = {
+        userId: 'mock-user-id',
+        scorecardInterviewId: scorecard.id,
+        feedback: { comment: evaluationData.feedback, proceed: evaluationData.decision },
+        privateNotes: evaluationData.notes,
+        skillCategories: scorecard.skillCategories.map(cat => ({
+            name: cat.name,
+            skills: (cat.skills || []).map(skill => ({
+                name: skill.name,
+                score: evaluationData.ratings[skill.id]?.score || 0,
+                description: evaluationData.ratings[skill.id]?.description || ''
+            }))
+        }))
+    };
+    await onSubmit(finalEvaluationData);
     setIsLoading(false);
   };
 
   return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div className={styles.content} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.container}>
         {isInitializing && <InitializationOverlay statusText={initializationStatusText} />}
+        
         <header className={styles.header}>
-            <button onClick={onCancel} className={styles.backButton} title="Voltar">←</button>
-            <div className={styles.candidateInfo}>
-                <h2 className={styles.title}>Painel de Avaliação</h2>
-                <p className={styles.candidateName}>{candidate.name} {job && <span className={styles.jobContext}>• para {job.name}</span>}</p>
+            <div className={styles.headerActions}>
+                {isAIEnabled && (
+                    <button className={styles.aiButton} onClick={runAIAssist} disabled={isInitializing}>
+                        <FaSparkles />
+                        {isInitializing ? 'Analisando...' : 'Analisar com IA'}
+                    </button>
+                )}
+                {/* NOVO BOTÃO */}
+                {onSaveAsTemplate && (
+                    <button className={styles.templateButton} onClick={() => onSaveAsTemplate(scorecard)} title="Salvar a estrutura deste scorecard como um novo modelo reutilizável.">
+                        <BsBoxArrowUp />
+                        Salvar como Modelo
+                    </button>
+                )}
             </div>
             <div className={styles.globalScoreContainer} title={`Nota Global Ponderada: ${globalScore}`}>
                 <span className={styles.globalScoreValue}>{globalScore}</span>
                 <span className={styles.globalScoreLabel}>Global</span>
             </div>
         </header>
+
         <div className={styles.mainGrid}>
             <aside className={styles.notesPanel}>
                 <label>Roteiro e Anotações da Entrevista</label>
@@ -263,7 +258,7 @@ const ScorecardView = ({
                     <div className={styles.categoryHeader}>
                       <h4 className={styles.categoryTitle}>{category.name}</h4>
                     </div>
-                    {category.skills.map(skill => (
+                    {(category.skills || []).map(skill => (
                       <div key={skill.id} className={styles.skillContainer}>
                         <div className={styles.skillRow}>
                             <div className={styles.skillNameAndAI}>
@@ -320,11 +315,11 @@ const ScorecardView = ({
             </main>
         </div>
         <footer className={styles.footer}>
+          <button onClick={onCancel} className={styles.cancelButton}>Voltar</button>
           <button onClick={handleSubmit} className={styles.submitButton} disabled={isLoading || isInitializing}>
-            {isLoading ? <span className={styles.loader}></span> : (initialEvaluationData ? 'Salvar Alterações' : 'Finalizar e Enviar Avaliação')}
+            {isLoading ? <span className={styles.loader}></span> : 'Salvar Avaliação'}
           </button>
         </footer>
-      </div>
     </div>
   );
 };

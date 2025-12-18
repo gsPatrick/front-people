@@ -1,0 +1,16 @@
+.container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.deactivateSection { padding: 0 24px 16px; border-bottom: 1px solid var(--border-color); }
+.deactivateButton { width: 100%; padding: 12px; border-radius: 8px; background-color: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid #ef4444; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.deactivateButton:hover { background-color: #ef4444; color: var(--bg-primary); }
+.cardList { flex-grow: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.scorecardCard { display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; transition: all 0.2s ease; border-left: 4px solid transparent; }
+.scorecardCard.active { border-left-color: var(--accent-primary); border-color: var(--accent-primary); }
+.cardTitle { margin: 0 0 8px 0; font-size: 15px; }
+.atsTag { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.atsTag.internal { background-color: var(--bg-tertiary); color: var(--text-secondary); }
+.atsTag.inhire { background-color: rgba(34, 211, 238, 0.15); color: var(--accent-primary); }
+.selectButton { display: flex; align-items: center; gap: 8px; background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+.scorecardCard.active .selectButton { background-color: var(--accent-primary); color: var(--bg-primary); border-color: var(--accent-primary); }
+.scorecardCard:not(.active):hover .selectButton { border-color: var(--accent-primary); color: var(--accent-primary); }
+.emptyState { text-align: center; padding: 40px; color: var(--text-secondary); }
+.createButton { margin-top: 16px; background-color: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 16px; border-radius: 8px; cursor: pointer; }

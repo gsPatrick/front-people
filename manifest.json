@@ -8,7 +8,8 @@
     "sidePanel",
     "tabs",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "downloads"
   ],
   "host_permissions": [
     "*://*.linkedin.com/*",
@@ -37,7 +38,8 @@
     {
       "resources": [
         "logo.png",
-        "assets/*"
+        "assets/*",
+        "scripts/*"
       ],
       "matches": [
         "<all_urls>"

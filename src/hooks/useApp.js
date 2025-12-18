@@ -1,109 +1,206 @@
-// ATUALIZE O ARQUIVO: src/hooks/useApp.js
+// ARQUIVO FINAL COM A CORREÇÃO: src/hooks/useApp.js
 
 import { useState, useEffect, useCallback } from 'react';
+import { saveSettings, loadSettings } from '../services/session.service';
 import * as api from '../services/api.service';
-import { saveSettings, loadSettings, loadSessionState } from '../services/session.service';
 
-const DEFAULT_SETTINGS = {
-    isSidePanelModeEnabled: true,
-    isPersistenceEnabled: false,
-    isOpenInTabEnabled: false,
-    isAIEnabled: false
-};
+// Função de automação que será injetada
+function autoDownloadPdfFunction() {
+    (async function() {
+        console.log('[AUTODOWNLOAD] Script de download automático ativado.');
+        const waitForElement = (selector, timeout = 5000) => {
+            return new Promise((resolve, reject) => {
+                const interval = setInterval(() => {
+                    const element = document.querySelector(selector);
+                    if (element) { clearInterval(interval); resolve(element); }
+                }, 100);
+                setTimeout(() => {
+                    clearInterval(interval);
+                    reject(new Error(`[AUTODOWNLOAD] Elemento não encontrado: ${selector}`));
+                }, timeout);
+            });
+        };
+        try {
+            console.log('[AUTODOWNLOAD] Procurando o botão "Mais..."');
+            let moreButton = 
+                document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
+                document.querySelector('button[data-view-name="profile-overflow-button"]');
+            
+            if (!moreButton) {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                moreButton = buttons.find(btn => btn.querySelector('svg[id*="overflow"]') !== null);
+            }
+            if (!moreButton) {
+                const topcard = document.querySelector('section[data-view-name="profile-top-card"]');
+                if (topcard) {
+                    moreButton = Array.from(topcard.querySelectorAll('button')).find(btn => {
+                        const ariaLabel = btn.getAttribute('aria-label') || '';
+                        return ariaLabel.toLowerCase().includes('more') || ariaLabel.toLowerCase().includes('mais');
+                    });
+                }
+            }
+            if (!moreButton) throw new Error('Botão "Mais..." não encontrado no perfil.');
+            
+            moreButton.click();
+            console.log('[AUTODOWNLOAD] Botão "Mais..." clicado.');
 
-export const useApp = (executeAsync, navigateTo) => {
+            await new Promise(r => setTimeout(r, 500));
+            const dropdownItems = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
+            const savePdfItem = dropdownItems.find(item => {
+                const text = item.innerText.trim().toLowerCase();
+                return text === 'save to pdf' || text === 'salvar como pdf';
+            });
+            if (!savePdfItem) throw new Error('Opção "Salvar como PDF" não encontrada no menu.');
+            
+            savePdfItem.click();
+            console.log('[AUTODOWNLOAD] Clicando em "Salvar como PDF"... O download deve começar.');
+        } catch (error) {
+            console.error('[AUTODOWNLOAD] Erro no script de automação:', error.message);
+            alert(`Falha ao automatizar o download do PDF: ${error.message}`);
+        }
+    })();
+}
+
+
+export const useApp = (executeAsync, navigateTo, workflow) => {
     const [settings, setSettings] = useState(null);
-    const [isOnLinkedInProfile, setIsOnLinkedInProfile] = useState(false);
+    const [currentTab, setCurrentTab] = useState(null);
+    const [validatedProfileUrl, setValidatedProfileUrl] = useState(null);
+    const [currentProfileStatus, setCurrentProfileStatus] = useState(null);
 
     useEffect(() => {
-        const checkCurrentTab = async () => {
-            try {
-                const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                setIsOnLinkedInProfile(activeTab?.url?.includes("linkedin.com/in/") || false);
-            } catch (e) {
-                console.warn("Não foi possível verificar a aba:", e.message);
-                setIsOnLinkedInProfile(false);
+        const autoValidateProfile = async (tab) => {
+            if (!tab || !tab.url || tab.url === validatedProfileUrl) {
+                setCurrentProfileStatus(null);
+                return;
+            }
+
+            const linkedinProfileRegex = /linkedin\.com\/in\/([a-zA-Z0-9-]+)/;
+            const match = tab.url.match(linkedinProfileRegex);
+
+            if (match && match[1]) {
+                const username = match[1];
+                console.log(`[AUTO-VALIDATE] Perfil detectado: ${username}. Validando...`);
+                setValidatedProfileUrl(tab.url);
+
+                const validationResult = await api.validateProfile(tab.url);
+                
+                setCurrentProfileStatus(validationResult);
+
+                if (validationResult.exists) {
+                    workflow.setProfileContext({
+                        exists: true,
+                        talent: validationResult.talent,
+                        profileData: { name: validationResult.talent.name }
+                    });
+                    navigateTo('confirm_profile');
+                } else {
+                    workflow.setProfileContext({
+                        exists: false,
+                        profileData: { username }
+                    });
+                }
+            } else {
+                setValidatedProfileUrl(null);
+                setCurrentProfileStatus(null);
+                workflow.setProfileContext(null);
             }
         };
 
-        checkCurrentTab();
-        const listener = () => checkCurrentTab();
-        chrome.tabs.onUpdated.addListener(listener);
-        chrome.tabs.onActivated.addListener(listener);
-
-        return () => {
-            chrome.tabs.onUpdated.removeListener(listener);
-            chrome.tabs.onActivated.removeListener(listener);
+        const handleTabChange = () => {
+             if (chrome && chrome.tabs) {
+                chrome.tabs.query({ active: true, currentWindow: true }, ([activeTab]) => {
+                    if (activeTab) {
+                        setCurrentTab(activeTab);
+                        autoValidateProfile(activeTab);
+                    }
+                });
+            }
         };
-    }, []);
 
-    /**
-     * CORREÇÃO: A função agora não recebe mais setters.
-     * Em vez disso, ela carrega os dados e os RETORNA para o Popup.jsx.
-     */
+        handleTabChange();
+        
+        const listeners = {
+            onUpdated: (tabId, changeInfo, tab) => {
+                if (tabId === currentTab?.id && changeInfo.url) {
+                    handleTabChange();
+                }
+            },
+            onActivated: handleTabChange
+        };
+
+        if (chrome && chrome.tabs) {
+            chrome.tabs.onUpdated.addListener(listeners.onUpdated);
+            chrome.tabs.onActivated.addListener(listeners.onActivated);
+            return () => {
+                chrome.tabs.onUpdated.removeListener(listeners.onUpdated);
+                chrome.tabs.onActivated.removeListener(listeners.onActivated);
+            };
+        }
+    }, [validatedProfileUrl, navigateTo, workflow, currentTab]);
+
+
     const initializeApp = useCallback(async () => {
         const loadedSettings = await loadSettings();
-        const currentSettings = { ...DEFAULT_SETTINGS, ...loadedSettings };
-
-        let linkedInUrl = null;
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab) linkedInUrl = tab.url;
-        } catch (e) { console.warn("Não foi possível acessar a URL da aba."); }
-
-        // Se estiver no LinkedIn, retorna uma ação específica
-        if (linkedInUrl && linkedInUrl.includes("linkedin.com/in/")) {
-            const validationResult = await api.validateProfile(linkedInUrl);
-            return { settings: currentSettings, initialAction: 'LINKEDIN_PROFILE', payload: validationResult };
-        }
-
-        // Se a persistência estiver ativa, tenta carregar a sessão
-        if (currentSettings.isPersistenceEnabled) {
-            const savedState = await loadSessionState();
-            if (savedState && savedState.view && savedState.view !== 'loading') {
-                return { settings: currentSettings, initialAction: 'RESTORE_SESSION', payload: savedState };
-            }
-        }
-
-        // Caso contrário, é um início limpo
+        const currentSettings = { isSidePanelModeEnabled: true, ...loadedSettings };
+        setSettings(currentSettings);
         return { settings: currentSettings, initialAction: 'FRESH_START', payload: null };
     }, []);
 
     const handleSettingChange = useCallback(async (key, value) => {
-        const newSettings = { ...(settings || DEFAULT_SETTINGS), [key]: value };
+        const newSettings = { ...(settings || {}), [key]: value };
         setSettings(newSettings);
         await saveSettings(newSettings);
-
-        if (key === 'isSidePanelModeEnabled') {
-            try {
-                chrome.runtime.reload();
-            } catch (e) {
-                console.error("Falha ao recarregar a extensão:", e);
-                navigateTo('restart_required');
-            }
+        if (key === 'isSidePanelModeEnabled' && chrome.runtime) {
+            try { chrome.runtime.reload(); } catch (e) { navigateTo('restart_required'); }
         }
     }, [settings, navigateTo]);
 
-    const handleCaptureLinkedInProfile = useCallback((setProfileContext) => executeAsync(async () => {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.url && tab.url.includes("linkedin.com/in/")) {
-            const validationResult = await api.validateProfile(tab.url);
-            setProfileContext(validationResult);
-            navigateTo('add_confirm');
-        } else {
-            alert("Para capturar, por favor, navegue até um perfil válido no LinkedIn.");
-        }
-    }), [executeAsync, navigateTo]);
+   
+   // ==========================================================
+   // MUDANÇA PRINCIPAL AQUI
+   // ==========================================================
+   const handleCaptureLinkedInProfile = async () => {
+        try {
+            if (!currentTab || !currentTab.url || !currentTab.url.includes("linkedin.com/in/")) {
+                alert("Para capturar um perfil, navegue até uma página de perfil do LinkedIn.");
+                return;
+            }
 
-    /**
-     * CORREÇÃO: Expondo 'setSettings' para que o Popup.jsx possa usá-lo.
-     */
+            // Mensagem ajustada para informar que a ação ocorre em segundo plano
+            alert("Iniciando a captura do perfil. O processo continuará em segundo plano na aba do LinkedIn.");
+            
+            // REMOVIDO: A linha abaixo foi removida para impedir a mudança de tela.
+            // navigateTo('scraping');
+
+            // Os scripts continuam a ser injetados e executados normalmente
+            await chrome.scripting.executeScript({
+                target: { tabId: currentTab.id },
+                func: autoDownloadPdfFunction
+            });
+            
+            await chrome.scripting.executeScript({
+                target: { tabId: currentTab.id },
+                files: ['scripts/linkedin_pdf_scraper.js']
+            });
+
+        } catch (error) {
+            console.error("[POPUP] Erro ao injetar scripts:", error);
+            // Mensagem de erro direta, sem redirecionamento
+            alert(`Ocorreu um erro ao tentar iniciar a captura: ${error.message}`);
+            
+            // REMOVIDO: A linha abaixo foi removida para não redirecionar em caso de erro.
+            // navigateTo('dashboard_jobs');
+        }
+    };
+
     return {
         settings,
-        setSettings, // <-- AQUI ESTÁ A MUDANÇA IMPORTANTE
-        isOnLinkedInProfile,
+        setSettings,
+        currentTab,
+        currentProfileStatus,
         initializeApp,
         handleSettingChange,
-        handleCaptureLinkedInProfile
+        handleCaptureLinkedInProfile,
     };
 };

@@ -1,0 +1,165 @@
+/* CRIE O ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-primary);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.addButton {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.addButton:hover {
+    box-shadow: 0 0 15px var(--glow-color);
+    transform: translateY(-1px);
+}
+
+.logoutButton {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.logoutButton:hover {
+    color: #f87171;
+    border-color: #f87171;
+}
+
+.userList {
+  flex-grow: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.userCard {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+}
+.userName {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.userEmail {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.adminBadge, .userBadge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.adminBadge {
+    background-color: rgba(167, 139, 250, 0.15);
+    color: var(--accent-secondary);
+}
+.userBadge {
+    background-color: rgba(34, 211, 238, 0.15);
+    color: var(--accent-primary);
+}
+
+.userActions {
+    display: flex;
+    gap: 8px;
+}
+
+.actionButton {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.actionButton:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+.deleteButton:hover {
+    color: #f87171;
+    border-color: #f87171;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
+
+.container.loggingOut {
+    animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+}
+
+/* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
+
+.loader {
+  width: 32px;
+  height: 32px;
+  border: 4px solid var(--bg-tertiary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 40px auto;
+}
+
+.errorText {
+  color: #f87171;
+  text-align: center;
+  margin: 40px auto;
+  font-size: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

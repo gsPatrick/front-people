@@ -3,7 +3,7 @@
 .layout {
   display: flex;
   width: 100%;
-  height: 100%; /* CORREÇÃO: Alterado de 600px para 100% para preencher a janela */
+  height: 100%;
   background-color: var(--bg-primary);
   animation: fadeIn 0.4s ease-out;
 }
@@ -140,7 +140,8 @@
   width: auto;
 }
 
-.layout.collapsed .navLabel {
+.layout.collapsed .navLabel,
+.layout.collapsed .navLabelContainer {
   opacity: 0;
   width: 0;
   pointer-events: none;
@@ -186,18 +187,11 @@
   overflow: hidden;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Adicione este código no final do arquivo src/components/Layout/Layout.module.css */
-
 .captureButton {
   background-color: rgba(34, 211, 238, 0.1);
   border: 1px solid var(--accent-primary);
   color: var(--accent-primary);
-  margin-bottom: 16px; /* Adiciona um espaço abaixo dele */
+  margin-bottom: 16px;
 }
 .captureButton:hover {
   background-color: var(--accent-primary);
@@ -209,4 +203,63 @@
 }
 .captureButton:hover .navIcon {
   color: var(--bg-primary);
+}
+
+.logoutButton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background-color: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.layout.collapsed .logoutButton {
+    justify-content: center;
+}
+
+.logoutButton:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+}
+
+.logoutButton .navIcon {
+    font-size: 20px;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.logoutButton:hover .navIcon {
+    color: #f87171;
+}
+
+.navLabelContainer {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.navSubLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px; /* Evita que o texto quebre a sidebar */
+}
+
+.navItem.active .navSubLabel {
+  color: var(--bg-primary);
+  opacity: 0.7;
 }

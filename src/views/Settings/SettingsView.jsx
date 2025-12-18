@@ -1,4 +1,4 @@
-// src/views/Settings/SettingsView.jsx
+// COLE ESTE CÓDIGO NO ARQUIVO: src/views/Settings/SettingsView.jsx
 
 import React from 'react';
 import styles from './SettingsView.module.css';
@@ -14,22 +14,7 @@ const SettingsView = ({
       
       <main className={styles.settingsContent}>
         
-        <section className={styles.settingSection}>
-          <div className={styles.settingItem}>
-            <label className={styles.settingLabel}>Modo de Visualização: Painel Lateral</label>
-            <label className={`${styles.toggleSwitch} ${styles.modeToggle}`}>
-              <input 
-                type="checkbox" 
-                checked={settings.isSidePanelModeEnabled} 
-                onChange={() => onSettingChange('isSidePanelModeEnabled', !settings.isSidePanelModeEnabled)} 
-              />
-              <span className={styles.toggleSlider}></span>
-            </label>
-          </div>
-          <p className={styles.settingDescription}>
-            Ative para abrir a extensão em um painel lateral. Desative para o modo popup. **A extensão será recarregada para aplicar esta mudança.**
-          </p>
-        </section>
+        {/* A SEÇÃO DO MODO PAINEL LATERAL FOI REMOVIDA DAQUI */}
 
         <section className={styles.settingSection}>
           <div className={styles.settingItem}>
@@ -44,7 +29,7 @@ const SettingsView = ({
             </label>
           </div>
           <p className={styles.settingDescription}>
-            Quando ativado, a extensão irá lembrar a última tela que você estava visitando.
+            Quando ativado, a extensão irá lembrar a última tela que você estava visitando ao ser reaberta.
           </p>
         </section>
 
@@ -61,7 +46,7 @@ const SettingsView = ({
             </label>
           </div>
           <p className={styles.settingDescription}>
-            Ativa um botão no menu que permite abrir a interface em uma nova aba do navegador.
+            Ativa um botão no menu que permite abrir a interface em uma nova aba do navegador para uma visualização expandida.
           </p>
         </section>
 

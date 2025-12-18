@@ -1,0 +1,54 @@
+/* CRIE O ARQUIVO: src/views/Admin/Toast.module.css */
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 2000;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  animation: toastIn 0.4s ease-out forwards;
+}
+
+.toast.success {
+  background-color: #057642;
+  color: white;
+}
+
+.toast.error {
+  background-color: #cc1016;
+  color: white;
+}
+
+.message {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dismissButton {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 20px;
+  cursor: pointer;
+}
+.dismissButton:hover {
+  opacity: 1;
+}
+
+@keyframes toastIn {
+  from {
+    transform: translateX(-50%) translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}

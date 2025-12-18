@@ -1,0 +1,177 @@
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 32px;
+  animation: fadeIn 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+.glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 40%);
+  opacity: 0.08;
+  animation: rotateGlow 20s linear infinite;
+  z-index: 0;
+}
+
+@keyframes rotateGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.logo {
+    width: 120px;
+    height: auto;
+    margin-bottom: 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  z-index: 1;
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0 0 32px 0;
+  z-index: 1;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 320px;
+  z-index: 1;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputGroup label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.inputGroup input {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--glow-color);
+}
+
+.loginButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background-image: linear-gradient(to right, var(--accent-primary), #67E8F9);
+  color: var(--bg-primary);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
+.loginButton:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+.loginButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #fca5a5;
+  font-size: 13px;
+  text-align: center;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: -8px;
+}
+
+.loader {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(17, 24, 39, 0.2);
+  border-top-color: var(--bg-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+
+/* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Auth/LoginView.module.css */
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Garante que o input dentro do wrapper ocupe todo o espaço */
+.passwordWrapper input {
+  width: 100%;
+  padding-right: 45px; /* Adiciona espaço à direita para o ícone não sobrepor o texto */
+}
+
+.togglePasswordButton {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0 14px; /* Aumenta a área de clique */
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  transition: color 0.2s ease;
+}
+
+.togglePasswordButton:hover {
+  color: var(--text-primary);
+}

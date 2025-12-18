@@ -1,0 +1,90 @@
+/* CRIE O ARQUIVO: src/views/AddCandidate/ProfileFoundView.module.css */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 48px 32px;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.iconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 90px;
+  height: 90px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  margin-bottom: 24px;
+  color: var(--accent-primary);
+}
+
+.prompt {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 15px;
+}
+
+.candidateName {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0 4px 0;
+}
+
+.candidateHeadline {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 32px;
+  max-width: 350px;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.primaryButton, .secondaryButton {
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primaryButton {
+  background-image: linear-gradient(to right, var(--accent-primary), #67E8F9);
+  color: var(--bg-primary);
+  box-shadow: 0 0 20px var(--glow-color);
+}
+.primaryButton:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+.secondaryButton {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.secondaryButton:hover {
+  background-color: #4B5563;
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

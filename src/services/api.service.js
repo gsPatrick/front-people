@@ -1,33 +1,179 @@
-// src/services/api.service.js
+// ARQUIVO COMPLETO E ATUALIZADO: src/services/api.service.js
 
 import axios from 'axios';
+import { loadAuthData } from './session.service';
 
-// ATENÇÃO: Verifique se esta URL está correta para o seu ambiente de desenvolvimento.
-const API_BASE_URL = 'https://geral-people-api.r954jc.easypanel.host/api';
+const API_BASE_URL = 'https://geral-people-api.r954jc.easypanel.host/api'; // <-- Sua URL de produção
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-/**
- * Lida com erros da API, extraindo a mensagem de erro relevante.
- * @param {Error} error - O objeto de erro do Axios.
- * @returns {string} A mensagem de erro formatada.
- */
+// INTERCEPTADOR: Adiciona o token de autenticação a cada requisição
+apiClient.interceptors.request.use(async (config) => {
+    const authData = await loadAuthData();
+    if (authData?.token) {
+        config.headers.Authorization = `Bearer ${authData.token}`;
+    }
+    return config;
+}, (error) => {
+    return Promise.reject(error);
+});
+
 const handleError = (error) => {
   const message = error.response?.data?.error || error.message || 'Ocorreu um erro inesperado.';
-  console.error('Erro na chamada da API:', message);
-  throw new Error(message);
+  const status = error.response?.status;
+  console.error('Erro na chamada da API:', message, 'Status:', status);
+  
+  const apiError = new Error(message);
+  apiError.status = status;
+  throw apiError;
+};
+
+
+
+
+// ===================================================================
+//                          SERVIÇOS DE AUTENTICAÇÃO
+// ===================================================================
+export const loginUser = async (email, password) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
 };
 
 
 // ===================================================================
-//                          SERVIÇOS DA API
+//          ⭐ NOVA FUNÇÃO PARA PARSING DE TEXTO COM IA ⭐
 // ===================================================================
+/**
+ * Envia o texto bruto de um perfil para a API de IA para ser estruturado em JSON.
+ * @param {string} rawText - O texto completo extraído de um PDF.
+ * @returns {Promise<object>} Os dados do perfil estruturados em JSON.
+ */
+export const processProfileFromText = async (rawText) => {
+    try {
+        // A rota que você criou no seu backend é '/parse-profile-ai'
+        const response = await apiClient.post('/parse-profile-ai', { rawText });
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
 
-// --- Validação e Criação de Perfil (Fluxo do LinkedIn) ---
+
+// ===================================================================
+//          ⭐ NOVA FUNÇÃO PARA EXTRAÇÃO DE PDF ⭐
+// ===================================================================
+/**
+ * Envia um arquivo PDF (Blob) para a API para extração.
+ * Esta função será chamada pelo background.js, mas a definimos aqui para centralizar a lógica da API.
+ * @param {Blob} pdfBlob - O arquivo PDF capturado.
+ * @returns {Promise<object>} Os dados extraídos do perfil.
+ */
+export const extractProfileFromPdf = async (pdfBlob) => {
+    try {
+        const formData = new FormData();
+        formData.append("file", pdfBlob, "linkedin_profile.pdf");
+
+        // Esta chamada precisa de um header diferente (multipart/form-data)
+        // e do token de autenticação.
+        const authData = await loadAuthData();
+        const headers = {};
+        if (authData?.token) {
+            headers['Authorization'] = `Bearer ${authData.token}`;
+        }
+
+        const response = await axios.post(`${API_BASE_URL}/extract-from-pdf`, formData, { headers });
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+
+// ===================================================================
+//                          SERVIÇOS DE ADMINISTRAÇÃO
+// ===================================================================
+export const getAllUsers = async () => {
+    try {
+        const response = await apiClient.get('/admin/users');
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const createUser = async (userData) => {
+    try {
+        const response = await apiClient.post('/admin/users', userData);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const updateUser = async (userId, userData) => {
+    try {
+        const response = await apiClient.put(`/admin/users/${userId}`, userData);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const deleteUser = async (userId) => {
+    try {
+        const response = await apiClient.delete(`/admin/users/${userId}`);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+// ===================================================================
+//                          DEMAIS SERVIÇOS DA API
+// ===================================================================
+export const createScorecard = async (scorecardData) => {
+    try {
+        const response = await apiClient.post('/scorecards', scorecardData);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const getAllScorecards = async () => {
+    try {
+        const response = await apiClient.get('/scorecards');
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const updateScorecard = async (id, scorecardData) => {
+    try {
+        const response = await apiClient.put(`/scorecards/${id}`, scorecardData);
+        return response.data;
+    } catch (error) {
+        handleError(error);
+    }
+};
+
+export const deleteScorecard = async (id) => {
+    try {
+        await apiClient.delete(`/scorecards/${id}`);
+        return { success: true };
+    } catch (error) {
+        handleError(error);
+    }
+};
+
 
 export const validateProfile = async (profileUrl) => {
   try {
@@ -42,29 +188,33 @@ export const createTalent = async (talentData) => {
   try {
     const response = await apiClient.post('/create-talent', talentData);
     return response.data;
-  } catch (error)
- {
+  } catch (error) {
     handleError(error);
   }
 };
 
-
-// --- Gerenciamento de Talentos ---
-
-// ==========================================================
-// CORREÇÃO APLICADA AQUI
-// O nome do parâmetro recebido é `exclusiveStartKey` para consistência com o Popup.jsx.
-// O nome do parâmetro enviado para a API é `nextPageKey`, que é o que o backend espera.
-// ==========================================================
-export const fetchAllTalents = async (limit = 10, exclusiveStartKey = null) => {
+export const fetchAllTalents = async (page = 1, limit = 10, filters = {}) => {
   try {
-    const params = { limit };
-    if (exclusiveStartKey) {
-      // O backend espera o parâmetro como `nextPageKey`
-      params.nextPageKey = JSON.stringify(exclusiveStartKey); 
-    }
+    const params = {
+      page,
+      limit,
+      ...filters
+    };
     const response = await apiClient.get('/talents', { params });
     return response.data; 
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateFullProfile = async (talentId, applicationId, scrapedData) => {
+  try {
+    const response = await apiClient.post('/update-full-profile', {
+      talentId,
+      applicationId,
+      scrapedData
+    });
+    return response.data;
   } catch (error) {
     handleError(error);
   }
@@ -79,17 +229,6 @@ export const fetchTalentDetails = async (talentId) => {
   }
 };
 
-export const fetchJobsPaginated = async (page = 1, limit = 3, status = 'open') => {
-  try {
-    // Inclui o status como um parâmetro da URL
-    const response = await apiClient.get(`/jobs?page=${page}&limit=${limit}&status=${status}`);
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-
 export const updateTalent = async (talentId, dataToUpdate) => {
   try {
     const response = await apiClient.patch(`/talents/${talentId}`, dataToUpdate);
@@ -101,19 +240,16 @@ export const updateTalent = async (talentId, dataToUpdate) => {
 
 export const deleteTalent = async (talentId) => {
   try {
-    const response = await apiClient.delete(`/talents/${talentId}`);
-    return response.data; 
+    await apiClient.delete(`/talents/${talentId}`);
+    return { success: true };
   } catch (error) {
     handleError(error);
   }
 };
 
-
-// --- Gerenciamento de Vagas e Candidaturas ---
-
-export const fetchJobs = async () => {
+export const fetchJobsPaginated = async (page = 1, limit = 3, status = 'open') => {
   try {
-    const response = await apiClient.get('/jobs');
+    const response = await apiClient.get(`/jobs?page=${page}&limit=${limit}&status=${status}`);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -167,15 +303,12 @@ export const updateApplicationCustomFields = async (applicationId, customFields)
 
 export const removeApplication = async (applicationId) => {
   try {
-    const response = await apiClient.delete(`/applications/${applicationId}`);
-    return response.data;
+    await apiClient.delete(`/applications/${applicationId}`);
+    return { success: true };
   } catch (error) {
     handleError(error);
   }
 };
-
-
-// --- Gerenciamento de Campos Personalizados ---
 
 export const fetchCustomFieldsForEntity = async (entity) => {
   try {
@@ -185,9 +318,6 @@ export const fetchCustomFieldsForEntity = async (entity) => {
     handleError(error);
   }
 };
-
-
-// --- Gerenciamento de Scorecard ---
 
 export const fetchScorecardData = async (applicationId, jobId) => {
   try {
@@ -225,6 +355,24 @@ export const submitScorecard = async (applicationId, scorecardId, evaluationData
   }
 };
 
+export const fetchInterviewKit = async (kitId) => {
+  try {
+    const response = await apiClient.get(`/interview-kit/${kitId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const saveKitWeights = async (kitId, weights) => {
+  try {
+    const response = await apiClient.post(`/interview-kit/${kitId}/weights`, { weights });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const checkAICacheStatus = async (talentId) => {
   try {
     const response = await apiClient.get(`/ai/cache-status/${talentId}`);
@@ -243,51 +391,23 @@ export const syncLinkedInProfile = async (talentId) => {
   }
 };
 
-export const evaluateWithAI = async (talentId, jobDetails, skillToEvaluate) => {
-  try {
-    const response = await apiClient.post('/ai/evaluate-skill', { talentId, jobDetails, skillToEvaluate });
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-export const fetchInterviewKit = async (kitId) => {
-  try {
-    const response = await apiClient.get(`/interview-kit/${kitId}`);
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-
-/* ========================================================== */
-/* NOVA FUNÇÃO ADICIONADA AQUI                                */
-/* ========================================================== */
-/**
- * Salva os pesos definidos para um kit de entrevista específico.
- * @param {string} kitId - O ID do kit de entrevista.
- * @param {object} weights - O objeto contendo os pesos, ex: { skillId: weightValue }.
- * @returns {Promise<object>} A resposta da API.
- */
-export const saveKitWeights = async (kitId, weights) => {
-  try {
-    const response = await apiClient.post(`/interview-kit/${kitId}/weights`, { weights });
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-export const evaluateScorecardWithAI = async (talentId, jobDetails, scorecard, weights) => { // <<< 1. Adicionar weights aqui
+export const evaluateScorecardWithAI = async (talentId, jobDetails, scorecard, weights) => {
   try {
     const response = await apiClient.post('/ai/evaluate-scorecard', { 
       talentId, 
       jobDetails, 
       scorecard, 
-      weights // <<< 2. Incluir weights no corpo da requisição
+      weights
     });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const analyzeProfileWithAI = async (scorecardId, profileData) => {
+  try {
+    const response = await apiClient.post(`/match/${scorecardId}`, profileData);
     return response.data;
   } catch (error) {
     handleError(error);
