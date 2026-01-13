@@ -118,15 +118,23 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
               kit.skillCategories.forEach(cat => {
                 if (cat.skills) {
                   cat.skills.forEach(skill => {
-                    // Tenta match relaxado (case-insensitive + trim)
-                    const evaluation = aiResult.evaluations.find(ev => normalize(ev.name) === normalize(skill.name));
+                    // Tenta match exato por ID (se disponível) ou fallback para nome
+                    // O código anterior tinha um erro de referência a 'ev' fora do escopo.
 
-                    if (evaluation && skill.id) {
-                      ratings[skill.id] = {
-                        // Garante nota mínima 1 para exibir o campo de texto na UI
-                        score: Math.max(1, evaluation.score),
-                        description: evaluation.justification
-                      };
+                    const evaluationById = aiResult.evaluations.find(ev => ev.id === skill.id);
+                    const evaluationByName = aiResult.evaluations.find(ev => normalize(ev.name) === normalize(skill.name));
+
+                    const bestMatch = evaluationById || evaluationByName;
+
+                    if (bestMatch) {
+                      console.log(`[DEBUG] Match encontrado para skill '${skill.name}':`, bestMatch);
+                      if (skill.id) {
+                        ratings[skill.id] = {
+                          // Garante nota mínima 1 para exibir o campo de texto na UI
+                          score: Math.max(1, bestMatch.score),
+                          description: bestMatch.justification
+                        };
+                      }
                     }
                   });
                 }
