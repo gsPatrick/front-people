@@ -286,17 +286,22 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   }), [executeAsync, handleSelectTalentForDetails]);
 
   /* DEBUG: Log condition variables */
-  const refreshScorecardSummary = useCallback(() => executeAsync(async () => {
+  // CORREÇÃO: Removemos executeAsync para permitir chamada aninhada dentro de outro fluxo async
+  const refreshScorecardSummary = useCallback(async () => {
     console.log('[WORKFLOW] Attempting to refresh summary. App:', currentApplication, 'Job:', currentJob);
     if (currentApplication && currentJob) {
-      console.log('[WORKFLOW] Refreshing scorecard summary...');
-      const summaryResult = await api.fetchScorecardData(currentApplication.id, currentJob.id);
-      setCurrentScorecardSummary(summaryResult.data?.content || []);
-      console.log('[WORKFLOW] Scorecard summary updated. Content:', summaryResult.data?.content);
+      try {
+        console.log('[WORKFLOW] Refreshing scorecard summary...');
+        const summaryResult = await api.fetchScorecardData(currentApplication.id, currentJob.id);
+        setCurrentScorecardSummary(summaryResult.data?.content || []);
+        console.log('[WORKFLOW] Scorecard summary updated. Content:', summaryResult.data?.content);
+      } catch (err) {
+        console.error('[WORKFLOW] Failed to refresh scorecard summary:', err);
+      }
     } else {
       console.warn('[WORKFLOW] Cannot refresh summary: missing context.');
     }
-  }), [executeAsync, currentApplication, currentJob]);
+  }, [currentApplication, currentJob]);
 
   const applicationCustomFields = useMemo(() => {
     const fields = currentTalent?.application?.customFields;
