@@ -119,8 +119,6 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
                 if (cat.skills) {
                   cat.skills.forEach(skill => {
                     // Tenta match exato por ID (se disponível) ou fallback para nome
-                    // O código anterior tinha um erro de referência a 'ev' fora do escopo.
-
                     const evaluationById = aiResult.evaluations.find(ev => ev.id === skill.id);
                     const evaluationByName = aiResult.evaluations.find(ev => normalize(ev.name) === normalize(skill.name));
 
