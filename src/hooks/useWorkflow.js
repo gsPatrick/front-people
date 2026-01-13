@@ -288,10 +288,10 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   // Função dedicada para recarregar o sumário de scorecards (útil após submissão)
   const refreshScorecardSummary = useCallback(() => executeAsync(async () => {
     if (currentApplication && currentJob) {
-      log('[WORKFLOW] Refreshing scorecard summary...');
+      console.log('[WORKFLOW] Refreshing scorecard summary...');
       const summaryResult = await api.fetchScorecardData(currentApplication.id, currentJob.id);
       setCurrentScorecardSummary(summaryResult.data?.content || []);
-      log('[WORKFLOW] Scorecard summary updated.');
+      console.log('[WORKFLOW] Scorecard summary updated.');
     }
   }), [executeAsync, currentApplication, currentJob]);
 
