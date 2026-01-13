@@ -123,7 +123,8 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
                     if (evaluation && skill.id) {
                       ratings[skill.id] = {
-                        score: evaluation.score,
+                        // Garante nota mínima 1 para exibir o campo de texto na UI
+                        score: Math.max(1, evaluation.score),
                         description: evaluation.justification
                       };
                     }
