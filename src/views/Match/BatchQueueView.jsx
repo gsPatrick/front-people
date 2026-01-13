@@ -79,9 +79,7 @@ const BatchQueueView = ({
 
             // Avança para o próximo não processado
             const next = findNextUnprocessedAfter(reviewIndex, newProcessed);
-            if (next >= 0) {
-                setReviewIndex(next);
-            }
+            setReviewIndex(next !== -1 ? next : 0);
         }
     };
 
