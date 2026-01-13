@@ -35,14 +35,31 @@ const CandidateDetailView = ({
                 setEvaluationToLoad(null);
 
                 try {
-                    const kitResult = await api.fetchInterviewKit(kitId);
+                    // MUDANÇA: Buscamos em paralelo o KIT e as RESPOSTAS atualizadas
+                    const [kitResult, scorecardDataResult] = await Promise.all([
+                        api.fetchInterviewKit(kitId),
+                        api.fetchScorecardData(candidate.application.id, job.id)
+                    ]);
+
                     if (!kitResult.success) { throw new Error(kitResult.error || 'Falha ao buscar estrutura do kit.'); }
 
                     scorecardHooks.handleSelectInterviewKit(kitResult.kit);
 
-                    if (scorecardSummary && scorecardSummary.length > 0) {
-                        const foundEvaluation = scorecardSummary.find(ev => ev.scorecardInterviewId === kitId);
-                        if (foundEvaluation) { setEvaluationToLoad(foundEvaluation); }
+                    // Priorizamos o dado fresco que acabamos de buscar
+                    let freshSummary = [];
+                    if (scorecardDataResult && scorecardDataResult.success && scorecardDataResult.data?.content) {
+                        freshSummary = scorecardDataResult.data.content;
+                    } else if (scorecardSummary) {
+                        // Fallback para props se a busca falhar ou vier vazia (embora improvável)
+                        freshSummary = scorecardSummary;
+                    }
+
+                    if (freshSummary && freshSummary.length > 0) {
+                        const foundEvaluation = freshSummary.find(ev => ev.scorecardInterviewId === kitId);
+                        if (foundEvaluation) {
+                            console.log('[VIEW] Encontrada avaliação correspondente:', foundEvaluation);
+                            setEvaluationToLoad(foundEvaluation);
+                        }
                     }
                 } catch (err) {
                     alert(`Erro ao carregar o kit: ${err.message}`);
