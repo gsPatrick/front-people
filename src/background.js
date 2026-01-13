@@ -21,10 +21,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.log("BACKGROUND: Blob convertido. Enviando para a API de extração...");
           const extractedData = await extractProfileFromPdf(pdfBlob);
           console.log("BACKGROUND: Dados extraídos com sucesso pela API!", extractedData);
-          
+
           // Envia uma mensagem para a UI (Popup/Sidepanel) com o resultado.
           chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: extractedData });
-          
+
           sendResponse({ success: true, data: extractedData });
         } catch (error) {
           console.error("BACKGROUND: Erro ao chamar a API de extração:", error);
@@ -36,7 +36,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error("BACKGROUND: Erro ao converter Base64 para Blob:", error);
         sendResponse({ success: false, error: "Falha na conversão de Base64." });
       });
-    
+
     // Retorna true para indicar que a resposta será enviada de forma assíncrona.
     return true;
   }

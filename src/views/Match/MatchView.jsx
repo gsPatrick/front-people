@@ -3,12 +3,12 @@
 import React from 'react';
 import styles from './MatchView.module.css';
 import Header from '../../components/Header/Header';
-import { BsBullseye, BsCheckLg } from 'react-icons/bs';
+import { BsBullseye, BsCheckLg, BsCollection } from 'react-icons/bs';
 
-const MatchView = ({ scorecards, activeScorecardId, onSelect, onDeactivate, onGoToHub }) => {
+const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onDeactivate, onGoToHub }) => {
   return (
     <div className={styles.container}>
-      <Header 
+      <Header
         title="Modo de Match"
         subtitle="Selecione um scorecard para analisar perfis no LinkedIn"
       />
@@ -32,10 +32,16 @@ const MatchView = ({ scorecards, activeScorecardId, onSelect, onDeactivate, onGo
                   {sc.atsIntegration === 'inhire' ? 'InHire' : 'Interno'}
                 </span>
               </div>
-              {/* MUDANÇA: O onClick agora chama onSelect passando apenas o ID */}
-              <button onClick={() => onSelect(sc.id)} className={styles.selectButton}>
-                {isActive ? <><BsCheckLg /> Ativo</> : <><BsBullseye /> Ativar</>}
-              </button>
+              <div className={styles.cardActions}>
+                <button onClick={() => onSelect(sc.id)} className={styles.selectButton}>
+                  {isActive ? <><BsCheckLg /> Ativo</> : <><BsBullseye /> Ativar</>}
+                </button>
+                {onBatchSelect && (
+                  <button onClick={() => onBatchSelect(sc.id)} className={styles.batchButton}>
+                    <BsCollection /> Fila
+                  </button>
+                )}
+              </div>
             </div>
           );
         }) : (

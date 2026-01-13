@@ -1,12 +1,12 @@
 /* CRIE O ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
 
 .container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  background-color: var(--bg-primary);
-  animation: fadeIn 0.5s ease-out;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--bg-primary);
+    animation: fadeIn 0.5s ease-out;
 }
 
 .toolbar {
@@ -29,6 +29,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
 }
+
 .addButton:hover {
     box-shadow: 0 0 15px var(--glow-color);
     transform: translateY(-1px);
@@ -43,56 +44,62 @@
     cursor: pointer;
     transition: all 0.2s ease;
 }
+
 .logoutButton:hover {
     color: #f87171;
     border-color: #f87171;
 }
 
 .userList {
-  flex-grow: 1;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
+    flex-grow: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
 }
 
 .userCard {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
 }
 
 .userInfo {
     display: flex;
     flex-direction: column;
 }
+
 .userName {
     font-size: 15px;
     font-weight: 500;
     color: var(--text-primary);
 }
+
 .userEmail {
     font-size: 13px;
     color: var(--text-secondary);
 }
 
-.adminBadge, .userBadge {
+.adminBadge,
+.userBadge {
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
 }
+
 .adminBadge {
     background-color: rgba(167, 139, 250, 0.15);
     color: var(--accent-secondary);
 }
+
 .userBadge {
     background-color: rgba(34, 211, 238, 0.15);
     color: var(--accent-primary);
@@ -113,16 +120,26 @@
     cursor: pointer;
     transition: all 0.2s ease;
 }
+
 .actionButton:hover {
     color: var(--text-primary);
     border-color: var(--accent-primary);
 }
+
 .deleteButton:hover {
     color: #f87171;
     border-color: #f87171;
 }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
 
 /* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
 
@@ -135,6 +152,7 @@
         opacity: 1;
         transform: scale(1);
     }
+
     to {
         opacity: 0;
         transform: scale(0.98);
@@ -144,22 +162,75 @@
 /* ADICIONE ESTE CÓDIGO NO FINAL DO ARQUIVO: src/views/Admin/AdminDashboardView.module.css */
 
 .loader {
-  width: 32px;
-  height: 32px;
-  border: 4px solid var(--bg-tertiary);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 40px auto;
+    width: 32px;
+    height: 32px;
+    border: 4px solid var(--bg-tertiary);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 40px auto;
 }
 
 .errorText {
-  color: #f87171;
-  text-align: center;
-  margin: 40px auto;
-  font-size: 15px;
+    color: #f87171;
+    text-align: center;
+    margin: 40px auto;
+    font-size: 15px;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Tabs Styles */
+.tabsContainer {
+    display: flex;
+    padding: 0 24px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    gap: 24px;
+}
+
+.tabButton {
+    padding: 16px 4px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tabButton:hover {
+    color: var(--text-primary);
+}
+
+.activeTab {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+.contentArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Important for inner scrolls */
+}
+
+.embeddedView {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.placeholderTab {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-secondary);
 }

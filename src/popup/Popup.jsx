@@ -13,6 +13,7 @@ import { useJobs } from '../hooks/useJobs';
 import { useTalents } from '../hooks/useTalents';
 import { useWorkflow } from '../hooks/useWorkflow';
 import { useScorecard } from '../hooks/useScorecard';
+import { useBatchQueue } from '../hooks/useBatchQueue';
 
 // Views e Componentes
 import LoginView from '../views/Auth/LoginView';
@@ -27,6 +28,7 @@ import CandidateDetailView from '../views/Manage/CandidateDetailView';
 import EditCandidateView from '../views/Manage/EditCandidateView';
 import TalentProfileView from '../views/Manage/TalentProfileView';
 import SettingsView from '../views/Settings/SettingsView';
+import AIMemoryView from '../views/Settings/AIMemoryView';
 import RestartView from '../views/Shared/RestartView';
 import ScrapingView from '../views/Shared/ScrapingView';
 import ConfirmProfileView from '../views/AddCandidate/ConfirmProfileView';
@@ -36,12 +38,13 @@ import ScorecardHubView from '../views/Scorecards/ScorecardHubView';
 import ScorecardEditView from '../views/Scorecards/ScorecardEditView';
 import MatchView from '../views/Match/MatchView';
 import MatchResultView from '../views/Match/MatchResultView';
+import BatchQueueView from '../views/Match/BatchQueueView';
 import ExitMatchModeModal from '../components/Modals/ExitMatchModeModal';
 import ExtractedTextView from '../views/Shared/ExtractedTextView';
 import ProfileStatusNotification from '../components/Layout/ProfileStatusNotification';
 
-const LoadingView = () => ( <div className={styles.centeredContainer}><div className={styles.loadingSpinner}></div></div> );
-const ErrorView = ({ error, onRetry }) => ( <div className={`${styles.centeredContainer} ${styles.errorContainer}`}><p className={styles.errorTitle}>Ocorreu um Erro</p><p className={styles.errorMessage}>{String(error)}</p><button onClick={onRetry} className={styles.retryButton}>Tentar Novamente</button></div> );
+const LoadingView = () => (<div className={styles.centeredContainer}><div className={styles.loadingSpinner}></div></div>);
+const ErrorView = ({ error, onRetry }) => (<div className={`${styles.centeredContainer} ${styles.errorContainer}`}><p className={styles.errorTitle}>Ocorreu um Erro</p><p className={styles.errorMessage}>{String(error)}</p><button onClick={onRetry} className={styles.retryButton}>Tentar Novamente</button></div>);
 
 const Popup = () => {
     const [authState, setAuthState] = useState({ isLoading: true, isAuthenticated: false, user: null, token: null, error: null });
@@ -69,7 +72,7 @@ const Popup = () => {
         setGlobalError(null);
         isPaging ? setIsPagingLoading(true) : setIsGlobalLoading(true);
         try { await asyncFunction(); } catch (err) {
-            if (err.status === 401 || err.status === 403) { await clearAuthData(); window.location.reload(); } 
+            if (err.status === 401 || err.status === 403) { await clearAuthData(); window.location.reload(); }
             else { setGlobalError(err.message || 'Ocorreu um erro inesperado.'); }
         } finally {
             isLoadingRef.current = false; setIsGlobalLoading(false); setIsPagingLoading(false);
@@ -77,10 +80,10 @@ const Popup = () => {
     }, []);
 
     const { view, navigateTo, goBack } = useNavigation();
-    
+
     const { settings, setSettings, handleSettingChange, handleCaptureLinkedInProfile, validationResult } = useApp(executeAsync, navigateTo);
     const workflow = useWorkflow(executeAsync, navigateTo, goBack, handleCaptureLinkedInProfile);
-    
+
     useEffect(() => {
         if (validationResult) {
             if (validationResult.exists) {
@@ -97,10 +100,11 @@ const Popup = () => {
             }
         }
     }, [validationResult, workflow.setProfileContext]);
-    
+
     const { jobsData, fetchAndSetJobs, handleJobsPageChange } = useJobs(executeAsync);
     const { talentsData, filters, setFilters, handleTalentsPageChange } = useTalents(executeAsync, view);
     const scorecard = useScorecard({ executeAsync, settings, currentTalent: workflow.currentTalent, currentJob: workflow.currentJob, currentApplication: workflow.currentApplication });
+    const batchQueue = useBatchQueue();
 
     const fetchAllScorecards = useCallback(async () => {
         const allScorecards = await api.getAllScorecards();
@@ -110,26 +114,42 @@ const Popup = () => {
     useEffect(() => {
         if (!chrome.runtime) return;
         const messageListener = (message, sender, sendResponse) => {
-            if (message.action === 'processLinkedInPdf' && message.data) {
-                api.extractProfileFromPdf(message.data)
-                    .then(jsonData => {
-                        workflow.setProfileContext({ exists: false, profileData: jsonData });
-                        navigateTo('confirm_profile');
-                        sendResponse({ success: true });
-                    })
-                    .catch(error => {
-                        alert(`Falha no processamento: ${error.message}`);
-                        navigateTo('dashboard_jobs');
-                        sendResponse({ success: false, error: error.message });
-                    });
-                return true; // Indica resposta assíncrona
+            if (message.type === 'PDF_EXTRACTION_SUCCESS') {
+                // Se batch queue está ativo, NÃO navegar para confirm_profile
+                if (batchQueue.queueState.isRunning) {
+                    console.log('[POPUP] PDF extraído durante batch mode - ignorando navegação');
+                    return;
+                }
+
+                // CHECK: Se for atualização de perfil
+                if (workflow.updateContext?.isUpdating) {
+                    console.log('[POPUP] Modo de atualização detectado. Iniciando atualização...');
+                    workflow.handleProfileUpdateFromExtraction(message.payload);
+                    return;
+                }
+
+                // Modo normal: O background processou o PDF e nos enviou o resultado JSON.
+                workflow.setProfileContext({ exists: false, profileData: message.payload });
+                navigateTo('confirm_profile');
+            } else if (message.type === 'PDF_EXTRACTION_FAILURE') {
+                if (batchQueue.queueState.isRunning) {
+                    console.log('[POPUP] Falha na extração durante batch mode - ignorando');
+                    return;
+                }
+                alert(`Falha no processamento: ${message.payload.message}`);
+                // Se estava tentando atualizar e falhou, volta para details
+                if (workflow.updateContext?.isUpdating) {
+                    goBack();
+                    return;
+                }
+                navigateTo('dashboard_jobs');
             }
         };
         chrome.runtime.onMessage.addListener(messageListener);
         return () => {
             if (chrome.runtime.onMessage) chrome.runtime.onMessage.removeListener(messageListener);
         };
-    }, [navigateTo, workflow]);
+    }, [navigateTo, workflow, batchQueue.queueState.isRunning]);
 
     const handlePdfMatch = useCallback((pdfFile) => {
         if (!activeMatchScorecardId) return;
@@ -150,13 +170,20 @@ const Popup = () => {
     const handleSelectMatchScorecard = useCallback((id) => {
         setActiveMatchScorecardId(id); setMatchResult(null); setCurrentScrapedProfile(null); setIsMatchProfileLocked(false);
     }, []);
+
+    // Handler para iniciar modo de fila em lote
+    const handleStartBatchMode = useCallback(async (scorecardId) => {
+        await batchQueue.detectLinkedInTabs();
+        navigateTo('batch_queue', { scorecardId });
+    }, [batchQueue, navigateTo]);
+
     useEffect(() => { if (activeMatchScorecardId && view.name !== 'match_hub') navigateTo('match_hub'); }, [activeMatchScorecardId, navigateTo, view.name]);
-    
+
     useEffect(() => {
         const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.types?.includes('Files')) setIsDraggingFile(true); };
         const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); if (!e.currentTarget.contains(e.relatedTarget)) setIsDraggingFile(false); };
         const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
-        
+
         // ==========================================================
         // A CORREÇÃO ESTÁ AQUI
         // ==========================================================
@@ -199,21 +226,21 @@ const Popup = () => {
 
     useEffect(() => {
         const checkAuthAndInit = async () => {
-          try {
-            const authData = await loadAuthData();
-            if (authData?.token && authData?.user) {
-                setAuthState({ isLoading: false, isAuthenticated: true, user: authData.user, token: authData.token, error: null });
-                setSettings({ isPersistenceEnabled: false, isOpenInTabEnabled: true, isAIEnabled: true });
-                await Promise.all([
-                    fetchAndSetJobs(1, 'open'),
-                    fetchAllScorecards()
-                ]);
-                navigateTo('dashboard_jobs');
-            } else { setAuthState({ isLoading: false, isAuthenticated: false, user: null, token: null, error: null }); }
-          } catch (err) {
-            setGlobalError(`Erro ao iniciar: ${err.message}.`);
-            setAuthState(prev => ({ ...prev, isLoading: false }));
-          } finally { setIsGlobalLoading(false); }
+            try {
+                const authData = await loadAuthData();
+                if (authData?.token && authData?.user) {
+                    setAuthState({ isLoading: false, isAuthenticated: true, user: authData.user, token: authData.token, error: null });
+                    setSettings({ isPersistenceEnabled: false, isOpenInTabEnabled: true, isAIEnabled: true });
+                    await Promise.all([
+                        fetchAndSetJobs(1, 'open'),
+                        fetchAllScorecards()
+                    ]);
+                    navigateTo('dashboard_jobs');
+                } else { setAuthState({ isLoading: false, isAuthenticated: false, user: null, token: null, error: null }); }
+            } catch (err) {
+                setGlobalError(`Erro ao iniciar: ${err.message}.`);
+                setAuthState(prev => ({ ...prev, isLoading: false }));
+            } finally { setIsGlobalLoading(false); }
         };
         checkAuthAndInit();
     }, [fetchAllScorecards]);
@@ -228,7 +255,7 @@ const Popup = () => {
         } catch (err) { setAuthState(prev => ({ ...prev, isLoading: false, error: err.message })); }
     };
     const handleLogout = async () => { await clearAuthData(); window.location.reload(); };
-    
+
     const handleLayoutNavigate = (newViewName) => {
         if (activeMatchScorecardId && newViewName !== 'match_hub') {
             setNavigationTarget(newViewName); setIsExitModalVisible(true);
@@ -280,6 +307,7 @@ const Popup = () => {
     };
 
     const filteredScorecards = useMemo(() => {
+        if (!Array.isArray(scorecardTemplates)) return [];
         return scorecardTemplates.filter(sc => {
             const termMatch = !scorecardFilters.term || sc.name.toLowerCase().includes(scorecardFilters.term.toLowerCase());
             const atsMatch = scorecardFilters.ats === 'all' || sc.ats === scorecardFilters.ats;
@@ -293,21 +321,22 @@ const Popup = () => {
     if (globalError) return <ErrorView error={globalError} onRetry={() => window.location.reload()} />;
     if (!authState.isAuthenticated) return <LoginView onLogin={handleLogin} error={authState.error} isLoading={authState.isLoading} />;
     if (authState.user.role === 'admin') return <AdminDashboardView onLogout={handleLogout} />;
-    
+
     let contentToRender;
-    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf'];
+    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue'];
     const useLayout = viewsWithSidebar.includes(view.name);
-    
+
     switch (view.name) {
-        case 'dashboard_jobs': contentToRender = <JobsDashboardView jobsData={jobsData} onSelectJob={workflow.handleSelectJobForDetails} activeStatusFilter={jobStatusFilter} onFilterChange={(s) => {setJobStatusFilter(s); fetchAndSetJobs(1,s)}} onNavigateToUpload={() => navigateTo('upload_pdf')} handleJobsPageChange={handleJobsPageChange} />; break;
+        case 'dashboard_jobs': contentToRender = <JobsDashboardView jobsData={jobsData} onSelectJob={workflow.handleSelectJobForDetails} activeStatusFilter={jobStatusFilter} onFilterChange={(s) => { setJobStatusFilter(s); fetchAndSetJobs(1, s) }} onNavigateToUpload={() => navigateTo('upload_pdf')} handleJobsPageChange={handleJobsPageChange} />; break;
         case 'talent_profile': contentToRender = <TalentProfileView talent={workflow.currentTalent} onBack={goBack} onEditTalent={workflow.handleEditTalentInfo} onDeleteTalent={workflow.handleDeleteTalent} onAddNewApplication={() => navigateTo('select_job_contextual_for_talent')} onDeleteApplication={workflow.handleRemoveApplicationForTalent} />; break;
         case 'match_hub': contentToRender = <MatchResultView activeScorecard={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)} matchResult={matchResult} isLoading={isScrapingForMatch} isLocked={isMatchProfileLocked} onToggleLock={handleToggleLock} onAddTalent={() => { if (!currentScrapedProfile) return; workflow.setProfileContext({ exists: false, profileData: currentScrapedProfile, talent: null }); navigateTo('select_job_for_new_talent'); }} onChangeScorecard={handleChangeMatchScorecard} />; break;
-        case 'match_select_scorecard': contentToRender = <MatchView scorecards={scorecardTemplates} activeScorecardId={activeMatchScorecardId} onSelect={handleSelectMatchScorecard} onDeactivate={() => setActiveMatchScorecardId(null)} onGoToHub={() => navigateTo('scorecard_hub')} />; break;
+        case 'match_select_scorecard': contentToRender = <MatchView scorecards={scorecardTemplates} activeScorecardId={activeMatchScorecardId} onSelect={handleSelectMatchScorecard} onBatchSelect={handleStartBatchMode} onDeactivate={() => setActiveMatchScorecardId(null)} onGoToHub={() => navigateTo('scorecard_hub')} />; break;
         case 'dashboard_talents': contentToRender = <TalentsDashboardView talentsData={talentsData} onSelectTalent={workflow.handleSelectTalentForDetails} handleTalentsPageChange={handleTalentsPageChange} filters={filters} onFilterChange={setFilters} isPagingLoading={isPagingLoading} />; break;
         case 'job_details': contentToRender = <JobDetailsView job={workflow.currentJob} candidates={workflow.currentCandidates} onBack={goBack} onUpdateApplicationStatus={workflow.handleUpdateApplicationStatus} onSelectCandidateForDetails={workflow.handleSelectCandidateForDetails} availableStages={workflow.currentJobStages} />; break;
         case 'candidate_details': contentToRender = <CandidateDetailView candidate={workflow.currentTalent} job={workflow.currentJob} onBack={goBack} onUpdateStage={workflow.handleUpdateApplicationStatus} stages={workflow.currentJobStages} onGoToEdit={() => navigateTo('edit_candidate')} applicationCustomFields={workflow.applicationCustomFields} interviewKits={workflow.currentInterviewKits} initialState={view.state} scorecardSummary={scorecard.scorecardData?.content} scorecardHooks={scorecard} onUpdateRequest={workflow.handleRequestProfileUpdate} onSaveScorecardAsTemplate={handleSaveScorecardAsTemplate} />; break;
         case 'edit_candidate': contentToRender = <EditCandidateView candidate={workflow.currentTalent} onSave={workflow.handleEditTalentInfo} onCancel={goBack} applicationCustomFields={workflow.applicationCustomFields} />; break;
         case 'settings': contentToRender = <SettingsView settings={settings} onSettingChange={handleSettingChange} />; break;
+        case 'ai_memory': contentToRender = <AIMemoryView />; break;
         case 'restart_required': contentToRender = <RestartView />; break;
         case 'scraping': contentToRender = <ScrapingView />; break;
         case 'select_job_for_new_talent': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={(job) => workflow.handleCreateAndGoToEvaluation(workflow.profileContext.profileData, job)} onBack={goBack} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
@@ -318,30 +347,32 @@ const Popup = () => {
         case 'extracted_text_view': contentToRender = <ExtractedTextView text={view.state?.text || 'Nenhum texto encontrado.'} onBack={goBack} />; break;
         case 'scorecard_hub': contentToRender = <ScorecardHubView scorecards={filteredScorecards} onAddNew={() => navigateTo('scorecard_edit')} onEdit={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onDelete={handleDeleteScorecard} onFilterChange={(key, value) => setScorecardFilters(prev => ({ ...prev, [key]: value }))} />; break;
         case 'scorecard_edit': contentToRender = <ScorecardEditView initialData={view.state?.scorecard} onSave={handleSaveScorecard} onCancel={goBack} />; break;
+        case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => { workflow.setProfileContext({ exists: false, profileData: result.profileData }); navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId }); }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')} />; break;
+        case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => { await workflow.handleCreateAndGoToEvaluation(workflow.profileContext.profileData, job); navigateTo('batch_queue', { scorecardId: view.state?.scorecardId }); }} onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
         default: contentToRender = <LoadingView />;
     }
-    
+
     return (
         <div className={styles.appWrapper}>
             {useLayout ? (
-                <Layout 
-                    activeView={view.name} 
-                    onNavigate={handleLayoutNavigate} 
-                    isSidebarCollapsed={!isSidebarOpen} 
-                    onToggleSidebar={() => setIsSidebarOpen(p => !p)} 
-                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if(window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null} 
-                    onCaptureProfile={handleCaptureLinkedInProfile} 
-                    onLogout={handleLogout} 
+                <Layout
+                    activeView={view.name}
+                    onNavigate={handleLayoutNavigate}
+                    isSidebarCollapsed={!isSidebarOpen}
+                    onToggleSidebar={() => setIsSidebarOpen(p => !p)}
+                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
+                    onCaptureProfile={handleCaptureLinkedInProfile}
+                    onLogout={handleLogout}
                     activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
                 >
-                    <ProfileStatusNotification 
+                    <ProfileStatusNotification
                         status={validationResult}
                         onGoToProfile={workflow.handleSelectTalentForDetails}
                     />
                     {contentToRender}
                 </Layout>
             ) : contentToRender}
-            
+
             {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
 
             <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />

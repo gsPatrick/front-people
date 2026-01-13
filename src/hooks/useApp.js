@@ -6,7 +6,7 @@ import * as api from '../services/api.service';
 
 // Função de automação que será injetada
 function autoDownloadPdfFunction() {
-    (async function() {
+    (async function () {
         console.log('[AUTODOWNLOAD] Script de download automático ativado.');
         const waitForElement = (selector, timeout = 5000) => {
             return new Promise((resolve, reject) => {
@@ -22,10 +22,10 @@ function autoDownloadPdfFunction() {
         };
         try {
             console.log('[AUTODOWNLOAD] Procurando o botão "Mais..."');
-            let moreButton = 
+            let moreButton =
                 document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
                 document.querySelector('button[data-view-name="profile-overflow-button"]');
-            
+
             if (!moreButton) {
                 const buttons = Array.from(document.querySelectorAll('button'));
                 moreButton = buttons.find(btn => btn.querySelector('svg[id*="overflow"]') !== null);
@@ -40,7 +40,7 @@ function autoDownloadPdfFunction() {
                 }
             }
             if (!moreButton) throw new Error('Botão "Mais..." não encontrado no perfil.');
-            
+
             moreButton.click();
             console.log('[AUTODOWNLOAD] Botão "Mais..." clicado.');
 
@@ -51,7 +51,7 @@ function autoDownloadPdfFunction() {
                 return text === 'save to pdf' || text === 'salvar como pdf';
             });
             if (!savePdfItem) throw new Error('Opção "Salvar como PDF" não encontrada no menu.');
-            
+
             savePdfItem.click();
             console.log('[AUTODOWNLOAD] Clicando em "Salvar como PDF"... O download deve começar.');
         } catch (error) {
@@ -62,7 +62,7 @@ function autoDownloadPdfFunction() {
 }
 
 
-export const useApp = (executeAsync, navigateTo, workflow) => {
+export const useApp = (executeAsync, navigateTo) => {
     const [settings, setSettings] = useState(null);
     const [currentTab, setCurrentTab] = useState(null);
     const [validatedProfileUrl, setValidatedProfileUrl] = useState(null);
@@ -84,31 +84,16 @@ export const useApp = (executeAsync, navigateTo, workflow) => {
                 setValidatedProfileUrl(tab.url);
 
                 const validationResult = await api.validateProfile(tab.url);
-                
-                setCurrentProfileStatus(validationResult);
 
-                if (validationResult.exists) {
-                    workflow.setProfileContext({
-                        exists: true,
-                        talent: validationResult.talent,
-                        profileData: { name: validationResult.talent.name }
-                    });
-                    navigateTo('confirm_profile');
-                } else {
-                    workflow.setProfileContext({
-                        exists: false,
-                        profileData: { username }
-                    });
-                }
+                setCurrentProfileStatus(validationResult);
             } else {
                 setValidatedProfileUrl(null);
                 setCurrentProfileStatus(null);
-                workflow.setProfileContext(null);
             }
         };
 
         const handleTabChange = () => {
-             if (chrome && chrome.tabs) {
+            if (chrome && chrome.tabs) {
                 chrome.tabs.query({ active: true, currentWindow: true }, ([activeTab]) => {
                     if (activeTab) {
                         setCurrentTab(activeTab);
@@ -119,7 +104,7 @@ export const useApp = (executeAsync, navigateTo, workflow) => {
         };
 
         handleTabChange();
-        
+
         const listeners = {
             onUpdated: (tabId, changeInfo, tab) => {
                 if (tabId === currentTab?.id && changeInfo.url) {
@@ -137,7 +122,7 @@ export const useApp = (executeAsync, navigateTo, workflow) => {
                 chrome.tabs.onActivated.removeListener(listeners.onActivated);
             };
         }
-    }, [validatedProfileUrl, navigateTo, workflow, currentTab]);
+    }, [validatedProfileUrl, navigateTo, currentTab]);
 
 
     const initializeApp = useCallback(async () => {
@@ -156,11 +141,11 @@ export const useApp = (executeAsync, navigateTo, workflow) => {
         }
     }, [settings, navigateTo]);
 
-   
-   // ==========================================================
-   // MUDANÇA PRINCIPAL AQUI
-   // ==========================================================
-   const handleCaptureLinkedInProfile = async () => {
+
+    // ==========================================================
+    // MUDANÇA PRINCIPAL AQUI
+    // ==========================================================
+    const handleCaptureLinkedInProfile = async () => {
         try {
             if (!currentTab || !currentTab.url || !currentTab.url.includes("linkedin.com/in/")) {
                 alert("Para capturar um perfil, navegue até uma página de perfil do LinkedIn.");
@@ -169,26 +154,35 @@ export const useApp = (executeAsync, navigateTo, workflow) => {
 
             // Mensagem ajustada para informar que a ação ocorre em segundo plano
             alert("Iniciando a captura do perfil. O processo continuará em segundo plano na aba do LinkedIn.");
-            
+
             // REMOVIDO: A linha abaixo foi removida para impedir a mudança de tela.
             // navigateTo('scraping');
 
-            // Os scripts continuam a ser injetados e executados normalmente
+            // 1. Injeta o Relay (ISOLATED WORLD) para ouvir a mensagem e falar com o Background
+            await chrome.scripting.executeScript({
+                target: { tabId: currentTab.id },
+                files: ['scripts/pdf_relay.js']
+                // world default is ISOLATED, which is what we want for chrome.runtime access
+            });
+
+            // 2. Injeta o Interceptador (MAIN WORLD) para monkey-patch e pegar o PDF
+            await chrome.scripting.executeScript({
+                target: { tabId: currentTab.id },
+                files: ['scripts/linkedin_pdf_scraper.js'],
+                world: 'MAIN'
+            });
+
+            // 3. Injeta a automação que clica nos botões (pode ser ISOLATED ou MAIN, tanto faz, mas ISOLATED é mais seguro)
             await chrome.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 func: autoDownloadPdfFunction
-            });
-            
-            await chrome.scripting.executeScript({
-                target: { tabId: currentTab.id },
-                files: ['scripts/linkedin_pdf_scraper.js']
             });
 
         } catch (error) {
             console.error("[POPUP] Erro ao injetar scripts:", error);
             // Mensagem de erro direta, sem redirecionamento
             alert(`Ocorreu um erro ao tentar iniciar a captura: ${error.message}`);
-            
+
             // REMOVIDO: A linha abaixo foi removida para não redirecionar em caso de erro.
             // navigateTo('dashboard_jobs');
         }

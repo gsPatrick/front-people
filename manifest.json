@@ -19,7 +19,7 @@
     "default_title": "Abrir Anna Isidoro"
   },
   "background": {
-    "service_worker": "assets/background.js",
+    "service_worker": "background.js",
     "type": "module"
   },
   "side_panel": {

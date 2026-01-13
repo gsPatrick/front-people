@@ -15,11 +15,11 @@ export default defineConfig({
         {
           src: 'public/assets/*',
           dest: 'assets'
+        },
+        {
+          src: 'src/scripts',
+          dest: '.'
         }
-        // ==========================================================
-        // A REGRA PROBLEMÁTICA FOI REMOVIDA DAQUI
-        // Não precisamos mais copiar o pdf.worker.min.js manualmente
-        // ==========================================================
       ]
     })
   ],

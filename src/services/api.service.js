@@ -12,20 +12,20 @@ const apiClient = axios.create({
 
 // INTERCEPTADOR: Adiciona o token de autenticação a cada requisição
 apiClient.interceptors.request.use(async (config) => {
-    const authData = await loadAuthData();
-    if (authData?.token) {
-        config.headers.Authorization = `Bearer ${authData.token}`;
-    }
-    return config;
+  const authData = await loadAuthData();
+  if (authData?.token) {
+    config.headers.Authorization = `Bearer ${authData.token}`;
+  }
+  return config;
 }, (error) => {
-    return Promise.reject(error);
+  return Promise.reject(error);
 });
 
 const handleError = (error) => {
   const message = error.response?.data?.error || error.message || 'Ocorreu um erro inesperado.';
   const status = error.response?.status;
   console.error('Erro na chamada da API:', message, 'Status:', status);
-  
+
   const apiError = new Error(message);
   apiError.status = status;
   throw apiError;
@@ -38,12 +38,12 @@ const handleError = (error) => {
 //                          SERVIÇOS DE AUTENTICAÇÃO
 // ===================================================================
 export const loginUser = async (email, password) => {
-    try {
-        const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 
@@ -56,13 +56,13 @@ export const loginUser = async (email, password) => {
  * @returns {Promise<object>} Os dados do perfil estruturados em JSON.
  */
 export const processProfileFromText = async (rawText) => {
-    try {
-        // A rota que você criou no seu backend é '/parse-profile-ai'
-        const response = await apiClient.post('/parse-profile-ai', { rawText });
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    // A rota que você criou no seu backend é '/parse-profile-ai'
+    const response = await apiClient.post('/parse-profile-ai', { rawText });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 
@@ -76,23 +76,23 @@ export const processProfileFromText = async (rawText) => {
  * @returns {Promise<object>} Os dados extraídos do perfil.
  */
 export const extractProfileFromPdf = async (pdfBlob) => {
-    try {
-        const formData = new FormData();
-        formData.append("file", pdfBlob, "linkedin_profile.pdf");
+  try {
+    const formData = new FormData();
+    formData.append("file", pdfBlob, "linkedin_profile.pdf");
 
-        // Esta chamada precisa de um header diferente (multipart/form-data)
-        // e do token de autenticação.
-        const authData = await loadAuthData();
-        const headers = {};
-        if (authData?.token) {
-            headers['Authorization'] = `Bearer ${authData.token}`;
-        }
-
-        const response = await axios.post(`${API_BASE_URL}/extract-from-pdf`, formData, { headers });
-        return response.data;
-    } catch (error) {
-        handleError(error);
+    // Esta chamada precisa de um header diferente (multipart/form-data)
+    // e do token de autenticação.
+    const authData = await loadAuthData();
+    const headers = {};
+    if (authData?.token) {
+      headers['Authorization'] = `Bearer ${authData.token}`;
     }
+
+    const response = await axios.post(`${API_BASE_URL}/extract-from-pdf`, formData, { headers });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 
@@ -100,78 +100,78 @@ export const extractProfileFromPdf = async (pdfBlob) => {
 //                          SERVIÇOS DE ADMINISTRAÇÃO
 // ===================================================================
 export const getAllUsers = async () => {
-    try {
-        const response = await apiClient.get('/admin/users');
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.get('/admin/users');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const createUser = async (userData) => {
-    try {
-        const response = await apiClient.post('/admin/users', userData);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.post('/admin/users', userData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const updateUser = async (userId, userData) => {
-    try {
-        const response = await apiClient.put(`/admin/users/${userId}`, userData);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.put(`/admin/users/${userId}`, userData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const deleteUser = async (userId) => {
-    try {
-        const response = await apiClient.delete(`/admin/users/${userId}`);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.delete(`/admin/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 // ===================================================================
 //                          DEMAIS SERVIÇOS DA API
 // ===================================================================
 export const createScorecard = async (scorecardData) => {
-    try {
-        const response = await apiClient.post('/scorecards', scorecardData);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.post('/scorecards', scorecardData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const getAllScorecards = async () => {
-    try {
-        const response = await apiClient.get('/scorecards');
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.get('/scorecards');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const updateScorecard = async (id, scorecardData) => {
-    try {
-        const response = await apiClient.put(`/scorecards/${id}`, scorecardData);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.put(`/scorecards/${id}`, scorecardData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const deleteScorecard = async (id) => {
-    try {
-        await apiClient.delete(`/scorecards/${id}`);
-        return { success: true };
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    await apiClient.delete(`/scorecards/${id}`);
+    return { success: true };
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 
@@ -201,7 +201,7 @@ export const fetchAllTalents = async (page = 1, limit = 10, filters = {}) => {
       ...filters
     };
     const response = await apiClient.get('/talents', { params });
-    return response.data; 
+    return response.data;
   } catch (error) {
     handleError(error);
   }
@@ -232,7 +232,7 @@ export const fetchTalentDetails = async (talentId) => {
 export const updateTalent = async (talentId, dataToUpdate) => {
   try {
     const response = await apiClient.patch(`/talents/${talentId}`, dataToUpdate);
-    return response.data; 
+    return response.data;
   } catch (error) {
     handleError(error);
   }
@@ -257,12 +257,12 @@ export const fetchJobsPaginated = async (page = 1, limit = 3, status = 'open') =
 };
 
 export const fetchCandidatesForJob = async (jobId) => {
-    try {
-        const response = await apiClient.get(`/jobs/${jobId}/candidates`);
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.get(`/jobs/${jobId}/candidates`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const fetchCandidateDetails = async (jobId, talentId) => {
@@ -284,21 +284,21 @@ export const applyToJob = async (jobId, talentId) => {
 };
 
 export const updateApplicationStatus = async (applicationId, stageId) => {
-    try {
-        const response = await apiClient.patch(`/applications/${applicationId}/status`, { stageId });
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.patch(`/applications/${applicationId}/status`, { stageId });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const updateApplicationCustomFields = async (applicationId, customFields) => {
-    try {
-        const response = await apiClient.patch(`/applications/${applicationId}/custom-fields`, { customFields });
-        return response.data;
-    } catch (error) {
-        handleError(error);
-    }
+  try {
+    const response = await apiClient.patch(`/applications/${applicationId}/custom-fields`, { customFields });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const removeApplication = async (applicationId) => {
@@ -393,10 +393,10 @@ export const syncLinkedInProfile = async (talentId) => {
 
 export const evaluateScorecardWithAI = async (talentId, jobDetails, scorecard, weights) => {
   try {
-    const response = await apiClient.post('/ai/evaluate-scorecard', { 
-      talentId, 
-      jobDetails, 
-      scorecard, 
+    const response = await apiClient.post('/ai/evaluate-scorecard', {
+      talentId,
+      jobDetails,
+      scorecard,
       weights
     });
     return response.data;
@@ -409,6 +409,43 @@ export const analyzeProfileWithAI = async (scorecardId, profileData) => {
   try {
     const response = await apiClient.post(`/match/${scorecardId}`, profileData);
     return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// --- AI Memory (Glossário) ---
+export const getAIMemories = async () => {
+  try {
+    const response = await apiClient.get('/ai-memory');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const createAIMemory = async (data) => {
+  try {
+    const response = await apiClient.post('/ai-memory', data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateAIMemory = async (id, data) => {
+  try {
+    const response = await apiClient.put(`/ai-memory/${id}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteAIMemory = async (id) => {
+  try {
+    await apiClient.delete(`/ai-memory/${id}`);
+    return true;
   } catch (error) {
     handleError(error);
   }

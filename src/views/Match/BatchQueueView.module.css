@@ -1,0 +1,435 @@
+/* src/views/Match/BatchQueueView.module.css */
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-primary);
+}
+
+.content {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+/* Detection Section */
+.detectionSection {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.detectionSection h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.tabCount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+}
+
+.tabList {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tabItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tabItem:last-child {
+    border-bottom: none;
+}
+
+.tabIndex {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.tabUrl {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.moreItems {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+.startButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.startButton:hover {
+    background: var(--accent-hover);
+}
+
+.noTabs {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Progress Section */
+.progressSection {
+    text-align: center;
+    padding: 1rem;
+}
+
+.progressBar {
+    width: 100%;
+    height: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    transition: width 0.3s ease;
+}
+
+.progressText {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.currentProcessing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.spinIcon {
+    animation: spin 1s linear infinite;
+    color: var(--accent);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.resultsList {
+    margin-bottom: 1.5rem;
+}
+
+.resultItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.resultItem.error {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.successIcon {
+    color: var(--success);
+}
+
+.errorIcon {
+    color: var(--error);
+}
+
+.resultName {
+    flex: 1;
+    text-align: left;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.resultScore {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.stopButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: var(--error);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Review Card (Tinder Style) */
+.reviewCard {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.reviewHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.reviewName {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.reviewScore {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.scoreSection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.reviewDetails {
+    margin-bottom: 1.5rem;
+}
+
+.reviewTitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.categoryRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.categoryName {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.categoryScore {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.reviewActions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.rejectButton,
+.acceptButton {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.rejectButton {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error);
+}
+
+.acceptButton {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success);
+}
+
+.rejectButton:hover,
+.acceptButton:hover {
+    transform: scale(1.02);
+}
+
+.reviewNav {
+    display: flex;
+    justify-content: space-between;
+}
+
+.navButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.navButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.emptyReview {
+    text-align: center;
+    padding: 2rem;
+}
+
+.backButton {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.completedSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    gap: 1rem;
+}
+
+.completedIcon {
+    font-size: 4rem;
+    color: var(--success);
+}
+
+.completedSection h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.completedSection p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.skippedCard {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.navCounter {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Star Rating */
+.starsContainer {
+    display: flex;
+    gap: 2px;
+}
+
+.starFilled {
+    color: #fbbf24;
+    font-size: 1rem;
+}
+
+.starEmpty {
+    color: var(--text-tertiary);
+    font-size: 1rem;
+}
+
+/* Criteria List */
+.criteriaList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.criterionCard {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.criterionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.criterionName {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.criterionJustification {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin: 0;
+}
