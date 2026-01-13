@@ -245,6 +245,9 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
           console.error('[WORKFLOW] Failed to auto-save scorecard:', err);
           // Não bloqueia o fluxo, apenas loga o erro
         }
+
+        // MUDANÇA: Retorna para o fluxo da Fila (Popup) sem navegar para detalhes
+        return;
       }
 
       const [kitsResult, summaryResult] = await Promise.all([
