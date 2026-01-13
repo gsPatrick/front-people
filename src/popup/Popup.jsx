@@ -354,8 +354,27 @@ const Popup = () => {
         case 'extracted_text_view': contentToRender = <ExtractedTextView text={view.state?.text || 'Nenhum texto encontrado.'} onBack={goBack} />; break;
         case 'scorecard_hub': contentToRender = <ScorecardHubView scorecards={filteredScorecards} onAddNew={() => navigateTo('scorecard_edit')} onEdit={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onDelete={handleDeleteScorecard} onFilterChange={(key, value) => setScorecardFilters(prev => ({ ...prev, [key]: value }))} />; break;
         case 'scorecard_edit': contentToRender = <ScorecardEditView initialData={view.state?.scorecard} onSave={handleSaveScorecard} onCancel={goBack} />; break;
-        case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => { workflow.setProfileContext({ exists: false, profileData: result.profileData }); navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId }); }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')} />; break;
-        case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => { await workflow.handleCreateAndGoToEvaluation(workflow.profileContext.profileData, job); navigateTo('batch_queue', { scorecardId: view.state?.scorecardId }); }} onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
+        case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => {
+            // HERE: Pass matchResult and scorecardId to context
+            workflow.setProfileContext({
+                exists: false,
+                profileData: result.profileData,
+                matchData: {
+                    result: result.matchResult,
+                    scorecardId: view.state?.scorecardId
+                }
+            });
+            navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
+        }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')} />; break;
+        case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => {
+            // HERE: Pass matchData to workflow
+            await workflow.handleCreateAndGoToEvaluation(
+                workflow.profileContext.profileData,
+                job,
+                workflow.profileContext.matchData // New Argument
+            );
+            navigateTo('batch_queue', { scorecardId: view.state?.scorecardId });
+        }} onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
         default: contentToRender = <LoadingView />;
     }
 

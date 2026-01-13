@@ -185,7 +185,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     navigateTo('select_job_for_new_talent');
   }, [navigateTo]);
 
-  const handleCreateAndGoToEvaluation = useCallback((profileData, selectedJob) => {
+  const handleCreateAndGoToEvaluation = useCallback((profileData, selectedJob, matchData) => {
     executeAsync(async () => {
       const { linkedinUrl } = profileData;
       const linkedinUsername = linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null;
@@ -194,6 +194,59 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
       const detailsResult = await api.fetchCandidateDetails(selectedJob.id, createResult.id);
       if (!detailsResult.success) throw new Error(detailsResult.error);
+
+      // NOVO: Se houver dados de Match (criação via Batch Queue), salva o scorecard automaticamente
+      if (matchData && matchData.result && matchData.scorecardId) {
+        try {
+          console.log('[WORKFLOW] Auto-saving scorecard from match data...');
+          // 1. Busca estrutura do Kit para ter os IDs corretos
+          const kitResultData = await api.fetchInterviewKit(matchData.scorecardId);
+          if (kitResultData.success && kitResultData.kit) {
+            const kit = kitResultData.kit;
+            const ratings = {};
+            const categories = matchData.result.categories || [];
+
+            // 2. Mapeia as respostas do Match para os IDs do Kit
+            // matchData structure: categories: [{ name, criteria: [{ name, score, justification }] }]
+            kit.skillCategories.forEach(kitCat => {
+              const matchCat = categories.find(c => c.name === kitCat.name);
+              if (matchCat) {
+                (kitCat.skills || []).forEach(kitSkill => {
+                  const matchSkill = matchCat.criteria?.find(c => c.name === kitSkill.name);
+                  if (matchSkill) {
+                    ratings[kitSkill.id] = {
+                      score: matchSkill.score,
+                      description: matchSkill.justification
+                    };
+                  }
+                });
+              }
+            });
+
+            // 3. Monta o payload "plano" esperado
+            const autoSavePayload = {
+              userId: 'auto-match',
+              scorecardInterviewId: matchData.scorecardId,
+              feedback: '', // Match service não gera feedback geral texto corrido ainda
+              decision: 'NO_DECISION',
+              notes: 'Avaliação gerada automaticamente via Fila em Lote.',
+              ratings: ratings
+            };
+
+            // 4. Salva (backend agora enriquece os IDs do kit se necessário)
+            await api.submitScorecard(
+              detailsResult.candidateData.application.id,
+              matchData.scorecardId,
+              autoSavePayload
+            );
+            console.log('[WORKFLOW] Scorecard auto-saved successfully.');
+          }
+        } catch (err) {
+          console.error('[WORKFLOW] Failed to auto-save scorecard:', err);
+          // Não bloqueia o fluxo, apenas loga o erro
+        }
+      }
+
       const [kitsResult, summaryResult] = await Promise.all([
         api.fetchKitsForJob(selectedJob.id),
         api.fetchScorecardData(detailsResult.candidateData.application.id, selectedJob.id)
