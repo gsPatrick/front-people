@@ -88,15 +88,15 @@ export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob
       await api.submitScorecard(currentApplication.id, selectedInterviewKit.id, evaluationData);
 
       // Se houver callback de atualização (refresh summary), chama ele
-      if (props.onScorecardUpdate) {
+      if (onScorecardUpdate) {
         console.log('[useScorecard] Triggering scorecard update refresh...');
-        await props.onScorecardUpdate();
+        await onScorecardUpdate();
       }
 
       alert("Avaliação enviada com sucesso!");
       handleCloseScorecard();
     });
-  }, [executeAsync, selectedInterviewKit, currentApplication, handleCloseScorecard]);
+  }, [executeAsync, selectedInterviewKit, currentApplication, handleCloseScorecard, onScorecardUpdate]);
 
   const handleStartEditEvaluation = useCallback((evaluation) => {
     executeAsync(async () => {
