@@ -91,10 +91,7 @@ const CandidateDetailView = ({
                     <select className={styles.stageSelector} value={candidate.application.stageId} onChange={handleStageChange}>
                         {stages.map(stage => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
                     </select>
-                    <button onClick={handleUpdateClick} className={styles.updateProfileButton} disabled={isUpdating} title="Abre o perfil do LinkedIn e extrai os dados mais recentes para atualizar o candidato na InHire.">
-                        {isUpdating ? (<span className={styles.buttonLoader}></span>) : (<FaLinkedin />)}
-                        <span>{isUpdating ? 'Atualizando...' : 'Atualizar Dados'}</span>
-                    </button>
+
                 </div>
             </header>
 
