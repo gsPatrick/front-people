@@ -238,20 +238,19 @@ const ScorecardView = ({
   const handleSubmit = async () => {
     setIsLoading(true);
     await onSaveWeights(scorecard.id, weights);
+
+    // CORREÇÃO: Enviar o payload no formato "plano" que o backend (evaluationOrchestrator) espera
     const finalEvaluationData = {
       userId: 'mock-user-id',
       scorecardInterviewId: scorecard.id,
-      feedback: { comment: evaluationData.feedback, proceed: evaluationData.decision },
-      privateNotes: evaluationData.notes,
-      skillCategories: scorecard.skillCategories.map(cat => ({
-        name: cat.name,
-        skills: (cat.skills || []).map(skill => ({
-          name: skill.name,
-          score: evaluationData.ratings[skill.id]?.score || 0,
-          description: evaluationData.ratings[skill.id]?.description || ''
-        }))
-      }))
+      // Backend espera strings separadas, não objeto aninhado
+      feedback: evaluationData.feedback,
+      decision: evaluationData.decision,
+      notes: evaluationData.notes,
+      // Backend espera o mapa de ratings para reconstruir a estrutura baseada no Kit
+      ratings: evaluationData.ratings
     };
+
     await onSubmit(finalEvaluationData);
     setIsLoading(false);
   };
