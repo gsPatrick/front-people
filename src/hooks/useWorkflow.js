@@ -285,6 +285,16 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     }
   }), [executeAsync, handleSelectTalentForDetails]);
 
+  // Função dedicada para recarregar o sumário de scorecards (útil após submissão)
+  const refreshScorecardSummary = useCallback(() => executeAsync(async () => {
+    if (currentApplication && currentJob) {
+      log('[WORKFLOW] Refreshing scorecard summary...');
+      const summaryResult = await api.fetchScorecardData(currentApplication.id, currentJob.id);
+      setCurrentScorecardSummary(summaryResult.data?.content || []);
+      log('[WORKFLOW] Scorecard summary updated.');
+    }
+  }), [executeAsync, currentApplication, currentJob]);
+
   const applicationCustomFields = useMemo(() => {
     const fields = currentTalent?.application?.customFields;
     return Array.isArray(fields) ? fields.map(field => ({ ...field, id: field.customFieldId || field.id })) : [];
@@ -292,7 +302,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const state = { profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext };
   const setters = { setProfileContext, setCurrentJob, setCurrentTalent, setCurrentCandidates, setCurrentJobStages, setCurrentApplication, setCurrentInterviewKits, setCurrentScorecardSummary };
-  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction };
+  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary };
 
   return { ...state, ...setters, ...actions };
 };

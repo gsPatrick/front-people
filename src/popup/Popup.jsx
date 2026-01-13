@@ -103,7 +103,14 @@ const Popup = () => {
 
     const { jobsData, fetchAndSetJobs, handleJobsPageChange } = useJobs(executeAsync);
     const { talentsData, filters, setFilters, handleTalentsPageChange } = useTalents(executeAsync, view);
-    const scorecard = useScorecard({ executeAsync, settings, currentTalent: workflow.currentTalent, currentJob: workflow.currentJob, currentApplication: workflow.currentApplication });
+    const scorecard = useScorecard({
+        executeAsync,
+        settings,
+        currentTalent: workflow.currentTalent,
+        currentJob: workflow.currentJob,
+        currentApplication: workflow.currentApplication,
+        onScorecardUpdate: workflow.refreshScorecardSummary // Passa a função de refresh
+    });
     const batchQueue = useBatchQueue();
 
     const fetchAllScorecards = useCallback(async () => {

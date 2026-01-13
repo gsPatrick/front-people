@@ -13,7 +13,7 @@ import * as api from '../services/api.service';
  * @param {object} props.currentApplication - A candidatura atualmente em contexto.
  * @returns {object} - Estado e funções para controlar o fluxo de scorecard.
  */
-export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob, currentApplication }) => {
+export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob, currentApplication, onScorecardUpdate }) => {
   const [isScorecardModalOpen, setIsScorecardModalOpen] = useState(false);
   const [scorecardModalContent, setScorecardModalContent] = useState(null);
   const [scorecardData, setScorecardData] = useState(null);
@@ -86,6 +86,13 @@ export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob
         throw new Error("Contexto de avaliação inválido. Kit ou candidatura não encontrados.");
       }
       await api.submitScorecard(currentApplication.id, selectedInterviewKit.id, evaluationData);
+
+      // Se houver callback de atualização (refresh summary), chama ele
+      if (props.onScorecardUpdate) {
+        console.log('[useScorecard] Triggering scorecard update refresh...');
+        await props.onScorecardUpdate();
+      }
+
       alert("Avaliação enviada com sucesso!");
       handleCloseScorecard();
     });
@@ -95,13 +102,13 @@ export const useScorecard = ({ executeAsync, settings, currentTalent, currentJob
     executeAsync(async () => {
       const kitId = evaluation.scorecardInterviewId;
       if (!kitId) throw new Error("ID do kit não encontrado na avaliação.");
-      
+
       const result = await api.fetchInterviewKit(kitId);
       if (result.success && result.kit) {
         setSelectedInterviewKit(result.kit);
         setCurrentEvaluationToEdit(evaluation);
         setScorecardModalContent('evaluate');
-        setIsScorecardModalOpen(true); 
+        setIsScorecardModalOpen(true);
       } else {
         throw new Error(result.error || "Não foi possível carregar a estrutura do kit para edição.");
       }
