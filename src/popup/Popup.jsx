@@ -179,10 +179,10 @@ const Popup = () => {
     }, []);
 
     // Handler para iniciar modo de fila em lote
-    const handleStartBatchMode = useCallback(async (scorecardId) => {
-        await batchQueue.detectLinkedInTabs();
-        navigateTo('batch_queue', { scorecardId });
-    }, [batchQueue, navigateTo]);
+    const handleStartBatchMode = useCallback((scorecardId) => {
+        // Redireciona para seleção de vaga antes de iniciar a fila
+        navigateTo('match_select_job_pre_queue', { scorecardId });
+    }, [navigateTo]);
 
     useEffect(() => { if (activeMatchScorecardId && view.name !== 'match_hub') navigateTo('match_hub'); }, [activeMatchScorecardId, navigateTo, view.name]);
 
@@ -354,8 +354,23 @@ const Popup = () => {
         case 'extracted_text_view': contentToRender = <ExtractedTextView text={view.state?.text || 'Nenhum texto encontrado.'} onBack={goBack} />; break;
         case 'scorecard_hub': contentToRender = <ScorecardHubView scorecards={filteredScorecards} onAddNew={() => navigateTo('scorecard_edit')} onEdit={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onDelete={handleDeleteScorecard} onFilterChange={(key, value) => setScorecardFilters(prev => ({ ...prev, [key]: value }))} />; break;
         case 'scorecard_edit': contentToRender = <ScorecardEditView initialData={view.state?.scorecard} onSave={handleSaveScorecard} onCancel={goBack} />; break;
+        case 'match_select_job_pre_queue': contentToRender = <JobsDashboardView
+            isSelectionMode={true}
+            jobsData={jobsData}
+            customTitle="Selecione a Vaga da Fila"
+            customSubtitle="Todos os candidatos aceitos irão para esta vaga."
+            onSelectJob={async (job) => {
+                await batchQueue.detectLinkedInTabs();
+                // Passa o Job selecionado para o estado da fila
+                navigateTo('batch_queue', { scorecardId: view.state?.scorecardId, jobId: job.id, job: job });
+            }}
+            onBack={() => navigateTo('match_select_scorecard')}
+            handleJobsPageChange={handleJobsPageChange}
+            activeStatusFilter={jobStatusFilter}
+        />; break;
+
         case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => {
-            // HERE: Pass matchResult and scorecardId to context
+            // Salva no contexto
             workflow.setProfileContext({
                 exists: false,
                 profileData: result.profileData,
@@ -364,7 +379,21 @@ const Popup = () => {
                     scorecardId: view.state?.scorecardId
                 }
             });
-            navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
+
+            // Se tiver vaga pré-selecionada, salva direto!
+            if (view.state?.job) {
+                workflow.handleCreateAndGoToEvaluation(
+                    result.profileData,
+                    view.state.job,
+                    {
+                        result: result.matchResult,
+                        scorecardId: view.state?.scorecardId
+                    }
+                );
+            } else {
+                // Fallback para seleção manual (se algo der errado)
+                navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
+            }
         }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')} />; break;
         case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => {
             // HERE: Pass matchData to workflow
