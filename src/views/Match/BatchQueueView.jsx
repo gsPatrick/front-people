@@ -37,68 +37,51 @@ const BatchQueueView = ({
     // Filtrar apenas resultados válidos (sem erro)
     const validResults = results.filter(r => !r.error);
 
-    // Índice do resultado sendo visualizado no review
-    const [reviewIndex, setReviewIndex] = useState(0);
+    // Estado de Ordenação
+    const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
+    const [currentTabUrl, setCurrentTabUrl] = useState('');
 
-    // Lista de índices já processados (aceitos ou rejeitados)
-    const [processedIndices, setProcessedIndices] = useState(new Set());
-
-    // Encontra o próximo resultado não processado
-    const findNextUnprocessed = (startIndex) => {
-        for (let i = startIndex; i < validResults.length; i++) {
-            if (!processedIndices.has(i)) {
-                return i;
-            }
+    useEffect(() => {
+        if (chrome?.tabs) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]?.url) setCurrentTabUrl(tabs[0].url);
+            });
         }
-        // Se não achou pra frente, procura do início
-        for (let i = 0; i < startIndex; i++) {
-            if (!processedIndices.has(i)) {
-                return i;
-            }
-        }
-        return -1; // Todos processados
-    };
+    }, []);
 
-    const currentReview = validResults[reviewIndex];
-    const remainingToProcess = validResults.length - processedIndices.size;
+    // Lógica de Ordenação
+    const sortedResults = [...validResults].sort((a, b) => {
+        if (sortBy === 'score') {
+            return (b.averageScore || 0) - (a.averageScore || 0); // Decrescente
+        }
+        return 0;
+    });
+
+    const [processedIds, setProcessedIds] = useState(new Set());
+
+    // Encontra o primeiro item da lista ordenada que AINDA NÃO FOI processado
+    const currentReview = sortedResults.find(r => !processedIds.has(r.username));
+
+    // Totais para UI
+    const processedCount = processedIds.size;
+    const remainingCount = sortedResults.length - processedCount;
 
     const handleAccept = () => {
         if (currentReview) {
-            // Marca como processado
-            setProcessedIndices(prev => new Set([...prev, reviewIndex]));
-            // Chama callback (isso vai abrir seleção de vaga)
+            setProcessedIds(prev => new Set([...prev, currentReview.username]));
             onAcceptProfile(currentReview);
         }
     };
 
     const handleReject = () => {
         if (currentReview) {
-            // Marca como processado
-            const newProcessed = new Set([...processedIndices, reviewIndex]);
-            setProcessedIndices(newProcessed);
+            setProcessedIds(prev => new Set([...prev, currentReview.username]));
             onRejectProfile(currentReview);
-
-            // Avança para o próximo não processado
-            const next = findNextUnprocessedAfter(reviewIndex, newProcessed);
-            setReviewIndex(next !== -1 ? next : 0);
+            // Não precisamos de findNext, pois o sortedResults.find já pega o próximo
         }
     };
 
-    const findNextUnprocessedAfter = (currentIdx, processedSet) => {
-        for (let i = currentIdx + 1; i < validResults.length; i++) {
-            if (!processedSet.has(i)) return i;
-        }
-        for (let i = 0; i < currentIdx; i++) {
-            if (!processedSet.has(i)) return i;
-        }
-        return -1;
-    };
 
-    const handlePrevReview = () => {
-        if (reviewIndex > 0) {
-            setReviewIndex(reviewIndex - 1);
-        }
-    };
 
     const handleNextReview = () => {
         if (reviewIndex < validResults.length - 1) {
@@ -233,12 +216,14 @@ const BatchQueueView = ({
 
     // Fila terminou - mostrar review
     // Se todos foram processados (aceitos/rejeitados), mostrar resumo final
-    if (remainingToProcess === 0 && validResults.length > 0) {
+    // Fila terminou - mostrar review
+    // Se todos foram processados (aceitos/rejeitados), mostrar resumo final
+    if (remainingCount === 0 && validResults.length > 0) {
         return (
             <div className={styles.container}>
                 <Header
                     title="Revisão Concluída"
-                    subtitle={`${processedIndices.size} perfis revisados`}
+                    subtitle={`${processedCount} perfis revisados`}
                 />
                 <main className={styles.content}>
                     <div className={styles.completedSection}>
@@ -257,90 +242,128 @@ const BatchQueueView = ({
     // Mostra review estilo Tinder
     return (
         <div className={styles.container}>
-            <Header
-                title="Revisar Perfis"
-                subtitle={`${remainingToProcess} restantes de ${validResults.length}`}
-            />
-            <main className={styles.content}>
-                {currentReview && !processedIndices.has(reviewIndex) ? (
-                    <div className={styles.reviewCard}>
-                        <div className={styles.reviewHeader}>
-                            <h2 className={styles.reviewName}>{currentReview.username || currentReview.name}</h2>
-                            <div className={styles.scoreSection}>
-                                <span className={styles.reviewScore}>
-                                    {currentReview.matchResult?.overallScore
-                                        ? (currentReview.matchResult.overallScore / 10).toFixed(1)
-                                        : '-'}/10
-                                </span>
-                                <StarRating score={Math.round((currentReview.matchResult?.overallScore || 0) / 20)} />
+    // Mostra review estilo Tinder
+            return (
+            <div className={styles.container}>
+                <Header
+                    title="Revisar Perfis"
+                    subtitle={`${remainingCount} restantes de ${validResults.length}`}
+                />
+                {/* BARRA DE ORDENAÇÃO */}
+                <div style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>ORDENAR POR:</span>
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                            onClick={() => setSortBy('score')}
+                            style={{
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                background: sortBy === 'score' ? '#6b21a8' : 'white',
+                                color: sortBy === 'score' ? 'white' : '#64748b',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🏆 Melhor Match
+                        </button>
+                        <button
+                            onClick={() => setSortBy('date')}
+                            style={{
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                background: sortBy === 'date' ? '#6b21a8' : 'white',
+                                color: sortBy === 'date' ? 'white' : '#64748b',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🕒 Recentes
+                        </button>
+                    </div>
+                </div>
+
+                <main className={styles.content}>
+                    {currentReview ? (
+                        <div className={styles.reviewCard}>
+                            <div className={styles.reviewHeader}>
+                                <h2 className={styles.reviewName}>{currentReview.username || currentReview.name}</h2>
+                                <div className={styles.scoreSection}>
+                                    <span className={styles.reviewScore}>
+                                        {currentReview.matchResult?.overallScore
+                                            ? (currentReview.matchResult.overallScore / 10).toFixed(1)
+                                            : '-'}/10
+                                    </span>
+                                    <StarRating score={Math.round((currentReview.matchResult?.overallScore || 0) / 20)} />
+                                </div>
                             </div>
-                        </div>
 
-                        <div className={styles.reviewDetails}>
-                            <p className={styles.reviewTitle}>{currentReview.headline}</p>
+                            <div className={styles.reviewDetails}>
+                                <p className={styles.reviewTitle}>{currentReview.headline}</p>
 
-                            <div className={styles.criteriaList}>
-                                {currentReview.matchResult?.categories?.flatMap((category, catIdx) =>
-                                    category.criteria?.map((crit, critIdx) => (
-                                        <div key={`${catIdx}-${critIdx}`} className={styles.criterionCard}>
-                                            <div className={styles.criterionHeader}>
-                                                <span className={styles.criterionName}>{crit.name}</span>
-                                                <StarRating score={crit.score || 0} />
+                                <div className={styles.criteriaList}>
+                                    {currentReview.matchResult?.categories?.flatMap((category, catIdx) =>
+                                        category.criteria?.map((crit, critIdx) => (
+                                            <div key={`${catIdx}-${critIdx}`} className={styles.criterionCard}>
+                                                <div className={styles.criterionHeader}>
+                                                    <span className={styles.criterionName}>{crit.name}</span>
+                                                    <StarRating score={crit.score || 0} />
+                                                </div>
+                                                <p className={styles.criterionJustification}>
+                                                    {crit.justification || 'Sem avaliação disponível'}
+                                                </p>
                                             </div>
-                                            <p className={styles.criterionJustification}>
-                                                {crit.justification || 'Sem avaliação disponível'}
-                                            </p>
-                                        </div>
-                                    ))
-                                ) || (
-                                        <p className={styles.noCriteria}>Nenhum critério avaliado</p>
-                                    )}
+                                        ))
+                                    ) || (
+                                            <p className={styles.noCriteria}>Nenhum critério avaliado</p>
+                                        )}
+                                </div>
+                            </div>
+
+                            <div className={styles.reviewActions}>
+                                <button onClick={handleReject} className={styles.rejectButton}>
+                                    <BsXCircleFill /> Rejeitar
+                                </button>
+                                <button onClick={handleAccept} className={styles.acceptButton}>
+                                    <BsCheckCircleFill /> Aceitar
+                                </button>
+                            </div>
+
+                            <div className={styles.reviewNav}>
+                                <button
+                                    onClick={handlePrevReview}
+                                    disabled={reviewIndex === 0}
+                                    className={styles.navButton}
+                                >
+                                    ← Anterior
+                                </button>
+                                <span className={styles.navCounter}>{reviewIndex + 1}/{validResults.length}</span>
+                                <button
+                                    onClick={handleNextReview}
+                                    disabled={reviewIndex >= validResults.length - 1}
+                                    className={styles.navButton}
+                                >
+                                    Próximo →
+                                </button>
                             </div>
                         </div>
-
-                        <div className={styles.reviewActions}>
-                            <button onClick={handleReject} className={styles.rejectButton}>
-                                <BsXCircleFill /> Rejeitar
-                            </button>
-                            <button onClick={handleAccept} className={styles.acceptButton}>
-                                <BsCheckCircleFill /> Aceitar
-                            </button>
+                    ) : (
+                        <div className={styles.skippedCard}>
+                            <p>Este perfil já foi processado</p>
+                            <div className={styles.reviewNav}>
+                                <button onClick={handlePrevReview} disabled={reviewIndex === 0} className={styles.navButton}>
+                                    ← Anterior
+                                </button>
+                                <button onClick={handleNextReview} disabled={reviewIndex >= validResults.length - 1} className={styles.navButton}>
+                                    Próximo →
+                                </button>
+                            </div>
                         </div>
-
-                        <div className={styles.reviewNav}>
-                            <button
-                                onClick={handlePrevReview}
-                                disabled={reviewIndex === 0}
-                                className={styles.navButton}
-                            >
-                                ← Anterior
-                            </button>
-                            <span className={styles.navCounter}>{reviewIndex + 1}/{validResults.length}</span>
-                            <button
-                                onClick={handleNextReview}
-                                disabled={reviewIndex >= validResults.length - 1}
-                                className={styles.navButton}
-                            >
-                                Próximo →
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className={styles.skippedCard}>
-                        <p>Este perfil já foi processado</p>
-                        <div className={styles.reviewNav}>
-                            <button onClick={handlePrevReview} disabled={reviewIndex === 0} className={styles.navButton}>
-                                ← Anterior
-                            </button>
-                            <button onClick={handleNextReview} disabled={reviewIndex >= validResults.length - 1} className={styles.navButton}>
-                                Próximo →
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </main>
-        </div>
-    );
+                    )}
+                </main>
+            </div>
+            );
 };
 
-export default BatchQueueView;
+            export default BatchQueueView;
