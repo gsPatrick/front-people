@@ -115,49 +115,49 @@ const BatchQueueView = ({
                             )}
                         </div>
 
-                        {totalTabs > 0 ? (
+                        {totalTabs > 0 && (
                             <button onClick={onStartQueue} className={styles.startButton}>
                                 <BsPlayFill /> Iniciar Fila
                             </button>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%' }}>
-                                <button
-                                    className={styles.sourceButton}
-                                    onClick={() => {
-                                        const isSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
-                                        if (isSearchPage) {
-                                            // Usa a aba atual direto!
-                                            onAutoSource(currentTabUrl, scorecard?.id);
-                                        } else {
-                                            // Abre nova aba de busca para o usuário
-                                            if (chrome?.tabs) {
-                                                chrome.tabs.create({ url: 'https://www.linkedin.com/search/results/people/' });
-                                            } else {
-                                                window.open('https://www.linkedin.com/search/results/people/', '_blank');
-                                            }
-                                        }
-                                    }}
-                                    style={{
-                                        marginTop: '15px',
-                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#7e22ce', // Verde ou Roxo (Padrão)
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '12px 20px',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        fontWeight: 'bold',
-                                        width: '100%',
-                                        justifyContent: 'center'
-                                    }}
-                                >
-                                    {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
-                                        ? '📥 Importar Desta Busca'
-                                        : '🔍 Ir para Busca de Pessoas'}
-                                </button>   </div>
                         )}
+
+                        {/* BOTÃO DE AUTOMAÇÃO DE BUSCA INTELIGENTE (Sempre visível ou abaixo do iniciar) */}
+                        <button
+                            className={styles.sourceButton}
+                            onClick={() => {
+                                const isSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
+                                if (isSearchPage) {
+                                    // Usa a aba atual direto!
+                                    onAutoSource(currentTabUrl, scorecard?.id);
+                                } else {
+                                    // Abre nova aba de busca para o usuário
+                                    if (chrome?.tabs) {
+                                        chrome.tabs.create({ url: 'https://www.linkedin.com/search/results/people/' });
+                                    } else {
+                                        window.open('https://www.linkedin.com/search/results/people/', '_blank');
+                                    }
+                                }
+                            }}
+                            style={{
+                                marginTop: '15px',
+                                backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#7e22ce', // Verde ou Roxo
+                                color: 'white',
+                                border: 'none',
+                                padding: '12px 20px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontWeight: 'bold',
+                                width: '100%',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
+                                ? '📥 Importar Desta Busca'
+                                : '🔍 Ir para Busca de Pessoas'}
+                        </button>
                     </div>
                 </main>
             </div>
