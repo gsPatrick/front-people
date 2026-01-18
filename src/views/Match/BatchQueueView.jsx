@@ -46,18 +46,49 @@ const BatchQueueView = ({
     const [sourceTargetCount, setSourceTargetCount] = useState(50);
 
     useEffect(() => {
-        if (chrome?.tabs) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const url = tabs[0]?.url || '';
-                if (url) {
-                    setCurrentTabUrl(url);
-                    // UX Melhorada: Se já estiver na busca, abre a config direto!
-                    if (url.includes('linkedin.com/search/results/people')) {
-                        setShowSourceConfig(true);
+        const checkCurrentTab = () => {
+            if (chrome?.tabs) {
+                chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+                    const url = tabs[0]?.url || '';
+                    if (url) {
+                        console.log("[BatchQueueView] Detected URL:", url);
+                        setCurrentTabUrl(url);
+
+                        // Auto-open config if on search page
+                        if (url.includes('linkedin.com/search/results/people')) {
+                            setShowSourceConfig(true);
+                        }
                     }
-                }
-            });
+                });
+            }
+        };
+
+        // Check on mount
+        checkCurrentTab();
+
+        // Check on updates (navigation)
+        const handleUpdate = (tabId, changeInfo, tab) => {
+            if (changeInfo.status === 'complete' && tab.active) {
+                checkCurrentTab();
+            }
+        };
+
+        // Check on tab switch
+        const handleActivated = (activeInfo) => {
+            checkCurrentTab();
+        };
+
+        if (chrome?.tabs) {
+            chrome.tabs.onUpdated.addListener(handleUpdate);
+            chrome.tabs.onActivated.addListener(handleActivated);
         }
+
+        return () => {
+            if (chrome?.tabs) {
+                chrome.tabs.onUpdated.removeListener(handleUpdate);
+                chrome.tabs.onActivated.removeListener(handleActivated);
+            }
+        };
     }, []);
 
     // Lógica de Ordenação
