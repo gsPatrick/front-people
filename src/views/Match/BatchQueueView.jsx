@@ -139,7 +139,7 @@ const BatchQueueView = ({
                                     }}
                                     style={{
                                         marginTop: '15px',
-                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#2563eb', // Verde ou Azul Padrão
+                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#7e22ce', // Verde ou Roxo (Padrão)
                                         color: 'white',
                                         border: 'none',
                                         padding: '12px 20px',
