@@ -242,128 +242,125 @@ const BatchQueueView = ({
     // Mostra review estilo Tinder
     return (
         <div className={styles.container}>
-    // Mostra review estilo Tinder
-            return (
-            <div className={styles.container}>
-                <Header
-                    title="Revisar Perfis"
-                    subtitle={`${remainingCount} restantes de ${validResults.length}`}
-                />
-                {/* BARRA DE ORDENAÇÃO */}
-                <div style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>ORDENAR POR:</span>
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                        <button
-                            onClick={() => setSortBy('score')}
-                            style={{
-                                padding: '4px 8px',
-                                fontSize: '12px',
-                                borderRadius: '4px',
-                                border: '1px solid #cbd5e1',
-                                background: sortBy === 'score' ? '#6b21a8' : 'white',
-                                color: sortBy === 'score' ? 'white' : '#64748b',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            🏆 Melhor Match
-                        </button>
-                        <button
-                            onClick={() => setSortBy('date')}
-                            style={{
-                                padding: '4px 8px',
-                                fontSize: '12px',
-                                borderRadius: '4px',
-                                border: '1px solid #cbd5e1',
-                                background: sortBy === 'date' ? '#6b21a8' : 'white',
-                                color: sortBy === 'date' ? 'white' : '#64748b',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            🕒 Recentes
-                        </button>
-                    </div>
+            <Header
+                title="Revisar Perfis"
+                subtitle={`${remainingCount} restantes de ${validResults.length}`}
+            />
+            {/* BARRA DE ORDENAÇÃO */}
+            <div style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>ORDENAR POR:</span>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                    <button
+                        onClick={() => setSortBy('score')}
+                        style={{
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: sortBy === 'score' ? '#6b21a8' : 'white',
+                            color: sortBy === 'score' ? 'white' : '#64748b',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        🏆 Melhor Match
+                    </button>
+                    <button
+                        onClick={() => setSortBy('date')}
+                        style={{
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            borderRadius: '4px',
+                            border: '1px solid #cbd5e1',
+                            background: sortBy === 'date' ? '#6b21a8' : 'white',
+                            color: sortBy === 'date' ? 'white' : '#64748b',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        🕒 Recentes
+                    </button>
                 </div>
-
-                <main className={styles.content}>
-                    {currentReview ? (
-                        <div className={styles.reviewCard}>
-                            <div className={styles.reviewHeader}>
-                                <h2 className={styles.reviewName}>{currentReview.username || currentReview.name}</h2>
-                                <div className={styles.scoreSection}>
-                                    <span className={styles.reviewScore}>
-                                        {currentReview.matchResult?.overallScore
-                                            ? (currentReview.matchResult.overallScore / 10).toFixed(1)
-                                            : '-'}/10
-                                    </span>
-                                    <StarRating score={Math.round((currentReview.matchResult?.overallScore || 0) / 20)} />
-                                </div>
-                            </div>
-
-                            <div className={styles.reviewDetails}>
-                                <p className={styles.reviewTitle}>{currentReview.headline}</p>
-
-                                <div className={styles.criteriaList}>
-                                    {currentReview.matchResult?.categories?.flatMap((category, catIdx) =>
-                                        category.criteria?.map((crit, critIdx) => (
-                                            <div key={`${catIdx}-${critIdx}`} className={styles.criterionCard}>
-                                                <div className={styles.criterionHeader}>
-                                                    <span className={styles.criterionName}>{crit.name}</span>
-                                                    <StarRating score={crit.score || 0} />
-                                                </div>
-                                                <p className={styles.criterionJustification}>
-                                                    {crit.justification || 'Sem avaliação disponível'}
-                                                </p>
-                                            </div>
-                                        ))
-                                    ) || (
-                                            <p className={styles.noCriteria}>Nenhum critério avaliado</p>
-                                        )}
-                                </div>
-                            </div>
-
-                            <div className={styles.reviewActions}>
-                                <button onClick={handleReject} className={styles.rejectButton}>
-                                    <BsXCircleFill /> Rejeitar
-                                </button>
-                                <button onClick={handleAccept} className={styles.acceptButton}>
-                                    <BsCheckCircleFill /> Aceitar
-                                </button>
-                            </div>
-
-                            <div className={styles.reviewNav}>
-                                <button
-                                    onClick={handlePrevReview}
-                                    disabled={reviewIndex === 0}
-                                    className={styles.navButton}
-                                >
-                                    ← Anterior
-                                </button>
-                                <span className={styles.navCounter}>{reviewIndex + 1}/{validResults.length}</span>
-                                <button
-                                    onClick={handleNextReview}
-                                    disabled={reviewIndex >= validResults.length - 1}
-                                    className={styles.navButton}
-                                >
-                                    Próximo →
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className={styles.skippedCard}>
-                            <p>Este perfil já foi processado</p>
-                            <div className={styles.reviewNav}>
-                                <button onClick={handlePrevReview} disabled={reviewIndex === 0} className={styles.navButton}>
-                                    ← Anterior
-                                </button>
-                                <button onClick={handleNextReview} disabled={reviewIndex >= validResults.length - 1} className={styles.navButton}>
-                                    Próximo →
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </main>
             </div>
-            );
+
+            <main className={styles.content}>
+                {currentReview ? (
+                    <div className={styles.reviewCard}>
+                        <div className={styles.reviewHeader}>
+                            <h2 className={styles.reviewName}>{currentReview.username || currentReview.name}</h2>
+                            <div className={styles.scoreSection}>
+                                <span className={styles.reviewScore}>
+                                    {currentReview.matchResult?.overallScore
+                                        ? (currentReview.matchResult.overallScore / 10).toFixed(1)
+                                        : '-'}/10
+                                </span>
+                                <StarRating score={Math.round((currentReview.matchResult?.overallScore || 0) / 20)} />
+                            </div>
+                        </div>
+
+                        <div className={styles.reviewDetails}>
+                            <p className={styles.reviewTitle}>{currentReview.headline}</p>
+
+                            <div className={styles.criteriaList}>
+                                {currentReview.matchResult?.categories?.flatMap((category, catIdx) =>
+                                    category.criteria?.map((crit, critIdx) => (
+                                        <div key={`${catIdx}-${critIdx}`} className={styles.criterionCard}>
+                                            <div className={styles.criterionHeader}>
+                                                <span className={styles.criterionName}>{crit.name}</span>
+                                                <StarRating score={crit.score || 0} />
+                                            </div>
+                                            <p className={styles.criterionJustification}>
+                                                {crit.justification || 'Sem avaliação disponível'}
+                                            </p>
+                                        </div>
+                                    ))
+                                ) || (
+                                        <p className={styles.noCriteria}>Nenhum critério avaliado</p>
+                                    )}
+                            </div>
+                        </div>
+
+                        <div className={styles.reviewActions}>
+                            <button onClick={handleReject} className={styles.rejectButton}>
+                                <BsXCircleFill /> Rejeitar
+                            </button>
+                            <button onClick={handleAccept} className={styles.acceptButton}>
+                                <BsCheckCircleFill /> Aceitar
+                            </button>
+                        </div>
+
+                        <div className={styles.reviewNav}>
+                            <button
+                                onClick={handlePrevReview}
+                                disabled={reviewIndex === 0}
+                                className={styles.navButton}
+                            >
+                                ← Anterior
+                            </button>
+                            <span className={styles.navCounter}>{reviewIndex + 1}/{validResults.length}</span>
+                            <button
+                                onClick={handleNextReview}
+                                disabled={reviewIndex >= validResults.length - 1}
+                                className={styles.navButton}
+                            >
+                                Próximo →
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className={styles.skippedCard}>
+                        <p>Este perfil já foi processado</p>
+                        <div className={styles.reviewNav}>
+                            <button onClick={handlePrevReview} disabled={reviewIndex === 0} className={styles.navButton}>
+                                ← Anterior
+                            </button>
+                            <button onClick={handleNextReview} disabled={reviewIndex >= validResults.length - 1} className={styles.navButton}>
+                                Próximo →
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
 };
 
-            export default BatchQueueView;
+export default BatchQueueView;
