@@ -39,8 +39,6 @@ const BatchQueueView = ({
 
     // Estado de Ordenação
     const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
-    // Estado de Ordenação
-    const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
     const [currentTabUrl, setCurrentTabUrl] = useState('');
 
     // Estado da Configuração de Sourcing
@@ -50,7 +48,14 @@ const BatchQueueView = ({
     useEffect(() => {
         if (chrome?.tabs) {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]?.url) setCurrentTabUrl(tabs[0].url);
+                const url = tabs[0]?.url || '';
+                if (url) {
+                    setCurrentTabUrl(url);
+                    // UX Melhorada: Se já estiver na busca, abre a config direto!
+                    if (url.includes('linkedin.com/search/results/people')) {
+                        setShowSourceConfig(true);
+                    }
+                }
             });
         }
     }, []);
