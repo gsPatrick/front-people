@@ -39,7 +39,13 @@ const BatchQueueView = ({
 
     // Estado de Ordenação
     const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
+    // Estado de Ordenação
+    const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
     const [currentTabUrl, setCurrentTabUrl] = useState('');
+
+    // Estado da Configuração de Sourcing
+    const [showSourceConfig, setShowSourceConfig] = useState(false);
+    const [sourceTargetCount, setSourceTargetCount] = useState(50);
 
     useEffect(() => {
         if (chrome?.tabs) {
@@ -127,8 +133,8 @@ const BatchQueueView = ({
                             onClick={() => {
                                 const isSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
                                 if (isSearchPage) {
-                                    // Usa a aba atual direto!
-                                    onAutoSource(currentTabUrl, scorecard?.id);
+                                    // Abre modal de configuração
+                                    setShowSourceConfig(true);
                                 } else {
                                     // Abre nova aba de busca para o usuário
                                     if (chrome?.tabs) {
@@ -157,6 +163,66 @@ const BatchQueueView = ({
                             {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
                                 ? '📥 Importar Desta Busca'
                                 : '🔍 Ir para Busca de Pessoas'}
+                        </button>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // Modal de Configuração de Sourcing
+    if (showSourceConfig) {
+        return (
+            <div className={styles.container}>
+                <Header
+                    title="Configurar Busca"
+                    subtitle="Defina os parâmetros da automação"
+                    onBack={() => setShowSourceConfig(false)}
+                />
+                <main className={styles.content} style={{ padding: '20px' }}>
+                    <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '8px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
+                        <h3 style={{ color: '#0369a1', margin: '0 0 8px 0', fontSize: '14px' }}>ℹ️ Como funciona?</h3>
+                        <p style={{ fontSize: '12px', color: '#334155', lineHeight: '1.5' }}>
+                            1. O sistema usará a busca <strong>já aberta no LinkedIn</strong>.<br />
+                            2. Certifique-se de aplicar todos os <strong>filtros desejados</strong> (Cargo, Localização, etc) na página do LinkedIn antes de iniciar.<br />
+                            3. O robô irá percorrer as páginas automaticamente até atingir a meta.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155' }}>
+                            Quantos perfis deseja capturar?
+                        </label>
+                        <select
+                            value={sourceTargetCount}
+                            onChange={(e) => setSourceTargetCount(Number(e.target.value))}
+                            style={{ padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                        >
+                            <option value={10}>10 perfis (Rápido)</option>
+                            <option value={25}>25 perfis</option>
+                            <option value={50}>50 perfis (Padrão)</option>
+                            <option value={100}>100 perfis</option>
+                            <option value={150}>150 perfis (Máximo recomendado)</option>
+                        </select>
+
+                        <button
+                            onClick={() => {
+                                setShowSourceConfig(false);
+                                onAutoSource(currentTabUrl, scorecard?.id, sourceTargetCount);
+                            }}
+                            style={{
+                                background: '#7e22ce',
+                                color: 'white',
+                                padding: '14px',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                marginTop: '10px'
+                            }}
+                        >
+                            🚀 Iniciar Busca Automática
                         </button>
                     </div>
                 </main>
