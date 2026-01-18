@@ -21,24 +21,49 @@
             totalHeight += distance;
             await sleep(200);
         }
-        window.scrollTo(0, 0); // Volta ao topo
+        // window.scrollTo(0, 0); // Removido para evitar re-renderização/virtualização agressiva
     }
 
     function extractProfileUrls() {
-        // Seletores comuns de resultados de busca do LinkedIn
-        // Link principal do perfil dentro do container de resultado
-        const selector = '.reusable-search__result-container a.app-aware-link';
-        const elements = document.querySelectorAll(selector);
-
         const urls = new Set();
-        elements.forEach(el => {
-            let href = el.href;
+
+        // Estrategia 1: Link do Título (Mais confiável)
+        // Geralmente: .entity-result__title-text a.app-aware-link
+        const titleLinks = document.querySelectorAll('.entity-result__title-text a.app-aware-link');
+        titleLinks.forEach(el => {
+            const href = el.href;
             if (href && href.includes('/in/')) {
-                // Remove query params para limpar a URL
-                href = href.split('?')[0];
-                urls.add(href);
+                urls.add(href.split('?')[0]);
             }
         });
+
+        // Estrategia 2: Seletor Genérico dentro do container de resultado
+        // Caso o layout mude
+        if (urls.size === 0) {
+            console.log("[InHire] Estratégia 1 falhou, tentando seletor genérico...");
+            const containers = document.querySelectorAll('li.reusable-search__result-container');
+            containers.forEach(container => {
+                const link = container.querySelector('a[href*="/in/"]');
+                if (link) {
+                    urls.add(link.href.split('?')[0]);
+                }
+            });
+        }
+
+        // Estratégia 3: Busca bruta por links de perfil na área de resultados principal
+        if (urls.size === 0) {
+            console.log("[InHire] Estratégia 2 falhou, tentando busca bruta...");
+            const mainList = document.querySelector('ul.reusable-search__entity-result-list');
+            if (mainList) {
+                const links = mainList.querySelectorAll('a[href*="/in/"]');
+                links.forEach(el => {
+                    // Filtra links que não parecem ser o principal (evita duplicatas ou links de imagem se possível)
+                    if (!el.classList.contains('scale-down')) {
+                        urls.add(el.href.split('?')[0]);
+                    }
+                });
+            }
+        }
 
         return Array.from(urls);
     }
