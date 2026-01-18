@@ -121,7 +121,6 @@ const BatchQueueView = ({
                             </button>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%' }}>
-                                {/* BOTÃO DE AUTOMAÇÃO DE BUSCA INTELIGENTE */}
                                 <button
                                     className={styles.sourceButton}
                                     onClick={() => {
@@ -130,14 +129,17 @@ const BatchQueueView = ({
                                             // Usa a aba atual direto!
                                             onAutoSource(currentTabUrl, scorecard?.id);
                                         } else {
-                                            // Pede URL
-                                            const url = prompt("Cole a URL da busca do LinkedIn (ex: linkedin.com/search/results/people/...)");
-                                            if (url) onAutoSource(url, scorecard?.id);
+                                            // Abre nova aba de busca para o usuário
+                                            if (chrome?.tabs) {
+                                                chrome.tabs.create({ url: 'https://www.linkedin.com/search/results/people/' });
+                                            } else {
+                                                window.open('https://www.linkedin.com/search/results/people/', '_blank');
+                                            }
                                         }
                                     }}
                                     style={{
                                         marginTop: '15px',
-                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#7e22ce',
+                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#2563eb', // Verde ou Azul Padrão
                                         color: 'white',
                                         border: 'none',
                                         padding: '12px 20px',
@@ -152,8 +154,8 @@ const BatchQueueView = ({
                                     }}
                                 >
                                     {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
-                                        ? '📥 Importar Desta Busca (Atual)'
-                                        : '🔍 Buscar +50 Perfis Automaticamente'}
+                                        ? '📥 Importar Desta Busca'
+                                        : '🔍 Ir para Busca de Pessoas'}
                                 </button>   </div>
                         )}
                     </div>
