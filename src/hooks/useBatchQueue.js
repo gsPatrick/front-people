@@ -316,8 +316,20 @@ export const useBatchQueue = () => {
             }
         } catch (e) {
             console.error("Erro no sourcing:", e);
+            alert("Erro durante a busca: " + e.message + ". A aba não será fechada para depuração.");
+            return 0; // Sai da função sem fechar a aba
         } finally {
-            chrome.tabs.remove(searchTab.id);
+            if (collectedUrls.size > 0) {
+                // Só fecha se conseguiu algo, senão deixa aberto pra debug
+                // setTimeout(() => chrome.tabs.remove(searchTab.id), 2000); 
+                // COMENTADO PARA DEBUG: O usuário disse que fechava muito rápido.
+                chrome.tabs.remove(searchTab.id);
+            }
+        }
+
+        if (collectedUrls.size === 0) {
+            alert("Nenhum perfil encontrado. Verifique se a URL de busca está correta e se há resultados de 'Pessoas' visíveis.");
+            return 0;
         }
 
         const newItems = Array.from(collectedUrls).slice(0, targetCount).map(url => {
