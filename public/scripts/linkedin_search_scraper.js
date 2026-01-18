@@ -16,55 +16,62 @@
     async function autoScroll() {
         let totalHeight = 0;
         let distance = 300;
+        // Scrollando um pouco mais agressivo e esperando mais
         while (totalHeight < document.body.scrollHeight) {
             window.scrollBy(0, distance);
             totalHeight += distance;
-            await sleep(200);
+            await sleep(100);
         }
-        // window.scrollTo(0, 0); // Removido para evitar re-renderização/virtualização agressiva
+        // NÃO volta ao topo, deixa lá embaixo pro LinkedIn carregar tudo
     }
 
     function extractProfileUrls() {
         const urls = new Set();
 
-        // Estrategia 1: Link do Título (Mais confiável)
-        // Geralmente: .entity-result__title-text a.app-aware-link
-        const titleLinks = document.querySelectorAll('.entity-result__title-text a.app-aware-link');
-        titleLinks.forEach(el => {
-            const href = el.href;
-            if (href && href.includes('/in/')) {
-                urls.add(href.split('?')[0]);
+        // Estratégia "Nuclear" (Global Scan): 
+        // Vamos pegar TODOS os links da página que contêm "/in/" e filtrar o lixo.
+        console.log("[InHire] Iniciando Scan Global de URLs...");
+
+        const allLinks = document.querySelectorAll('a[href*="/in/"]');
+        console.log(`[InHire Scan] ${allLinks.length} links potenciais encontrados.`);
+
+        allLinks.forEach(el => {
+            let href = el.href;
+
+            // Filtros de segurança:
+            if (
+                href &&
+                href.includes('/in/') &&
+                !href.includes('/overlay/') &&
+                !href.includes('/detail/') && // overlay de detalhes
+                !href.includes('/miniprofile/') && // mini profile popups
+                !href.includes('linkedin.com/in/me') &&
+                !href.includes('linkedin.com/in/ACoA') // IDs internos
+            ) {
+                // Remove query params para limpar a URL
+                const cleanUrl = href.split('?')[0];
+
+                // Validação extra
+                if (cleanUrl.length > 25) {
+                    urls.add(cleanUrl);
+                }
             }
         });
 
-        // Estrategia 2: Seletor Genérico dentro do container de resultado
-        // Caso o layout mude
+        // Fallback: Se não achou NADA, tenta buscar no texto HTML (desespero total)
         if (urls.size === 0) {
-            console.log("[InHire] Estratégia 1 falhou, tentando seletor genérico...");
-            const containers = document.querySelectorAll('li.reusable-search__result-container');
-            containers.forEach(container => {
-                const link = container.querySelector('a[href*="/in/"]');
-                if (link) {
-                    urls.add(link.href.split('?')[0]);
+            console.log("[InHire] Scan de links falhou. Tentando Regex no HTML (fallback extremo).");
+            const html = document.body.innerHTML;
+            const regex = /linkedin\.com\/in\/([a-zA-Z0-9-]+)/g;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+                if (match[0] && !match[0].includes('/me') && !match[0].includes('/overlay')) {
+                    urls.add('https://www.' + match[0]);
                 }
-            });
-        }
-
-        // Estratégia 3: Busca bruta por links de perfil na área de resultados principal
-        if (urls.size === 0) {
-            console.log("[InHire] Estratégia 2 falhou, tentando busca bruta...");
-            const mainList = document.querySelector('ul.reusable-search__entity-result-list');
-            if (mainList) {
-                const links = mainList.querySelectorAll('a[href*="/in/"]');
-                links.forEach(el => {
-                    // Filtra links que não parecem ser o principal (evita duplicatas ou links de imagem se possível)
-                    if (!el.classList.contains('scale-down')) {
-                        urls.add(el.href.split('?')[0]);
-                    }
-                });
             }
         }
 
+        console.log(`[InHire Scraper] Retornando ${urls.size} perfis únicos:`, Array.from(urls));
         return Array.from(urls);
     }
 
@@ -87,7 +94,6 @@
                     await sleep(SETTINGS.scrollDelay);
 
                     const urls = extractProfileUrls();
-                    console.log(`[InHire] Encontrados ${urls.length} perfis.`);
 
                     const nextBtn = findNextButton();
                     const hasNextPage = !!nextBtn;
