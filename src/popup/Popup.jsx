@@ -394,7 +394,9 @@ const Popup = () => {
                 // Fallback para seleção manual (se algo der errado)
                 navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
             }
-        }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')} />; break;
+        }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')}
+            onAutoSource={(url) => batchQueue.sourceProfilesFromSearch(url)}
+        />; break;
         case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => {
             // HERE: Pass matchData to workflow
             await workflow.handleCreateAndGoToEvaluation(

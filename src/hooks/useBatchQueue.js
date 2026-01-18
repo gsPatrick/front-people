@@ -197,9 +197,13 @@ export const useBatchQueue = () => {
             results: []
         }));
 
-        const tabs = queueState.tabs;
+        // Importante: Pegar a referência mais atual de tabs
+        // Como estamos dentro de um callback, queueState pode estar stale se não usarmos ref ou se basear no state atual.
+        // Aqui, vamos confiar que quem chamou startQueue já atualizou o state ou passamos tabs como argumento.
+        // Mas o hook usa queueState.tabs.
+        const tabsToProcess = [...queueState.tabs];
 
-        for (let i = 0; i < tabs.length; i++) {
+        for (let i = 0; i < tabsToProcess.length; i++) {
             if (abortRef.current) break;
 
             setQueueState(prev => ({
@@ -207,12 +211,47 @@ export const useBatchQueue = () => {
                 currentIndex: i
             }));
 
-            const result = await processTab(tabs[i], scorecardId);
+            let currentItem = tabsToProcess[i];
+            let activeTabId = currentItem.id;
+            let createdTab = false;
+
+            // Lógica para abrir aba se for item de Automação
+            if (!activeTabId && currentItem.url) {
+                try {
+                    const tab = await chrome.tabs.create({ url: currentItem.url, active: false });
+                    activeTabId = tab.id;
+                    currentItem = { ...currentItem, id: activeTabId }; // Atualiza item localmente
+                    createdTab = true;
+                    // Espera carregar página
+                    await new Promise(r => setTimeout(r, 6000));
+                } catch (err) {
+                    console.error("Erro ao abrir aba:", err);
+                    setQueueState(prev => ({
+                        ...prev,
+                        results: [...prev.results, { username: currentItem.username, error: "Falha ao abrir link" }]
+                    }));
+                    continue; // Pula para próximo
+                }
+            }
+
+            // Processa
+            const result = await processTab(currentItem, scorecardId);
+
+            // Fecha aba temporária
+            if (createdTab && activeTabId) {
+                chrome.tabs.remove(activeTabId);
+            }
 
             setQueueState(prev => ({
                 ...prev,
                 results: [...prev.results, result]
             }));
+
+            // Delay Humano (só se não for o último)
+            if (i < tabsToProcess.length - 1) {
+                const delay = Math.floor(Math.random() * (4000 - 2000 + 1) + 2000);
+                await new Promise(r => setTimeout(r, delay));
+            }
         }
 
         isRunningRef.current = false;
@@ -245,12 +284,67 @@ export const useBatchQueue = () => {
         return result;
     }, []);
 
+    // NOVA FUNÇÃO: Sourcing Automático via Busca
+    const sourceProfilesFromSearch = useCallback(async (searchUrl, targetCount = 50) => {
+        const searchTab = await chrome.tabs.create({ url: searchUrl, active: true });
+        let collectedUrls = new Set();
+
+        const waitDocs = (ms) => new Promise(r => setTimeout(r, ms));
+
+        try {
+            while (collectedUrls.size < targetCount) {
+                await waitDocs(6000);
+
+                await chrome.scripting.executeScript({
+                    target: { tabId: searchTab.id },
+                    files: ['scripts/linkedin_search_scraper.js']
+                });
+
+                const response = await chrome.tabs.sendMessage(searchTab.id, {
+                    action: "scrape_search_results",
+                    goToNext: true
+                });
+
+                if (response && response.success) {
+                    response.urls.forEach(url => collectedUrls.add(url));
+                    if (!response.hasNextPage) break;
+                } else {
+                    break;
+                }
+
+                if (collectedUrls.size >= targetCount) break;
+            }
+        } catch (e) {
+            console.error("Erro no sourcing:", e);
+        } finally {
+            chrome.tabs.remove(searchTab.id);
+        }
+
+        const newItems = Array.from(collectedUrls).slice(0, targetCount).map(url => {
+            const match = url.match(/linkedin\.com\/in\/([^/?]+)/);
+            return {
+                id: null,
+                url: url,
+                username: match ? match[1] : 'unknown',
+                status: 'pending'
+            };
+        });
+
+        setQueueState(prev => ({
+            ...prev,
+            tabs: [...prev.tabs, ...newItems]
+        }));
+
+        return newItems.length;
+    }, []);
+
     return {
         queueState,
         detectLinkedInTabs,
         startQueue,
         stopQueue,
         acceptProfile,
-        rejectProfile
+        rejectProfile,
+        sourceProfilesFromSearch
     };
 };

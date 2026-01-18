@@ -26,7 +26,8 @@ const BatchQueueView = ({
     onStopQueue,
     onAcceptProfile,
     onRejectProfile,
-    onGoBack
+    onGoBack,
+    onAutoSource // Nova prop
 }) => {
     const { isRunning, tabs, currentIndex, results } = queueState;
     const totalTabs = tabs.length;
