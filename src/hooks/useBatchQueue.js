@@ -125,6 +125,11 @@ export const useBatchQueue = () => {
                 const waitForResult = () => {
                     return new Promise((resolveResult) => {
                         const listener = (message) => {
+                            // CONCORRÊNCIA: Verifica se a mensagem é desta aba específica
+                            if (message.payload && message.payload.tabId && message.payload.tabId !== tab.id) {
+                                return; // Ignora msg de outras abas
+                            }
+
                             if (message.type === 'PDF_EXTRACTION_SUCCESS') {
                                 chrome.runtime.onMessage.removeListener(listener);
                                 resolveResult({ success: true, data: message.payload });
