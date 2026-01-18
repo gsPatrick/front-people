@@ -125,11 +125,6 @@ export const useBatchQueue = () => {
                 const waitForResult = () => {
                     return new Promise((resolveResult) => {
                         const listener = (message) => {
-                            // CONCORRÊNCIA: Verifica se a mensagem é desta aba específica
-                            if (message.payload && message.payload.tabId && message.payload.tabId !== tab.id) {
-                                return; // Ignora msg de outras abas
-                            }
-
                             if (message.type === 'PDF_EXTRACTION_SUCCESS') {
                                 chrome.runtime.onMessage.removeListener(listener);
                                 resolveResult({ success: true, data: message.payload });
@@ -187,8 +182,8 @@ export const useBatchQueue = () => {
         });
     }, []);
 
-    // Inicia o processamento da fila com CONCORRÊNCIA (Batch)
-    const startQueue = useCallback(async (scorecardId) => {
+    // Inicia o processamento da fila
+    const startQueue = useCallback(async (scorecardId, explicitTabs = null) => {
         if (isRunningRef.current) return;
 
         isRunningRef.current = true;
@@ -202,78 +197,57 @@ export const useBatchQueue = () => {
             results: []
         }));
 
-        const tabsToProcess = [...queueState.tabs];
-        const BATCH_SIZE = 3; // Processar 3 por vez (Segurança e Performance)
+        // Se passamos tabs, usa elas. Senão, pega do state.
+        const tabsToProcess = explicitTabs || [...queueState.tabs];
 
-        // Helper para processar um único item do início ao fim
-        const processSingleItem = async (originalItem, index) => {
-            if (abortRef.current) return null;
+        for (let i = 0; i < tabsToProcess.length; i++) {
+            if (abortRef.current) break;
 
-            let currentItem = { ...originalItem };
+            setQueueState(prev => ({
+                ...prev,
+                currentIndex: i
+            }));
+
+            let currentItem = tabsToProcess[i];
             let activeTabId = currentItem.id;
             let createdTab = false;
 
-            try {
-                // 1. Abrir aba se necessário
-                if (!activeTabId && currentItem.url) {
-                    try {
-                        const tab = await chrome.tabs.create({ url: currentItem.url, active: false });
-                        activeTabId = tab.id;
-                        currentItem.id = activeTabId;
-                        createdTab = true;
-                        // Espera carregamento inicial (menor tempo pois é paralelo)
-                        await new Promise(r => setTimeout(r, 8000));
-                    } catch (err) {
-                        return { username: currentItem.username, error: "Falha ao abrir link: " + err.message };
-                    }
+            // Lógica para abrir aba se for item de Automação
+            if (!activeTabId && currentItem.url) {
+                try {
+                    const tab = await chrome.tabs.create({ url: currentItem.url, active: false });
+                    activeTabId = tab.id;
+                    currentItem = { ...currentItem, id: activeTabId }; // Atualiza item localmente
+                    createdTab = true;
+                    // Espera carregar página
+                    await new Promise(r => setTimeout(r, 6000));
+                } catch (err) {
+                    console.error("Erro ao abrir aba:", err);
+                    setQueueState(prev => ({
+                        ...prev,
+                        results: [...prev.results, { username: currentItem.username, error: "Falha ao abrir link" }]
+                    }));
+                    continue; // Pula para próximo
                 }
-
-                if (abortRef.current) {
-                    if (createdTab && activeTabId) chrome.tabs.remove(activeTabId);
-                    return null;
-                }
-
-                // 2. Processar
-                setQueueState(prev => ({ ...prev, currentIndex: index })); // UI update (mostra o ultimo iniciado)
-                const result = await processTab(currentItem, scorecardId);
-
-                // 3. Fechar aba
-                if (createdTab && activeTabId) {
-                    chrome.tabs.remove(activeTabId);
-                }
-
-                return result;
-
-            } catch (error) {
-                if (createdTab && activeTabId) chrome.tabs.remove(activeTabId);
-                return { username: currentItem.username, error: error.message || "Erro desconhecido" };
-            }
-        };
-
-        // Loop principal em Batches
-        for (let i = 0; i < tabsToProcess.length; i += BATCH_SIZE) {
-            if (abortRef.current) break;
-
-            const batch = tabsToProcess.slice(i, i + BATCH_SIZE);
-            console.log(`[BatchQueue] Iniciando batch ${i} a ${i + BATCH_SIZE}`);
-
-            // Executa o batch atual em paralelo
-            const batchPromises = batch.map((item, batchIdx) => processSingleItem(item, i + batchIdx));
-            const batchResults = await Promise.all(batchPromises);
-
-            // Filtra nulos (abortados) e atualiza resultados
-            const validResults = batchResults.filter(r => r !== null);
-
-            if (validResults.length > 0) {
-                setQueueState(prev => ({
-                    ...prev,
-                    results: [...prev.results, ...validResults]
-                }));
             }
 
-            // Delay entre batches para respiro da API
-            if (i + BATCH_SIZE < tabsToProcess.length) {
-                await new Promise(r => setTimeout(r, 3000));
+            // Processa
+            const result = await processTab(currentItem, scorecardId);
+
+            // Fecha aba temporária
+            if (createdTab && activeTabId) {
+                chrome.tabs.remove(activeTabId);
+            }
+
+            setQueueState(prev => ({
+                ...prev,
+                results: [...prev.results, result]
+            }));
+
+            // Delay Humano (só se não for o último)
+            if (i < tabsToProcess.length - 1) {
+                const delay = Math.floor(Math.random() * (4000 - 2000 + 1) + 2000);
+                await new Promise(r => setTimeout(r, delay));
             }
         }
 
@@ -308,7 +282,7 @@ export const useBatchQueue = () => {
     }, []);
 
     // NOVA FUNÇÃO: Sourcing Automático via Busca
-    const sourceProfilesFromSearch = useCallback(async (searchUrl, targetCount = 50) => {
+    const sourceProfilesFromSearch = useCallback(async (searchUrl, scorecardId, targetCount = 50) => {
         const searchTab = await chrome.tabs.create({ url: searchUrl, active: true });
         let collectedUrls = new Set();
 
@@ -365,13 +339,25 @@ export const useBatchQueue = () => {
             };
         });
 
+        // Atualiza o state VISUALMENTE
         setQueueState(prev => ({
             ...prev,
             tabs: [...prev.tabs, ...newItems]
         }));
 
+        // INICIA AUTOMATICAMENTE A FILA
+        // Passamos newItems + abas anteriores para garantir que processe tudo
+        if (scorecardId && newItems.length > 0) {
+            // Pequeno delay para garantir que o setQueueState não conflite, 
+            // mas usamos explicitTabs no startQueue
+            console.log("[AutoSource] Iniciando fila automaticamente com", newItems.length, "itens");
+            // Combinar com tabs existentes se houver (mas geralmente na automação está zerado)
+            // Vamos focar nos newItems para simplificar, já que a ideia é "busca -> processa"
+            startQueue(scorecardId, newItems);
+        }
+
         return newItems.length;
-    }, []);
+    }, [startQueue]);
 
     return {
         queueState,

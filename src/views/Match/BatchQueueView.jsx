@@ -121,37 +121,41 @@ const BatchQueueView = ({
                             </button>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', width: '100%' }}>
-                                <p className={styles.noTabs} style={{ textAlign: 'center' }}>
-                                    Nenhuma aba encontrada.<br />Abra perfis manualmente ou faça uma busca automática.
-                                </p>
-                            </div>
+                                {/* BOTÃO DE AUTOMAÇÃO DE BUSCA INTELIGENTE */}
+                                <button
+                                    className={styles.sourceButton}
+                                    onClick={() => {
+                                        const isSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
+                                        if (isSearchPage) {
+                                            // Usa a aba atual direto!
+                                            onAutoSource(currentTabUrl, scorecard?.id);
+                                        } else {
+                                            // Pede URL
+                                            const url = prompt("Cole a URL da busca do LinkedIn (ex: linkedin.com/search/results/people/...)");
+                                            if (url) onAutoSource(url, scorecard?.id);
+                                        }
+                                    }}
+                                    style={{
+                                        marginTop: '15px',
+                                        backgroundColor: (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '#059669' : '#7e22ce',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '12px 20px',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontWeight: 'bold',
+                                        width: '100%',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
+                                        ? '📥 Importar Desta Busca (Atual)'
+                                        : '🔍 Buscar +50 Perfis Automaticamente'}
+                                </button>   </div>
                         )}
-
-                        {/* BOTÃO DE AUTOMAÇÃO DE BUSCA */}
-                        <button
-                            className={styles.sourceButton}
-                            onClick={() => {
-                                const url = prompt("Cole a URL da busca do LinkedIn (ex: linkedin.com/search/results/people/...)");
-                                if (url) onAutoSource(url);
-                            }}
-                            style={{
-                                marginTop: '15px',
-                                backgroundColor: '#7e22ce',
-                                color: 'white',
-                                border: 'none',
-                                padding: '12px 20px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontWeight: 'bold',
-                                width: '100%',
-                                justifyContent: 'center'
-                            }}
-                        >
-                            🔍 Buscar +50 Perfis Automaticamente
-                        </button>
                     </div>
                 </main>
             </div>
