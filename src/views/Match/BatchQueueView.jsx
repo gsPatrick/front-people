@@ -1,4 +1,3 @@
-// src/views/Match/BatchQueueView.jsx
 import React, { useState, useEffect } from 'react';
 import styles from './BatchQueueView.module.css';
 import Header from '../../components/Header/Header';
@@ -44,6 +43,7 @@ const BatchQueueView = ({
     // Estado da Configuração de Sourcing
     const [showSourceConfig, setShowSourceConfig] = useState(false);
     const [sourceTargetCount, setSourceTargetCount] = useState(50);
+    const [isSourcing, setIsSourcing] = useState(false);
 
     useEffect(() => {
         const checkCurrentTab = () => {
@@ -54,8 +54,8 @@ const BatchQueueView = ({
                         console.log("[BatchQueueView] Detected URL:", url);
                         setCurrentTabUrl(url);
 
-                        // Auto-open config if on search page
-                        if (url.includes('linkedin.com/search/results/people')) {
+                        // Auto-open config if on search page AND NOT sourcing/running
+                        if (url.includes('linkedin.com/search/results/people') && !isSourcing && !isRunning) {
                             setShowSourceConfig(true);
                         }
                     }
@@ -89,7 +89,7 @@ const BatchQueueView = ({
                 chrome.tabs.onActivated.removeListener(handleActivated);
             }
         };
-    }, []);
+    }, [isSourcing, isRunning]); // Dependência isSourcing adicionada
 
     // Lógica de Ordenação
     const sortedResults = [...validResults].sort((a, b) => {
@@ -119,34 +119,14 @@ const BatchQueueView = ({
         if (currentReview) {
             setProcessedIds(prev => new Set([...prev, currentReview.username]));
             onRejectProfile(currentReview);
-            // Não precisamos de findNext, pois o sortedResults.find já pega o próximo
         }
     };
 
-
-
     const handleNextReview = () => {
-        // Find next unprocessed index or just increment if we are navigating history
-        // Since we are using filtered view, maybe we just want to skip?
-        // Actually, "Next" behavior for Tinder-like is usually "Skip/Reject" or just move card.
-        // But if this is for the "Previous" arrow functionality:
-        /*
-        if (reviewIndex < validResults.length - 1) {
-            setReviewIndex(reviewIndex + 1);
-        }
-        */
-        // Implementação simplificada pois o fluxo principal remove da lista via processedIds
+        // Sem ação explícita de "pular" estilo botão, mas a função existe se precisarmos
     };
 
     const handlePrevReview = () => {
-        // Lógica para desfazer a última ação?
-        // Se quisermos apenas navegar entre os processados, precisaríamos de um histórico.
-        // Se o erro é "handlePrevReview is not defined", significa que o botão está chamando isso.
-
-        // Vamos apenas definir a função para evitar o crash, 
-        // mas idealmente deveríamos implementar "Desfazer".
-        // Por enquanto, alertar que não é possível voltar ou implementar um undo simples.
-
         const lastProcessed = Array.from(processedIds).pop();
         if (lastProcessed) {
             const newProcessed = new Set(processedIds);
@@ -155,8 +135,26 @@ const BatchQueueView = ({
         }
     };
 
-    // Modal de Configuração de Sourcing (PRIORIDADE MÁXIMA)
-    if (showSourceConfig) {
+    // UI de Sourcing (Feedback Visual) - BLOQUEANTE
+    if (isSourcing) {
+        return (
+            <div className={styles.container}>
+                <Header title="Buscando Perfis..." subtitle="O robô está trabalhando" />
+                <main className={styles.content} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px' }}>
+                    <div className={styles.loadingSpinner}></div>
+                    <div style={{ textAlign: 'center', color: '#64748b' }}>
+                        <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Navegando e coletando...</p>
+                        <p style={{ fontSize: '12px' }}>Isso pode levar alguns segundos.</p>
+                        <p style={{ fontSize: '12px' }}>Não mexa no mouse.</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // Modal de Configuração de Sourcing
+    // Só mostra se não estiver rodando nem sourcing
+    if (showSourceConfig && !isSourcing && !isRunning) {
         return (
             <div className={styles.container}>
                 <Header
@@ -191,9 +189,18 @@ const BatchQueueView = ({
                         </select>
 
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 setShowSourceConfig(false);
-                                onAutoSource(currentTabUrl, scorecard?.id, sourceTargetCount);
+                                setIsSourcing(true); // START LOADING
+                                try {
+                                    await onAutoSource(currentTabUrl, scorecard?.id, sourceTargetCount);
+                                    // A fila deve iniciar automaticamente
+                                    setIsSourcing(false);
+                                } catch (error) {
+                                    alert("Erro ao iniciar busca: " + error.message);
+                                    setIsSourcing(false);
+                                    setShowSourceConfig(true);
+                                }
                             }}
                             style={{
                                 background: '#7e22ce',
@@ -246,17 +253,13 @@ const BatchQueueView = ({
                                 <BsPlayFill /> Iniciar Fila
                             </button>
                         )}
-
-                        {/* BOTÃO DE AUTOMAÇÃO DE BUSCA INTELIGENTE (Sempre visível ou abaixo do iniciar) */}
                         <button
                             className={styles.sourceButton}
                             onClick={() => {
                                 const isSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
                                 if (isSearchPage) {
-                                    // Abre modal de configuração
                                     setShowSourceConfig(true);
                                 } else {
-                                    // Abre nova aba de busca para o usuário
                                     if (chrome?.tabs) {
                                         chrome.tabs.create({ url: 'https://www.linkedin.com/search/results/people/' });
                                     } else {
@@ -289,8 +292,6 @@ const BatchQueueView = ({
             </div>
         );
     }
-
-
 
     // Se a fila está rodando, mostrar progresso
     if (isRunning) {
@@ -349,9 +350,6 @@ const BatchQueueView = ({
     }
 
     // Fila terminou - mostrar review
-    // Se todos foram processados (aceitos/rejeitados), mostrar resumo final
-    // Fila terminou - mostrar review
-    // Se todos foram processados (aceitos/rejeitados), mostrar resumo final
     if (remainingCount === 0 && validResults.length > 0) {
         return (
             <div className={styles.container}>
@@ -415,41 +413,59 @@ const BatchQueueView = ({
                 </div>
             </div>
 
-            <main className={styles.content}>
+            <main className={styles.content} style={{ padding: '15px' }}>
                 {currentReview ? (
                     <div className={styles.reviewCard}>
-                        <div className={styles.reviewHeader}>
-                            <h2 className={styles.reviewName}>{currentReview.username || currentReview.name}</h2>
-                            <div className={styles.scoreSection}>
-                                <span className={styles.reviewScore}>
-                                    {currentReview.matchResult?.overallScore
-                                        ? (currentReview.matchResult.overallScore / 10).toFixed(1)
-                                        : '-'}/10
-                                </span>
-                                <StarRating score={Math.round((currentReview.matchResult?.overallScore || 0) / 20)} />
+                        {/* Headers e Score */}
+                        <div className={styles.cardHeader}>
+                            <div className={styles.avatarPlaceholder}>
+                                {currentReview.name ? currentReview.name.charAt(0) : '?'}
+                            </div>
+                            <div className={styles.info}>
+                                <h3>{currentReview.name || currentReview.username}</h3>
+                                <p>{currentReview.headline || 'Perfil LinkedIn'}</p>
+                            </div>
+                            <div className={styles.scoreBadge} style={{ backgroundColor: currentReview.averageScore > 4 ? '#16a34a' : currentReview.averageScore > 3 ? '#eab308' : '#dc2626' }}>
+                                {currentReview.averageScore?.toFixed(1) || '-'}
                             </div>
                         </div>
 
-                        <div className={styles.reviewDetails}>
-                            <p className={styles.reviewTitle}>{currentReview.headline}</p>
-
-                            <div className={styles.criteriaList}>
-                                {currentReview.matchResult?.categories?.flatMap((category, catIdx) =>
-                                    category.criteria?.map((crit, critIdx) => (
-                                        <div key={`${catIdx}-${critIdx}`} className={styles.criterionCard}>
-                                            <div className={styles.criterionHeader}>
-                                                <span className={styles.criterionName}>{crit.name}</span>
-                                                <StarRating score={crit.score || 0} />
-                                            </div>
-                                            <p className={styles.criterionJustification}>
-                                                {crit.justification || 'Sem avaliação disponível'}
-                                            </p>
-                                        </div>
-                                    ))
-                                ) || (
-                                        <p className={styles.noCriteria}>Nenhum critério avaliado</p>
-                                    )}
+                        {/* Detalhes do Match */}
+                        <div className={styles.matchDetails}>
+                            <div className={styles.detailItem}>
+                                <span className={styles.icon}>🎯</span>
+                                <div>
+                                    <strong>Pontos Fortes</strong>
+                                    <p>{currentReview.strengths?.join(', ') || 'Nenhum identificado.'}</p>
+                                </div>
                             </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.icon}>⚠️</span>
+                                <div>
+                                    <strong>Pontos de Atenção</strong>
+                                    <p>{currentReview.weaknesses?.join(', ') || 'Nenhum identificado.'}</p>
+                                </div>
+                            </div>
+                            <div className={styles.detailItem}>
+                                <span className={styles.icon}>🎓</span>
+                                <div>
+                                    <strong>Formação</strong>
+                                    <p>{currentReview.analysis?.education?.summary || 'Não informada'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Avaliação por Categoria */}
+                        <div className={styles.categoriesReview}>
+                            {currentReview.categories?.map((cat, idx) => (
+                                <div key={idx} className={styles.catRow}>
+                                    <span className={styles.catName}>{cat.name}</span>
+                                    <StarRating score={cat.averageScore} />
+                                </div>
+                            ))}
+                            {(!currentReview.categories || currentReview.categories.length === 0) && (
+                                <p className={styles.noCriteria}>Nenhum critério avaliado</p>
+                            )}
                         </div>
 
                         <div className={styles.reviewActions}>
@@ -464,16 +480,18 @@ const BatchQueueView = ({
                         <div className={styles.reviewNav}>
                             <button
                                 onClick={handlePrevReview}
-                                disabled={reviewIndex === 0}
+                                disabled={processedCount === 0}
                                 className={styles.navButton}
                             >
                                 ← Anterior
                             </button>
-                            <span className={styles.navCounter}>{reviewIndex + 1}/{validResults.length}</span>
+                            {/* Mostramos o contador real de revisados */}
+                            <span className={styles.navCounter}>{processedCount + 1}/{validResults.length}</span>
+
                             <button
-                                onClick={handleNextReview}
-                                disabled={reviewIndex >= validResults.length - 1}
+                                disabled={true}
                                 className={styles.navButton}
+                                style={{ opacity: 0.3 }}
                             >
                                 Próximo →
                             </button>
@@ -481,15 +499,11 @@ const BatchQueueView = ({
                     </div>
                 ) : (
                     <div className={styles.skippedCard}>
-                        <p>Este perfil já foi processado</p>
-                        <div className={styles.reviewNav}>
-                            <button onClick={handlePrevReview} disabled={reviewIndex === 0} className={styles.navButton}>
-                                ← Anterior
-                            </button>
-                            <button onClick={handleNextReview} disabled={reviewIndex >= validResults.length - 1} className={styles.navButton}>
-                                Próximo →
-                            </button>
-                        </div>
+                        {/* Fallback apenas se algo der errado */}
+                        <p>Carregando ou finalizado...</p>
+                        <button onClick={onGoBack} className={styles.backButton}>
+                            Voltar ao Menu
+                        </button>
                     </div>
                 )}
             </main>
