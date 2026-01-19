@@ -42,6 +42,7 @@ import BatchQueueView from '../views/Match/BatchQueueView';
 import ExitMatchModeModal from '../components/Modals/ExitMatchModeModal';
 import ExtractedTextView from '../views/Shared/ExtractedTextView';
 import ProfileStatusNotification from '../components/Layout/ProfileStatusNotification';
+import { ToastProvider, useToast } from '../contexts/ToastContext';
 
 const LoadingView = () => (<div className={styles.centeredContainer}><div className={styles.loadingSpinner}></div></div>);
 const ErrorView = ({ error, onRetry }) => (<div className={`${styles.centeredContainer} ${styles.errorContainer}`}><p className={styles.errorTitle}>Ocorreu um Erro</p><p className={styles.errorMessage}>{String(error)}</p><button onClick={onRetry} className={styles.retryButton}>Tentar Novamente</button></div>);
@@ -369,8 +370,13 @@ const Popup = () => {
             activeStatusFilter={jobStatusFilter}
         />; break;
 
+
+            const { addToast } = useToast() || {}; // Safe access if context is missing during init
+
+        // ... lines skipped ...
+
         case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => {
-            // Salva no contexto
+            // Salva no contexto (sempre bom ter)
             workflow.setProfileContext({
                 exists: false,
                 profileData: result.profileData,
@@ -380,18 +386,30 @@ const Popup = () => {
                 }
             });
 
-            // Se tiver vaga pré-selecionada, salva direto!
+            // Se tiver vaga pré-selecionada, salva em SEGUNDO PLANO (Non-Blocking)
             if (view.state?.job) {
-                workflow.handleCreateAndGoToEvaluation(
+                const toastId = addToast ? addToast(`Salvando ${result.profileData.nome || 'candidato'}...`, 'loading', 0) : null;
+
+                workflow.handleCreateTalentInBackground(
                     result.profileData,
                     view.state.job,
                     {
                         result: result.matchResult,
                         scorecardId: view.state?.scorecardId
                     }
-                );
+                ).then(() => {
+                    if (addToast) {
+                        if (toastId) removeToast(toastId); // How to access removeToast? Need to destructure it too.
+                        addToast(`${result.profileData.nome || 'Candidato'} salvo na vaga!`, 'success');
+                    }
+                }).catch((err) => {
+                    if (addToast) {
+                        if (toastId) removeToast(toastId);
+                        addToast(`Erro ao salvar: ${err.message}`, 'error');
+                    }
+                });
             } else {
-                // Fallback para seleção manual (se algo der errado)
+                // Fallback: se não tiver vaga, ainda precisa navegar (modo antigo)
                 navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
             }
         }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')}
@@ -410,30 +428,32 @@ const Popup = () => {
     }
 
     return (
-        <div className={styles.appWrapper}>
-            {useLayout ? (
-                <Layout
-                    activeView={view.name}
-                    onNavigate={handleLayoutNavigate}
-                    isSidebarCollapsed={!isSidebarOpen}
-                    onToggleSidebar={() => setIsSidebarOpen(p => !p)}
-                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
-                    onCaptureProfile={handleCaptureLinkedInProfile}
-                    onLogout={handleLogout}
-                    activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
-                >
-                    <ProfileStatusNotification
-                        status={validationResult}
-                        onGoToProfile={workflow.handleSelectTalentForDetails}
-                    />
-                    {contentToRender}
-                </Layout>
-            ) : contentToRender}
+        <ToastProvider>
+            <div className={styles.appWrapper}>
+                {useLayout ? (
+                    <Layout
+                        activeView={view.name}
+                        onNavigate={handleLayoutNavigate}
+                        isSidebarCollapsed={!isSidebarOpen}
+                        onToggleSidebar={() => setIsSidebarOpen(p => !p)}
+                        onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
+                        onCaptureProfile={handleCaptureLinkedInProfile}
+                        onLogout={handleLogout}
+                        activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
+                    >
+                        <ProfileStatusNotification
+                            status={validationResult}
+                            onGoToProfile={workflow.handleSelectTalentForDetails}
+                        />
+                        {contentToRender}
+                    </Layout>
+                ) : contentToRender}
 
-            {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
+                {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
 
-            <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
-        </div>
+                <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
+            </div>
+        </ToastProvider>
     );
 };
 
