@@ -187,9 +187,23 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const handleCreateAndGoToEvaluation = useCallback((profileData, selectedJob, matchData) => {
     executeAsync(async () => {
-      const { linkedinUrl } = profileData;
+      // Suporta ambos: estrutura plana (linkedinUrl) e aninhada (perfil.linkedinUrl)
+      const linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
       const linkedinUsername = linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null;
-      const payload = { ...profileData, jobId: selectedJob.id, linkedinUsername };
+
+      // Extrai nome de ambas estruturas
+      const nome = profileData.nome || profileData.perfil?.nome || profileData.name;
+      const titulo = profileData.titulo || profileData.perfil?.titulo || profileData.headline;
+
+      // Monta payload normalizado
+      const payload = {
+        ...profileData,
+        jobId: selectedJob.id,
+        linkedinUsername,
+        linkedinUrl,
+        nome,
+        titulo
+      };
       const createResult = await api.createTalent(payload);
       if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
       const detailsResult = await api.fetchCandidateDetails(selectedJob.id, createResult.id);
