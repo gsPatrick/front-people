@@ -272,6 +272,15 @@ const BatchQueueView = ({
                                         <StarRating score={cat.averageScore} />
                                     </div>
                                     <p className={styles.catJustification}>{cat.justification}</p>
+                                    {/* Exibir itens individuais se existirem */}
+                                    <div className={styles.catCriteriaList}>
+                                        {(cat.criteria || []).map((crit, cidx) => (
+                                            <div key={cidx} className={styles.miniCrit}>
+                                                <strong>{crit.name}:</strong> {crit.justification}
+                                            </div>
+                                        ))}
+                                    </div>
+
                                 </div>
                             ))}
                         </div>
