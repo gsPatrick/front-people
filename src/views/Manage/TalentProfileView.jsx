@@ -16,8 +16,12 @@ const PlusCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
 );
 
+import TalentMatchDisplay from '../../components/TalentMatchDisplay/TalentMatchDisplay';
+import TalentFullProfile from '../../components/TalentFullProfile/TalentFullProfile';
+
 // MODIFICADO: Adicionadas novas props para lidar com ações de talento e candidatura
 const TalentProfileView = ({ talent, onBack, onEditTalent, onDeleteTalent, onAddNewApplication, onDeleteApplication }) => {
+  const [activeTab, setActiveTab] = useState('info'); // 'info', 'match', 'profile'
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleSaveEdit = (updatedData) => {
@@ -45,77 +49,134 @@ const TalentProfileView = ({ talent, onBack, onEditTalent, onDeleteTalent, onAdd
         onBack={onBack}
       />
 
+      {/* Navegação por Abas */}
+      <div className={styles.tabs} style={{ padding: '0 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '24px' }}>
+        <button
+          onClick={() => setActiveTab('info')}
+          style={{
+            padding: '12px 0',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'info' ? '2px solid #2563eb' : '2px solid transparent',
+            color: activeTab === 'info' ? '#2563eb' : '#64748b',
+            fontWeight: activeTab === 'info' ? '600' : '500',
+            cursor: 'pointer'
+          }}
+        >
+          Info Geral
+        </button>
+        <button
+          onClick={() => setActiveTab('match')}
+          style={{
+            padding: '12px 0',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'match' ? '2px solid #2563eb' : '2px solid transparent',
+            color: activeTab === 'match' ? '#2563eb' : '#64748b',
+            fontWeight: activeTab === 'match' ? '600' : '500',
+            cursor: 'pointer'
+          }}
+        >
+          Match AI
+        </button>
+        <button
+          onClick={() => setActiveTab('profile')}
+          style={{
+            padding: '12px 0',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'profile' ? '2px solid #2563eb' : '2px solid transparent',
+            color: activeTab === 'profile' ? '#2563eb' : '#64748b',
+            fontWeight: activeTab === 'profile' ? '600' : '500',
+            cursor: 'pointer'
+          }}
+        >
+          Perfil Completo
+        </button>
+      </div>
+
       <main className={styles.profileContent}>
-        <section className={styles.profileSection}>
-          <div className={styles.profileHeader}>
-            {/* Foto do talento (se houver, usar <img src={talent.photo} />) */}
-            <div className={styles.avatar}>
-              {talent.name ? talent.name.substring(0, 2) : '?'}
+        {activeTab === 'info' && (
+          <section className={styles.profileSection}>
+            <div className={styles.profileHeader}>
+              {/* Foto do talento (se houver, usar <img src={talent.photo} />) */}
+              <div className={styles.avatar}>
+                {talent.name ? talent.name.substring(0, 2) : '?'}
+              </div>
+              <div className={styles.profileInfo}>
+                <h3 className={styles.name}>{talent.name}</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <p className={styles.headline} style={{ margin: 0 }}>{talent.headline}</p>
+                  {talent.status === 'REJECTED' && (
+                    <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>REJEITADO</span>
+                  )}
+                </div>
+                {talent.email && <p className={styles.contactInfo}>Email: {talent.email}</p>}
+                {talent.phone && <p className={styles.contactInfo}>Telefone: {talent.phone}</p>}
+                {talent.location && <p className={styles.contactInfo}>Localização: {talent.location}</p>}
+                {talent.linkedinUsername && <p className={styles.contactInfo}>LinkedIn: <a href={`https://www.linkedin.com/in/${talent.linkedinUsername}/`} target="_blank" rel="noopener noreferrer">{talent.linkedinUsername}</a></p>}
+              </div>
             </div>
-            <div className={styles.profileInfo}>
-              <h3 className={styles.name}>{talent.name}</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <p className={styles.headline} style={{ margin: 0 }}>{talent.headline}</p>
-                {talent.status === 'REJECTED' && (
-                  <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>REJEITADO</span>
+
+            <div className={styles.profileActions}>
+              <button onClick={() => setIsEditModalOpen(true)} className={styles.actionButton}>
+                <EditIcon /> Editar Dados
+              </button>
+              {talent.status === 'REJECTED' && (
+                <button
+                  onClick={() => onAddNewApplication(talent.id)}
+                  className={styles.actionButton}
+                  style={{ backgroundColor: '#10b981', color: 'white', border: 'none' }}
+                >
+                  ✨ Reconsiderar (Aplicar)
+                </button>
+              )}
+              <button onClick={confirmDeleteTalent} className={styles.deleteButton}>
+                <TrashIcon /> Excluir Talento
+              </button>
+            </div>
+
+            <div className={styles.appliedJobs}>
+              <div className={styles.listHeader}>
+                <h4>Vagas Aplicadas</h4>
+                {/* Chama onAddNewApplication passando o ID do talento atual */}
+                <button onClick={() => onAddNewApplication(talent.id)} className={styles.addButton}>
+                  <PlusCircleIcon /> Adicionar à Vaga
+                </button>
+              </div>
+              <div className={styles.jobList}>
+                {talent.appliedJobs && talent.appliedJobs.length > 0 ? (
+                  talent.appliedJobs.map(app => (
+                    <div key={app.id} className={styles.jobListItem}>
+                      <div className={styles.jobInfo}>
+                        <span className={styles.jobName}>{app.jobName}</span>
+                        <span className={styles.applicationStatus}>{app.status}</span>
+                      </div>
+                      <button
+                        onClick={() => confirmDeleteApplication(app.id)}
+                        className={styles.deleteApplicationButton}
+                        title="Remover candidatura desta vaga"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className={styles.emptyJobs}>Nenhuma vaga aplicada ainda.</p>
                 )}
               </div>
-              {talent.email && <p className={styles.contactInfo}>Email: {talent.email}</p>}
-              {talent.phone && <p className={styles.contactInfo}>Telefone: {talent.phone}</p>}
-              {talent.location && <p className={styles.contactInfo}>Localização: {talent.location}</p>}
-              {talent.linkedinUsername && <p className={styles.contactInfo}>LinkedIn: <a href={`https://www.linkedin.com/in/${talent.linkedinUsername}/`} target="_blank" rel="noopener noreferrer">{talent.linkedinUsername}</a></p>}
             </div>
-          </div>
+          </section>
+        )}
 
-          <div className={styles.profileActions}>
-            <button onClick={() => setIsEditModalOpen(true)} className={styles.actionButton}>
-              <EditIcon /> Editar Dados
-            </button>
-            {talent.status === 'REJECTED' && (
-              <button
-                onClick={() => onAddNewApplication(talent.id)}
-                className={styles.actionButton}
-                style={{ backgroundColor: '#10b981', color: 'white', border: 'none' }}
-              >
-                ✨ Reconsiderar (Aplicar)
-              </button>
-            )}
-            <button onClick={confirmDeleteTalent} className={styles.deleteButton}>
-              <TrashIcon /> Excluir Talento
-            </button>
-          </div>
+        {activeTab === 'match' && (
+          <TalentMatchDisplay matchData={talent.aiReview ? { aiReview: talent.aiReview, matchScore: talent.matchScore } : null} />
+        )}
 
-          <div className={styles.appliedJobs}>
-            <div className={styles.listHeader}>
-              <h4>Vagas Aplicadas</h4>
-              {/* Chama onAddNewApplication passando o ID do talento atual */}
-              <button onClick={() => onAddNewApplication(talent.id)} className={styles.addButton}>
-                <PlusCircleIcon /> Adicionar à Vaga
-              </button>
-            </div>
-            <div className={styles.jobList}>
-              {talent.appliedJobs && talent.appliedJobs.length > 0 ? (
-                talent.appliedJobs.map(app => (
-                  <div key={app.id} className={styles.jobListItem}>
-                    <div className={styles.jobInfo}>
-                      <span className={styles.jobName}>{app.jobName}</span>
-                      <span className={styles.applicationStatus}>{app.status}</span>
-                    </div>
-                    <button
-                      onClick={() => confirmDeleteApplication(app.id)}
-                      className={styles.deleteApplicationButton}
-                      title="Remover candidatura desta vaga"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className={styles.emptyJobs}>Nenhuma vaga aplicada ainda.</p>
-              )}
-            </div>
-          </div>
-        </section>
+        {activeTab === 'profile' && (
+          <TalentFullProfile profileData={talent.data || talent} />
+        )}
+
       </main>
 
       {isEditModalOpen && (

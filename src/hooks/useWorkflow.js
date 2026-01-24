@@ -344,7 +344,8 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       status: profileData.status || 'NEW'
     };
 
-    const createResult = await api.createTalent(payload);
+    // PASSANDO O MATCH DATA PARA A CRIAÇÃO (Novo Argumento)
+    const createResult = await api.createTalent(payload, matchData);
     if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
 
     // Check Match Data for Auto-Scorecard
