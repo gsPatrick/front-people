@@ -4,7 +4,7 @@ import styles from './CandidateListView.module.css';
 import * as api from '../../services/api.service';
 import Header from '../../components/Header/Header';
 
-const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFromMatch, jobId }) => {
+const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFromMatch, onReconsider, jobId }) => {
     const [talents, setTalents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('ALL');
@@ -73,6 +73,11 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
         onSelectCandidate(talent);
     };
 
+    const handleReconsiderClick = (e, talent) => {
+        e.stopPropagation(); // Evita navegar para detalhes ao clicar no botão
+        if (onReconsider) onReconsider(talent);
+    };
+
     return (
         <div className={styles.container}>
             <Header title="Banco de Talentos" onBack={onBack} />
@@ -109,10 +114,10 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
             <div className={styles.tableContainer}>
                 <div className={styles.tableHeader}>
                     <div>Nome / Headline</div>
-                    <div>Local</div>
-                    <div>Match AI</div>
-                    <div>Status</div>
-                    <div>Sincronia</div>
+                    <div className={styles.hideMobile}>Local</div>
+                    <div className={styles.hideMobile}>Match AI</div>
+                    <div className={styles.hideMobile}>Status</div>
+                    <div>Ações / Sinc</div>
                 </div>
 
                 <div className={styles.tableBody}>
@@ -133,8 +138,8 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                                     <div className={styles.nameCell}>{talent.name}</div>
                                     <div className={styles.headlineCell}>{talent.headline || '-'}</div>
                                 </div>
-                                <div className={styles.cell}>{talent.location || '-'}</div>
-                                <div className={styles.cell}>
+                                <div className={`${styles.cell} ${styles.hideMobile}`}>{talent.location || '-'}</div>
+                                <div className={`${styles.cell} ${styles.hideMobile}`}>
                                     <div className={styles.scoreWrapper}>
                                         <span
                                             className={styles.scoreBadge}
@@ -144,21 +149,31 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                                         </span>
                                     </div>
                                 </div>
-                                <div className={styles.cell}>
+                                <div className={`${styles.cell} ${styles.hideMobile}`}>
                                     <span className={`${styles.statusBadge} ${styles['status' + (talent.status?.charAt(0).toUpperCase() + talent.status?.slice(1).toLowerCase())]}`}>
                                         {talent.status === 'NEW' ? 'Novo' :
                                             talent.status === 'ACTIVE' ? 'Ativo' :
                                                 talent.status === 'REJECTED' ? 'Rejeitado' : (talent.status || 'Ativo')}
                                     </span>
                                 </div>
-                                <div className={styles.cell}>
-                                    {renderSyncBadge(talent.syncStatus)}
+                                <div className={styles.actionCell}>
+                                    {talent.status === 'REJECTED' ? (
+                                        <button
+                                            className={styles.reconsiderBtn}
+                                            onClick={(e) => handleReconsiderClick(e, talent)}
+                                        >
+                                            Reconsiderar
+                                        </button>
+                                    ) : (
+                                        renderSyncBadge(talent.syncStatus)
+                                    )}
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
             </div>
+
 
             {showAddModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowAddModal(false)}>
