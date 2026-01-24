@@ -446,16 +446,29 @@ const Popup = () => {
             }
         }} onRejectProfile={(result) => {
             console.log("[DEBUG] Rejecting and auto-saving to bank:", result.profileData.nome);
+
+            const toastId = addToast ? addToast(`Salvando rejeição: ${result.profileData.nome || 'candidato'}...`, 'loading', 0) : null;
+
             if (view.state?.job) {
                 workflow.handleCreateTalentInBackground(
                     { ...result.profileData, status: 'REJECTED' },
                     view.state.job,
                     null // No match data needed for rejection, or pass it if we want the score stored
                 ).then(() => {
-                    if (addToast) addToast(`${result.profileData.nome} salvo no Banco (Rejeitado)`, 'info');
-                }).catch(err => console.error("Error saving rejected profile:", err));
+                    if (addToast) {
+                        if (toastId) removeToast(toastId);
+                        addToast(`${result.profileData.nome} salvo no Banco (Rejeitado)`, 'info');
+                    }
+                }).catch(err => {
+                    console.error("Error saving rejected profile:", err);
+                    if (addToast) {
+                        if (toastId) removeToast(toastId);
+                        addToast(`Erro ao salvar rejeitado: ${err.message}`, 'error');
+                    }
+                });
             } else {
                 console.warn("Cannot save rejected profile: No job context.");
+                if (addToast && toastId) removeToast(toastId);
             }
         }} onGoBack={() => navigateTo('match_select_scorecard')}
             onAutoSource={(url, scId, count) => batchQueue.sourceProfilesFromSearch(url, scId, count)}
