@@ -398,7 +398,13 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const handleSelectTalentForDetails = useCallback((talent, navigationState = {}) => {
     executeAsync(async () => {
-      openLinkedInTab(talent.linkedinUsername);
+      // Abre o LinkedIn em SEGUNDO PLANO para não roubar o foco da extensão
+      const username = talent.linkedinUsername || (talent.data?.linkedinUsername);
+      if (username && chrome && chrome.tabs) {
+        const url = `https://www.linkedin.com/in/${username.replace(/\/+$/, '')}`;
+        chrome.tabs.create({ url, active: false });
+      }
+
       const talentResult = await api.fetchTalentDetails(talent.id);
       if (talentResult.success && talentResult.talent) {
         setCurrentTalent(talentResult.talent);

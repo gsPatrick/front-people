@@ -66,12 +66,10 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
     }, [talents, filterStatus, searchTerm]);
 
     const handleRowClick = (talent) => {
-        if (chrome && chrome.tabs && talent.linkedinUsername) {
-            const url = `https://www.linkedin.com/in/${talent.linkedinUsername}`;
-            chrome.tabs.create({ url, active: false });
-        }
+        // Agora delegamos totalmente para o workflow, sem abrir abras extras aqui
         onSelectCandidate(talent);
     };
+
 
     const handleReconsiderClick = (e, talent) => {
         e.stopPropagation(); // Evita navegar para detalhes ao clicar no botão
