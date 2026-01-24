@@ -164,6 +164,36 @@
     text-overflow: ellipsis;
 }
 
+/* RESPONSIVE HELPERS */
+@media (max-width: 600px) {
+    .hideMobile {
+        display: none !important;
+    }
+
+    .tableHeader,
+    .tableRow {
+        grid-template-columns: 1fr auto !important;
+        /* Nome + Ações */
+    }
+
+    .container {
+        padding: 12px;
+    }
+
+    .controlsBar {
+        gap: 8px;
+    }
+
+    .addButton span {
+        display: none;
+        /* Só mostra o + */
+    }
+
+    .addButton {
+        padding: 10px 14px;
+    }
+}
+
 .scoreWrapper {
     display: flex;
     align-items: center;

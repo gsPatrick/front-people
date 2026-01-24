@@ -492,6 +492,10 @@ const Popup = () => {
             onAddFromMatch={() => {
                 navigateTo('match_select_scorecard');
             }}
+            onReconsider={(talent) => {
+                workflow.setCurrentTalent(talent);
+                navigateTo('select_job_contextual_for_talent');
+            }}
         />; break;
 
         // NOVA ROTA: Selecionar Talento para Vaga (Inverso de Vaga para Talento)
