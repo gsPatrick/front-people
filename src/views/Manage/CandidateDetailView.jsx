@@ -20,7 +20,7 @@ const CandidateDetailView = ({
     candidate, job, onBack, onUpdateStage, stages, onGoToEdit,
     applicationCustomFields, interviewKits, initialState,
     scorecardSummary, scorecardHooks, onUpdateRequest,
-    onSaveScorecardAsTemplate // <-- A PROP AGORA É RECEBIDA AQUI
+    onSaveScorecardAsTemplate, onUpdateStatus // <-- NOVA PROP RECEBIDA
 }) => {
     const [activeTab, setActiveTab] = useState(() => initialState?.initialTab || 'general');
     const [isLoadingKit, setIsLoadingKit] = useState(false);
@@ -124,6 +124,37 @@ const CandidateDetailView = ({
                     {activeTab === 'general' && (<> <GeneralInfoTab candidate={candidate} onAccessScorecard={scorecardHooks.handleAccessScorecard} job={job} /> {(!interviewKits || interviewKits.length === 0) && (<div className={styles.noKitsContainer}> <p>Nenhum kit de entrevista encontrado para esta vaga.</p> <button onClick={() => setActiveTab('create_kit')} className={styles.createKitButton}> + Criar Primeiro Kit </button> </div>)} </>)}
                     {activeTab === 'customFields' && <CustomFieldsTab applicationCustomFields={applicationCustomFields} />}
                     {isLoadingKit && <div className={styles.loader}></div>}
+
+                    {/* SEÇÃO DE FEEDBACK DA IA (Novo) */}
+                    {candidate.application?.aiReview && (
+                        <div className={styles.aiFeedbackContainer}>
+                            <h3 className={styles.aiTitle}>🤖 Análise da IA</h3>
+
+                            <div className={styles.feedbackBlock}>
+                                <h4 className={styles.feedbackSubtitle} style={{ color: '#166534' }}>✅ Pontos Fortes</h4>
+                                <ul className={styles.feedbackList}>
+                                    {(candidate.application.aiReview.strengths || []).map((point, idx) => (
+                                        <li key={idx} className={styles.feedbackItem}>
+                                            <span className={styles.icon}>✓</span> {point}
+                                        </li>
+                                    ))}
+                                    {(!candidate.application.aiReview.strengths || candidate.application.aiReview.strengths.length === 0) && <li>Nenhum ponto forte destacado.</li>}
+                                </ul>
+                            </div>
+
+                            <div className={styles.feedbackBlock}>
+                                <h4 className={styles.feedbackSubtitle} style={{ color: '#991b1b' }}>⚠️ Pontos de Atenção</h4>
+                                <ul className={styles.feedbackList}>
+                                    {(candidate.application.aiReview.weaknesses || []).map((point, idx) => (
+                                        <li key={idx} className={styles.feedbackItem}>
+                                            <span className={styles.icon}>!</span> {point}
+                                        </li>
+                                    ))}
+                                    {(!candidate.application.aiReview.weaknesses || candidate.application.aiReview.weaknesses.length === 0) && <li>Nenhum ponto de atenção destacado.</li>}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
 
                     {selectedKitDetails && (
                         <ScorecardView

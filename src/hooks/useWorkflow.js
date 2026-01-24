@@ -445,6 +445,12 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     }
   }), [executeAsync, navigateTo]);
 
+  const handleUpdateTalentStatus = useCallback((talentId, newStatus) => executeAsync(async () => {
+    await api.updateTalentStatus(talentId, newStatus);
+    setCurrentTalent(prev => ({ ...prev, status: newStatus }));
+    alert(`Status atualizado para: ${newStatus}`);
+  }), [executeAsync]);
+
   const handleApplyTalentToJob = useCallback((jobId, talentId) => executeAsync(async () => {
     const result = await api.applyToJob(jobId, talentId);
     if (result.id) {
@@ -492,7 +498,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const state = { profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext };
   const setters = { setProfileContext, setCurrentJob, setCurrentTalent, setCurrentCandidates, setCurrentJobStages, setCurrentApplication, setCurrentInterviewKits, setCurrentScorecardSummary };
-  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground };
+  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground, handleUpdateTalentStatus };
 
   return { ...state, ...setters, ...actions };
 };

@@ -39,6 +39,7 @@ import ScorecardEditView from '../views/Scorecards/ScorecardEditView';
 import MatchView from '../views/Match/MatchView';
 import MatchResultView from '../views/Match/MatchResultView';
 import BatchQueueView from '../views/Match/BatchQueueView';
+import CandidateListView from '../views/Manage/CandidateListView'; // IMPORTADO
 import ExitMatchModeModal from '../components/Modals/ExitMatchModeModal';
 import ExtractedTextView from '../views/Shared/ExtractedTextView';
 import ProfileStatusNotification from '../components/Layout/ProfileStatusNotification';
@@ -337,7 +338,15 @@ const Popup = () => {
     const useLayout = viewsWithSidebar.includes(view.name);
 
     switch (view.name) {
-        case 'dashboard_jobs': contentToRender = <JobsDashboardView jobsData={jobsData} onSelectJob={workflow.handleSelectJobForDetails} activeStatusFilter={jobStatusFilter} onFilterChange={(s) => { setJobStatusFilter(s); fetchAndSetJobs(1, s) }} onNavigateToUpload={() => navigateTo('upload_pdf')} handleJobsPageChange={handleJobsPageChange} />; break;
+        case 'dashboard_jobs': contentToRender = <JobsDashboardView
+            jobsData={jobsData}
+            onSelectJob={(job) => navigateTo('candidate_list', { jobId: job.id })} // MUDANÇA: Ir para Lista Filtrada
+            activeStatusFilter={jobStatusFilter}
+            onFilterChange={(s) => { setJobStatusFilter(s); fetchAndSetJobs(1, s) }}
+            onNavigateToUpload={() => navigateTo('upload_pdf')}
+            handleJobsPageChange={handleJobsPageChange}
+            onNavigateToCandidates={() => navigateTo('candidate_list')} // Acesso ao Banco Geral
+        />; break;
         case 'talent_profile': contentToRender = <TalentProfileView talent={workflow.currentTalent} onBack={goBack} onEditTalent={workflow.handleEditTalentInfo} onDeleteTalent={workflow.handleDeleteTalent} onAddNewApplication={() => navigateTo('select_job_contextual_for_talent')} onDeleteApplication={workflow.handleRemoveApplicationForTalent} />; break;
         case 'match_hub': contentToRender = <MatchResultView activeScorecard={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)} matchResult={matchResult} isLoading={isScrapingForMatch} isLocked={isMatchProfileLocked} onToggleLock={handleToggleLock} onAddTalent={() => { if (!currentScrapedProfile) return; workflow.setProfileContext({ exists: false, profileData: currentScrapedProfile, talent: null }); navigateTo('select_job_for_new_talent'); }} onChangeScorecard={handleChangeMatchScorecard} />; break;
         case 'match_select_scorecard': contentToRender = <MatchView scorecards={scorecardTemplates} activeScorecardId={activeMatchScorecardId} onSelect={handleSelectMatchScorecard} onBatchSelect={handleStartBatchMode} onDeactivate={() => setActiveMatchScorecardId(null)} onGoToHub={() => navigateTo('scorecard_hub')} />; break;
@@ -434,6 +443,11 @@ const Popup = () => {
             );
             navigateTo('batch_queue', { scorecardId: view.state?.scorecardId });
         }} onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
+        // NOVA ROTA: Lista de Candidatos (Local-First)
+        case 'candidate_list': contentToRender = <CandidateListView
+            onSelectCandidate={(talent) => workflow.handleSelectTalentForDetails(talent)}
+            onBack={() => navigateTo('dashboard_jobs')}
+        />; break;
         default: contentToRender = <LoadingView />;
     }
 

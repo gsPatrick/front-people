@@ -23,6 +23,7 @@ const JobsDashboardView = ({
   isSelectionMode = false,
   activeStatusFilter,
   onFilterChange,
+  onNavigateToCandidates, // <-- NOVA PROP
   // NOVAS PROPS para customização
   customTitle,
   customSubtitle
@@ -50,6 +51,13 @@ const JobsDashboardView = ({
               </button>
             ))}
           </div>
+          {/* BOTÃO DE ACESSO GLOBAL */}
+          <button
+            className={styles.talentBankButton}
+            onClick={() => onNavigateToCandidates && onNavigateToCandidates()}
+          >
+            👥 Banco de Talentos
+          </button>
         </div>
       )}
 
