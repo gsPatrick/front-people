@@ -17,7 +17,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
   const [searchTerm, setSearchTerm] = useState(''); // <-- Estado para a busca
 
   const candidatesInTab = useMemo(() => {
-    return candidates.filter(c => c.application.status === activeTab);
+    return candidates.filter(c => (c.application.status || '').toLowerCase() === activeTab);
   }, [candidates, activeTab]);
 
   const filteredAndSortedCandidates = useMemo(() => {
