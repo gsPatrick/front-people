@@ -334,7 +334,8 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       linkedinUrl,
       nome,
       name: nome, // Mapping for external APIs
-      titulo
+      titulo,
+      status: profileData.status || 'NEW'
     };
 
     const createResult = await api.createTalent(payload);

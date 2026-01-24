@@ -448,7 +448,7 @@ const Popup = () => {
             console.log("[DEBUG] Rejecting and auto-saving to bank:", result.profileData.nome);
             if (view.state?.job) {
                 workflow.handleCreateTalentInBackground(
-                    result.profileData,
+                    { ...result.profileData, status: 'REJECTED' },
                     view.state.job,
                     null // No match data needed for rejection, or pass it if we want the score stored
                 ).then(() => {
