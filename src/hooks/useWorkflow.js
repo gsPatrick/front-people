@@ -465,12 +465,16 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   }), [executeAsync]);
 
   const handleApplyTalentToJob = useCallback((jobId, talentId) => executeAsync(async () => {
+    console.log(`[WORKFLOW] Iniciando candidatura de T:${talentId} em V:${jobId}`);
     const result = await api.applyToJob(jobId, talentId);
-    if (result.id) {
-      alert("Talento adicionado à vaga com sucesso!");
+
+    // O backend retorna { success: true, application: { ... } } ou erro
+    if (result && result.success) {
+      alert("Candidato adicionado à vaga com sucesso!");
+      // Recarrega os detalhes do talento (agora com o status possivelmente atualizado de REJECTED para ACTIVE)
       await handleSelectTalentForDetails({ id: talentId });
     } else {
-      throw new Error(result.message || "Falha ao adicionar talento à vaga.");
+      throw new Error(result?.error || "Falha ao adicionar talento à vaga.");
     }
   }), [executeAsync, handleSelectTalentForDetails]);
 
