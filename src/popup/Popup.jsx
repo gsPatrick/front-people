@@ -104,6 +104,8 @@ const Popup = () => {
 
     const { jobsData, fetchAndSetJobs, handleJobsPageChange } = useJobs(executeAsync);
     const { talentsData, filters, setFilters, handleTalentsPageChange } = useTalents(executeAsync, view);
+    const { addToast, removeToast } = useToast() || {}; // Hook at top level
+
     const scorecard = useScorecard({
         executeAsync,
         settings,
@@ -371,7 +373,7 @@ const Popup = () => {
         />; break;
 
 
-            const { addToast } = useToast() || {}; // Safe access if context is missing during init
+
 
         // ... lines skipped ...
 
@@ -388,6 +390,9 @@ const Popup = () => {
 
             // Se tiver vaga pré-selecionada, salva em SEGUNDO PLANO (Non-Blocking)
             if (view.state?.job) {
+                console.log("[DEBUG] Starting background save for:", result.profileData.nome);
+                if (!addToast) console.error("[CRITICAL] addToast function is MISSING from context!");
+
                 const toastId = addToast ? addToast(`Salvando ${result.profileData.nome || 'candidato'}...`, 'loading', 0) : null;
 
                 workflow.handleCreateTalentInBackground(
@@ -398,17 +403,22 @@ const Popup = () => {
                         scorecardId: view.state?.scorecardId
                     }
                 ).then(() => {
+                    console.log("[DEBUG] Save successful");
                     if (addToast) {
-                        if (toastId) removeToast(toastId); // How to access removeToast? Need to destructure it too.
+                        if (toastId) removeToast(toastId);
                         addToast(`${result.profileData.nome || 'Candidato'} salvo na vaga!`, 'success');
                     }
                 }).catch((err) => {
+                    console.error("[DEBUG] Save failed:", err);
                     if (addToast) {
                         if (toastId) removeToast(toastId);
                         addToast(`Erro ao salvar: ${err.message}`, 'error');
+                    } else {
+                        alert(`Erro ao salvar: ${err.message}`);
                     }
                 });
             } else {
+                console.warn("[DEBUG] No job selected in view state, redirecting to selection.");
                 // Fallback: se não tiver vaga, ainda precisa navegar (modo antigo)
                 navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
             }
@@ -428,32 +438,30 @@ const Popup = () => {
     }
 
     return (
-        <ToastProvider>
-            <div className={styles.appWrapper}>
-                {useLayout ? (
-                    <Layout
-                        activeView={view.name}
-                        onNavigate={handleLayoutNavigate}
-                        isSidebarCollapsed={!isSidebarOpen}
-                        onToggleSidebar={() => setIsSidebarOpen(p => !p)}
-                        onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
-                        onCaptureProfile={handleCaptureLinkedInProfile}
-                        onLogout={handleLogout}
-                        activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
-                    >
-                        <ProfileStatusNotification
-                            status={validationResult}
-                            onGoToProfile={workflow.handleSelectTalentForDetails}
-                        />
-                        {contentToRender}
-                    </Layout>
-                ) : contentToRender}
+        <div className={styles.appWrapper}>
+            {useLayout ? (
+                <Layout
+                    activeView={view.name}
+                    onNavigate={handleLayoutNavigate}
+                    isSidebarCollapsed={!isSidebarOpen}
+                    onToggleSidebar={() => setIsSidebarOpen(p => !p)}
+                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
+                    onCaptureProfile={handleCaptureLinkedInProfile}
+                    onLogout={handleLogout}
+                    activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
+                >
+                    <ProfileStatusNotification
+                        status={validationResult}
+                        onGoToProfile={workflow.handleSelectTalentForDetails}
+                    />
+                    {contentToRender}
+                </Layout>
+            ) : contentToRender}
 
-                {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
+            {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
 
-                <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
-            </div>
-        </ToastProvider>
+            <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
+        </div>
     );
 };
 

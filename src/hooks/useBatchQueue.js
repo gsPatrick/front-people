@@ -159,6 +159,48 @@ export const useBatchQueue = () => {
                 const profileData = extractionResult.data;
                 const matchResult = await api.analyzeProfileWithAI(scorecardId, profileData);
 
+                // --- ADAPTER LAYER (Backend 0-100 -> Frontend 0-5 & UI Enrichment) ---
+
+                // 1. Converter Score Global (0-100 -> 0-5)
+                const overallScore0to5 = matchResult?.overallScore ? (matchResult.overallScore / 20) : 0;
+
+                // 2. Converter Categorias e Extrair Strengths/Weaknesses
+                const categories0to5 = [];
+                const strengths = [];
+                const weaknesses = [];
+
+                if (matchResult?.categories) {
+                    matchResult.categories.forEach(cat => {
+                        // Converte score da categoria
+                        const catScore0to5 = cat.score ? (cat.score / 20) : 0;
+
+                        categories0to5.push({
+                            ...cat,
+                            averageScore: catScore0to5 // Mapped for UI
+                        });
+
+                        // Analisa critérios para gerar insights
+                        if (cat.criteria) {
+                            cat.criteria.forEach(crit => {
+                                // Critério Score geralmente é 1-5 direto da IA (ver match.service.js)
+                                // Mas vamos garantir
+                                const score = crit.score || 0;
+                                const text = `${crit.name}: ${crit.justification || ''}`;
+
+                                if (score >= 4) {
+                                    strengths.push(text);
+                                } else if (score <= 2) {
+                                    weaknesses.push(text);
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Limitar insights para não poluir a UI (Top 3)
+                const topStrengths = strengths.slice(0, 3);
+                const topWeaknesses = weaknesses.slice(0, 3);
+
                 clearTimeout(timeout);
                 resolve({
                     username: tab.username,
@@ -167,8 +209,16 @@ export const useBatchQueue = () => {
                     headline: profileData.perfil?.titulo,
                     profileData: profileData,
                     matchResult: matchResult,
-                    averageScore: matchResult?.averageScore,
-                    categories: matchResult?.categories
+                    // Mapped Props for UI:
+                    averageScore: overallScore0to5,
+                    categories: categories0to5,
+                    strengths: topStrengths,
+                    weaknesses: topWeaknesses,
+                    analysis: {
+                        education: {
+                            summary: profileData.structureEducation?.map(e => `${e.degree} em ${e.field} na ${e.school}`).join('; ') || 'Não estruturada'
+                        }
+                    }
                 });
 
             } catch (error) {

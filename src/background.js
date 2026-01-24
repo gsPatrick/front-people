@@ -23,20 +23,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.log("BACKGROUND: Dados extraídos com sucesso pela API!", extractedData);
 
           // Envia uma mensagem para a UI (Popup/Sidepanel) com o resultado.
-          // FIX: Inclui o tabId para que o useBatchQueue saiba a qual aba isso pertence (concorrência)
-          const sourceTabId = sender?.tab?.id;
-          chrome.runtime.sendMessage({
-            type: 'PDF_EXTRACTION_SUCCESS',
-            payload: { ...extractedData, tabId: sourceTabId }
-          });
+          chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: extractedData });
 
           sendResponse({ success: true, data: extractedData });
         } catch (error) {
           console.error("BACKGROUND: Erro ao chamar a API de extração:", error);
-          chrome.runtime.sendMessage({
-            type: 'PDF_EXTRACTION_FAILURE',
-            payload: { message: error.message, tabId: sender?.tab?.id }
-          });
+          chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: error.message } });
           sendResponse({ success: false, error: error.message });
         }
       })

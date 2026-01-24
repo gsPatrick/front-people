@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styles from './BatchQueueView.module.css';
+import styles from './BatchQueue.module.css';
 import Header from '../../components/Header/Header';
 import { BsPlayFill, BsStopFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat, BsStarFill, BsStar } from 'react-icons/bs';
 
@@ -37,7 +37,8 @@ const BatchQueueView = ({
     const validResults = results.filter(r => !r.error);
 
     // Estado de Ordenação
-    const [sortBy, setSortBy] = useState('score'); // 'score' | 'date'
+    // Estado de Ordenação REMOVED
+    // const [sortBy, setSortBy] = useState('score');  <-- Removed
     const [currentTabUrl, setCurrentTabUrl] = useState('');
 
     // Estado da Configuração de Sourcing
@@ -91,18 +92,29 @@ const BatchQueueView = ({
         };
     }, [isSourcing, isRunning]); // Dependência isSourcing adicionada
 
-    // Lógica de Ordenação
+    // Forçar Ordenação por Score (Melhor Match) - Pedido do Usuário
     const sortedResults = [...validResults].sort((a, b) => {
-        if (sortBy === 'score') {
-            return (b.averageScore || 0) - (a.averageScore || 0); // Decrescente
-        }
-        return 0;
+        return (b.averageScore || 0) - (a.averageScore || 0); // Decrescente
     });
 
     const [processedIds, setProcessedIds] = useState(new Set());
 
     // Encontra o primeiro item da lista ordenada que AINDA NÃO FOI processado
     const currentReview = sortedResults.find(r => !processedIds.has(r.username));
+
+    // Efeito: Abrir/Focar aba do LinkedIn do perfil atual automaticamente
+    useEffect(() => {
+        if (currentReview && currentReview.tabId && chrome?.tabs) {
+            chrome.tabs.update(currentReview.tabId, { active: true }).catch(err => {
+                console.log("Erro ao focar aba (pode ter sido fechada):", err);
+                // Se falhar pelo ID, tentar abrir nova URL? O usuário pediu abrir.
+                // Mas geralmente a aba já existe na fila. Se não existir, talvez melhor não abrir spam de abas.
+                if (currentReview.url) {
+                    // Opcional: recriar aba se nao existir. Por enquanto focar no update.
+                }
+            });
+        }
+    }, [currentReview]);
 
     // Totais para UI
     const processedCount = processedIds.size;
@@ -112,6 +124,10 @@ const BatchQueueView = ({
         if (currentReview) {
             setProcessedIds(prev => new Set([...prev, currentReview.username]));
             onAcceptProfile(currentReview);
+            // Close tab after decision (User request: "close the page")
+            if (currentReview.tabId && chrome?.tabs) {
+                chrome.tabs.remove(currentReview.tabId).catch(() => { });
+            }
         }
     };
 
@@ -119,6 +135,10 @@ const BatchQueueView = ({
         if (currentReview) {
             setProcessedIds(prev => new Set([...prev, currentReview.username]));
             onRejectProfile(currentReview);
+            // Close tab after decision
+            if (currentReview.tabId && chrome?.tabs) {
+                chrome.tabs.remove(currentReview.tabId).catch(() => { });
+            }
         }
     };
 
@@ -378,40 +398,7 @@ const BatchQueueView = ({
                 title="Revisar Perfis"
                 subtitle={`${remainingCount} restantes de ${validResults.length}`}
             />
-            {/* BARRA DE ORDENAÇÃO */}
-            <div style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>ORDENAR POR:</span>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                    <button
-                        onClick={() => setSortBy('score')}
-                        style={{
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: sortBy === 'score' ? '#6b21a8' : 'white',
-                            color: sortBy === 'score' ? 'white' : '#64748b',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        🏆 Melhor Match
-                    </button>
-                    <button
-                        onClick={() => setSortBy('date')}
-                        style={{
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: sortBy === 'date' ? '#6b21a8' : 'white',
-                            color: sortBy === 'date' ? 'white' : '#64748b',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        🕒 Recentes
-                    </button>
-                </div>
-            </div>
+            {/* SEM BARRA DE ORDENAÇÃO: Ordenação por melhor match é mandatória */}
 
             <main className={styles.content} style={{ padding: '15px' }}>
                 {currentReview ? (
@@ -422,7 +409,10 @@ const BatchQueueView = ({
                                 {currentReview.name ? currentReview.name.charAt(0) : '?'}
                             </div>
                             <div className={styles.info}>
-                                <h3>{currentReview.name || currentReview.username}</h3>
+                                {/* User Request: Show username from URL (after /in/) */}
+                                <h3>{currentReview.username
+                                    ? currentReview.username.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+                                    : (currentReview.name || 'Candidato Desconhecido')}</h3>
                                 <p>{currentReview.headline || 'Perfil LinkedIn'}</p>
                             </div>
                             <div className={styles.scoreBadge} style={{ backgroundColor: currentReview.averageScore > 4 ? '#16a34a' : currentReview.averageScore > 3 ? '#eab308' : '#dc2626' }}>
@@ -446,21 +436,30 @@ const BatchQueueView = ({
                                     <p>{currentReview.weaknesses?.join(', ') || 'Nenhum identificado.'}</p>
                                 </div>
                             </div>
-                            <div className={styles.detailItem}>
-                                <span className={styles.icon}>🎓</span>
-                                <div>
-                                    <strong>Formação</strong>
-                                    <p>{currentReview.analysis?.education?.summary || 'Não informada'}</p>
-                                </div>
-                            </div>
                         </div>
 
-                        {/* Avaliação por Categoria */}
+                        {/* Avaliação por Categoria Detalhada */}
                         <div className={styles.categoriesReview}>
+                            <h4 className={styles.sectionTitle}>ANÁLISE DETALHADA</h4>
                             {currentReview.categories?.map((cat, idx) => (
-                                <div key={idx} className={styles.catRow}>
-                                    <span className={styles.catName}>{cat.name}</span>
-                                    <StarRating score={cat.averageScore} />
+                                <div key={idx} className={styles.categoryBlock}>
+                                    <div className={styles.catRow}>
+                                        <span className={styles.catName}>{cat.name}</span>
+                                        <StarRating score={cat.averageScore} />
+                                    </div>
+                                    {/* Lista de Critérios com Justificativa */}
+                                    {cat.criteria && cat.criteria.map((crit, cIdx) => (
+                                        <div key={cIdx} className={styles.criteriaItem}>
+                                            <div className={styles.criteriaHeader}>
+                                                <span className={styles.criteriaName}>{crit.name}</span>
+                                                {/* Se tiver nota do criterio individual */}
+                                                {crit.score && <span className={styles.criteriaScore}>{crit.score}/100</span>}
+                                            </div>
+                                            <p className={styles.criteriaJustification}>
+                                                {crit.justification || "Sem justificativa."}
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
                             ))}
                             {(!currentReview.categories || currentReview.categories.length === 0) && (

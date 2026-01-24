@@ -191,8 +191,20 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       const linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
       const linkedinUsername = linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null;
 
+      // 1.1 Validation: Check for invalid 404 URLs
+      if (linkedinUrl && (linkedinUrl.includes('/404') || linkedinUrl.includes('unavailable'))) {
+        console.warn('[WORKFLOW] Invalid LinkedIn URL detected (404/unavailable):', linkedinUrl);
+        if (linkedinUsername) {
+          linkedinUrl = `https://www.linkedin.com/in/${linkedinUsername.replace(/\/+$/, '')}`;
+          console.log('[WORKFLOW] Reconstructed URL from username:', linkedinUrl);
+        } else {
+          linkedinUrl = null; // Clear bad URL if no username to fix it
+        }
+      }
+
       // Extrai nome de ambas estruturas
-      const nome = profileData.nome || profileData.perfil?.nome || profileData.name;
+      const nome = profileData.nome || profileData.perfil?.nome || profileData.name ||
+        (linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato Desconhecido');
       const titulo = profileData.titulo || profileData.perfil?.titulo || profileData.headline;
 
       // Monta payload normalizado
@@ -202,6 +214,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
         linkedinUsername,
         linkedinUrl,
         nome,
+        name: nome, // Mapping for external APIs
         titulo
       };
       const createResult = await api.createTalent(payload);
@@ -276,6 +289,105 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       navigateTo('candidate_details');
     });
   }, [executeAsync, navigateTo]);
+
+  // Background creation for Batch Queue (Non-blocking)
+  const handleCreateTalentInBackground = useCallback(async (profileData, selectedJob, matchData) => {
+    // NOTE: We do NOT use executeAsync here to avoid blocking the UI with a global spinner.
+    // The caller (Popup.jsx) manages the "Toast/Island" state.
+
+    // Fix: Handle 'linkedin' field from AI/Scraper if 'linkedinUrl' is missing
+    let linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+
+    // Normalize URL if it comes without protocol
+    if (linkedinUrl && !linkedinUrl.startsWith('http')) {
+      linkedinUrl = `https://${linkedinUrl}`;
+    }
+
+    // Robust username extraction from any LinkedIn URL format
+    let linkedinUsername = null;
+    if (linkedinUrl) {
+      const match = linkedinUrl.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
+      if (match && match[1]) {
+        linkedinUsername = match[1];
+      }
+    }
+
+    // 1.1 Validation: Check for invalid 404 URLs
+    if (linkedinUrl && (linkedinUrl.includes('/404') || linkedinUrl.includes('unavailable'))) {
+      console.warn('[WORKFLOW] Invalid LinkedIn URL detected (404/unavailable):', linkedinUrl);
+      if (linkedinUsername) {
+        linkedinUrl = `https://www.linkedin.com/in/${linkedinUsername.replace(/\/+$/, '')}`;
+        console.log('[WORKFLOW] Reconstructed URL from username:', linkedinUrl);
+      } else {
+        linkedinUrl = null; // Clear bad URL
+      }
+    }
+
+    const nome = profileData.nome || profileData.perfil?.nome || profileData.name ||
+      (linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato Desconhecido');
+    const titulo = profileData.titulo || profileData.perfil?.titulo || profileData.headline;
+
+    const payload = {
+      ...profileData,
+      jobId: selectedJob.id,
+      linkedinUsername,
+      linkedinUrl,
+      nome,
+      name: nome, // Mapping for external APIs
+      titulo
+    };
+
+    const createResult = await api.createTalent(payload);
+    if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
+
+    // Check Match Data for Auto-Scorecard
+    if (matchData && matchData.result && matchData.scorecardId) {
+      try {
+        const detailsResult = await api.fetchCandidateDetails(selectedJob.id, createResult.id);
+        const applicationId = detailsResult.candidateData?.application?.id;
+
+        if (applicationId) {
+          const kitResultData = await api.fetchInterviewKit(matchData.scorecardId);
+          if (kitResultData.success && kitResultData.kit) {
+            const kit = kitResultData.kit;
+            const ratings = {};
+            const categories = matchData.result.categories || [];
+
+            kit.skillCategories.forEach(kitCat => {
+              const matchCat = categories.find(c => c.name === kitCat.name);
+              if (matchCat) {
+                (kitCat.skills || []).forEach(kitSkill => {
+                  const matchSkill = matchCat.criteria?.find(c => c.name === kitSkill.name);
+                  if (matchSkill) {
+                    ratings[kitSkill.id] = {
+                      score: matchSkill.score,
+                      description: matchSkill.justification
+                    };
+                  }
+                });
+              }
+            });
+
+            const autoSavePayload = {
+              userId: 'auto-match',
+              scorecardInterviewId: matchData.scorecardId,
+              feedback: '',
+              decision: 'NO_DECISION',
+              notes: 'Avaliação gerada automaticamente via Fila em Lote.',
+              ratings: ratings
+            };
+
+            await api.submitScorecard(applicationId, matchData.scorecardId, autoSavePayload);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao salvar scorecard em background:", err);
+        // Non-fatal error for the user, but worth logging
+      }
+    }
+
+    return createResult;
+  }, []);
 
   const handleSelectTalentForDetails = useCallback((talent, navigationState = {}) => {
     executeAsync(async () => {
@@ -380,7 +492,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const state = { profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext };
   const setters = { setProfileContext, setCurrentJob, setCurrentTalent, setCurrentCandidates, setCurrentJobStages, setCurrentApplication, setCurrentInterviewKits, setCurrentScorecardSummary };
-  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary };
+  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground };
 
   return { ...state, ...setters, ...actions };
 };
