@@ -3,165 +3,318 @@
     height: 100%;
     background-color: var(--bg-primary);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-.title {
-    font-size: 24px;
+.controlsBar {
+    display: flex;
+    gap: 12px;
     margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.searchWrapper {
+    flex: 1;
+    position: relative;
+    min-width: 200px;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 10px 14px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     color: var(--text-primary);
-    font-weight: 700;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+}
+
+.filterSelect {
+    padding: 10px 32px 10px 14px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239CA3AF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    min-width: 160px;
+}
+
+.filterSelect:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.addButton {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.addButton:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
 .tableContainer {
     background: var(--bg-secondary);
-    border-radius: 8px;
-    /* Slightly reduced radius for cleaner look */
-    box-shadow: var(--shadow);
-    /* Subtle shadow */
+    border-radius: 12px;
     border: 1px solid var(--border-color);
-    /* Explicit border */
     overflow: hidden;
-    min-height: 200px;
-    /* Ensure it takes space even if empty */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .tableHeader {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-    /* Nome, Cargo, Score, Status, Ações */
-    padding: 15px;
-    background-color: var(--bg-tertiary);
+    grid-template-columns: 2.5fr 1fr 0.8fr 1fr 0.8fr;
+    padding: 14px 20px;
+    background-color: rgba(255, 255, 255, 0.03);
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border-color);
+}
+
+.tableBody {
+    overflow-y: auto;
 }
 
 .tableRow {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-    padding: 15px;
+    grid-template-columns: 2.5fr 1fr 0.8fr 1fr 0.8fr;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border-color);
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+}
+
+.tableRow:last-child {
+    border-bottom: none;
 }
 
 .tableRow:hover {
-    background-color: var(--bg-tertiary);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .tableRow.rejected {
-    opacity: 0.6;
-    background-color: rgba(239, 68, 68, 0.1);
-    /* Red tint */
+    background-color: rgba(239, 68, 68, 0.02);
+}
+
+.tableRow.rejected .nameCell {
+    color: var(--text-secondary);
 }
 
 .cell {
     font-size: 14px;
     color: var(--text-primary);
+}
+
+.nameInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .nameCell {
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.headlineCell {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.scoreWrapper {
+    display: flex;
+    align-items: center;
 }
 
 .scoreBadge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 6px;
     font-weight: 700;
-    color: white;
     font-size: 12px;
-    text-align: center;
-    min-width: 30px;
+    min-width: 40px;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .statusBadge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
 }
 
 .statusNew {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background-color: rgba(37, 99, 235, 0.15);
+    color: #60a5fa;
 }
 
 .statusActive {
-    background-color: #dcfce7;
-    color: #166534;
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
 }
 
 .statusRejected {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
 }
 
 .statusHired {
-    background-color: #fef08a;
-    color: #854d0e;
+    background-color: rgba(167, 139, 250, 0.15);
+    color: #c4b5fd;
 }
 
 .syncBadge {
-    font-size: 10px;
-    margin-left: 5px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: #e2e8f0;
-    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 500;
 }
 
 .syncSynced {
-    color: #16a34a;
-    background: #dcfce7;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
 }
 
 .syncPending {
-    color: #d97706;
-    background: #fef3c7;
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
 }
 
 .syncError {
-    color: #dc2626;
-    background: #fee2e2;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
 }
 
-.actionButton {
-    background: none;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: #475569;
+.emptyState {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal {
+    background-color: var(--bg-secondary);
+    padding: 30px;
+    border-radius: 16px;
+    width: 380px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.modalTitle {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.modalSub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.modalActions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modalBtnPrimary {
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    background-color: var(--accent);
+    color: white;
+    font-weight: 600;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
     transition: all 0.2s;
 }
 
-.actionButton:hover {
-    background: #f1f5f9;
-    border-color: #94a3b8;
-}
-
-/* NEW: Add Button Style */
-.addButton {
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+.modalBtnSecondary {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 14px;
+    transition: all 0.2s;
 }
 
-.addButton:hover {
-    background-color: #1d4ed8;
+.modalBtnCancel {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 20px;
+    text-decoration: underline;
 }
