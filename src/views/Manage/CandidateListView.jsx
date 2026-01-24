@@ -12,13 +12,12 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
 
     useEffect(() => {
         loadTalents();
-    }, [jobId]); // Recarrega se mudar o JobId
+    }, [jobId]);
 
     const loadTalents = async () => {
         setLoading(true);
         try {
-            // Fetch directly from local DB route, passing jobId filter if exists
-            const result = await api.fetchAllTalents(1, 100, { jobId }); // <-- Passa jobId no array de filtros
+            const result = await api.fetchAllTalents(1, 100, { jobId });
             if (result.success && result.data) {
                 setTalents(result.data.talents);
             }
@@ -30,10 +29,10 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
     };
 
     const getScoreColor = (score) => {
-        if (!score) return '#cbd5e1'; // Gray
-        if (score >= 4) return '#22c55e'; // Green
-        if (score >= 3) return '#eab308'; // Yellow
-        return '#ef4444'; // Red
+        if (!score) return 'rgba(203, 213, 225, 0.2)'; // Fundo suave para lista
+        if (score >= 4) return '#22c55e';
+        if (score >= 3) return '#eab308';
+        return '#ef4444';
     };
 
     const renderSyncBadge = (status) => {
@@ -46,8 +45,9 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
     };
 
     const filteredTalents = talents.filter(t => {
-        if (filterStatus === 'ALL') return t.status !== 'REJECTED'; // Default hides rejected
+        if (filterStatus === 'ALL') return true; // Mostrar todos (incluindo rej)
         if (filterStatus === 'REJECTED') return t.status === 'REJECTED';
+        if (filterStatus === 'NEW') return t.status === 'NEW';
         return true;
     });
 
