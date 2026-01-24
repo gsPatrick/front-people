@@ -15,36 +15,64 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   const [currentScorecardSummary, setCurrentScorecardSummary] = useState([]);
   const [updateContext, setUpdateContext] = useState({ isUpdating: false, kitId: null });
 
+  // HELPER: Extração robusta de LinkedIn a partir de texto bruto
+  const extractLinkedInInfoFromText = (text) => {
+    if (!text) return null;
+    const urlPatterns = [
+      /https?:\/\/(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9-%]+)\/?/i,
+      /linkedin\.com\/in\/([a-zA-Z0-9-%]+)\/?/i
+    ];
+
+    for (const pattern of urlPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        // Limpa possíveis resíduos (query params, espaços, etc)
+        const username = match[1].split(/[?#\s]/)[0].replace(/\/+$/, '');
+        return {
+          url: `https://www.linkedin.com/in/${username}`,
+          username: username
+        };
+      }
+    }
+    return null;
+  };
+
   const handlePdfUpload = useCallback((pdfFile) => {
     executeAsync(async () => {
       const extractedText = await extractTextFromPdf(pdfFile);
       if (!extractedText) throw new Error("Não foi possível extrair texto do PDF.");
 
+      // 1. Extração via IA
       const jsonData = await api.processProfileFromText(extractedText);
-      if (!jsonData || !jsonData.name) throw new Error("A API de IA não retornou dados de perfil válidos.");
+      if (!jsonData) throw new Error("A API de IA não retornou dados.");
 
-      let profileIdentifier = jsonData.contact?.linkedinProfileUrl || jsonData.linkedinProfileUrl;
+      // 2. Extração de LinkedIn (Prioriza Texto Bruto se IA falhar ou for genérico)
+      const linkedInInfo = extractLinkedInInfoFromText(extractedText);
+      const aiLinkedUrl = jsonData.contact?.linkedinProfileUrl || jsonData.linkedinProfileUrl || jsonData.linkedin;
 
-      if (!profileIdentifier) {
-        console.warn("[FALLBACK] A IA não retornou a URL do LinkedIn. Tentando extrair do texto bruto...");
-        const urlMatch = extractedText.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
-        if (urlMatch && urlMatch[1]) {
-          profileIdentifier = urlMatch[1];
-          console.log(`[FALLBACK] Identificador encontrado via Regex: ${profileIdentifier}`);
-        }
+      const finalLinkedinUrl = linkedInInfo?.url || aiLinkedUrl;
+      const finalLinkedinUsername = linkedInInfo?.username || (aiLinkedUrl ? aiLinkedUrl.split('/in/')[1]?.replace(/\/+$/, '') : null);
+
+      if (!finalLinkedinUsername) {
+        throw new Error("Não foi possível identificar o perfil do LinkedIn neste PDF ou no texto extraído.");
       }
 
-      if (!profileIdentifier) {
-        throw new Error("A IA não conseguiu extrair um identificador do LinkedIn e a busca no texto bruto também falhou.");
+      // 3. Normalização do Nome (Se a IA falhar ou der nome genérico, usa o username formatado)
+      let nome = jsonData.nome || jsonData.perfil?.nome || jsonData.name;
+      if (!nome || nome.toLowerCase().includes('candidato') || nome.toLowerCase().includes('conclusão')) {
+        nome = finalLinkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
       }
 
-      const cleanedUsername = profileIdentifier.replace(/\/+$/, '');
-      const fullUrlToValidate = `https://www.linkedin.com/in/${cleanedUsername}`;
+      console.log(`[PDF UPLOAD] Validando com o usuário: ${finalLinkedinUsername}`);
+      const validationResult = await api.validateProfile(finalLinkedinUrl || `https://www.linkedin.com/in/${finalLinkedinUsername}`);
 
-      console.log(`[PDF UPLOAD] Validando com a URL: ${fullUrlToValidate}`);
-      const validationResult = await api.validateProfile(fullUrlToValidate);
-
-      const finalProfileData = { ...jsonData, linkedinUrl: fullUrlToValidate };
+      const finalProfileData = {
+        ...jsonData,
+        linkedinUrl: finalLinkedinUrl,
+        linkedinUsername: finalLinkedinUsername,
+        name: nome,
+        nome: nome
+      };
 
       setProfileContext({
         exists: validationResult.exists,
@@ -55,6 +83,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       navigateTo('confirm_profile');
     });
   }, [executeAsync, navigateTo]);
+
 
   const openLinkedInTab = (username) => {
     if (!username) return;
@@ -187,24 +216,18 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const handleCreateAndGoToEvaluation = useCallback((profileData, selectedJob, matchData) => {
     executeAsync(async () => {
-      // Suporta ambos: estrutura plana (linkedinUrl) e aninhada (perfil.linkedinUrl)
-      const linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
-      const linkedinUsername = linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null;
+      // MELHORIA: Lógica robusta de extração e normalização de nome/linkedin
+      const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
 
-      // 1.1 Validation: Check for invalid 404 URLs
-      if (linkedinUrl && (linkedinUrl.includes('/404') || linkedinUrl.includes('unavailable'))) {
-        console.warn('[WORKFLOW] Invalid LinkedIn URL detected (404/unavailable):', linkedinUrl);
-        if (linkedinUsername) {
-          linkedinUrl = `https://www.linkedin.com/in/${linkedinUsername.replace(/\/+$/, '')}`;
-          console.log('[WORKFLOW] Reconstructed URL from username:', linkedinUrl);
-        } else {
-          linkedinUrl = null; // Clear bad URL if no username to fix it
-        }
+      const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
+      const linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null);
+
+      // Normaliza Nome se for desconhecido
+      let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
+      if (!nome || nome.toLowerCase().includes('desconhecido') || nome.toLowerCase().includes('conclusão')) {
+        nome = linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato LinkedIn';
       }
 
-      // Extrai nome de ambas estruturas
-      const nome = profileData.nome || profileData.perfil?.nome || profileData.name ||
-        (linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato Desconhecido');
       const titulo = profileData.titulo || profileData.perfil?.titulo || profileData.headline;
 
       // Monta payload normalizado
@@ -213,9 +236,10 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
         jobId: selectedJob.id,
         linkedinUsername,
         linkedinUrl,
-        nome,
-        name: nome, // Mapping for external APIs
-        titulo
+        name: nome,
+        nome: nome,
+        titulo,
+        status: profileData.status || 'NEW'
       };
       const createResult = await api.createTalent(payload);
       if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
@@ -295,36 +319,18 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     // NOTE: We do NOT use executeAsync here to avoid blocking the UI with a global spinner.
     // The caller (Popup.jsx) manages the "Toast/Island" state.
 
-    // Fix: Handle 'linkedin' field from AI/Scraper if 'linkedinUrl' is missing
-    let linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+    // MELHORIA: Lógica robusta de extração e normalização
+    const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
 
-    // Normalize URL if it comes without protocol
-    if (linkedinUrl && !linkedinUrl.startsWith('http')) {
-      linkedinUrl = `https://${linkedinUrl}`;
+    const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
+    const linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null);
+
+    // Normalização de Nome
+    let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
+    if (!nome || nome.toLowerCase().includes('desconhecido') || nome.toLowerCase().includes('conclusão')) {
+      nome = linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato LinkedIn';
     }
 
-    // Robust username extraction from any LinkedIn URL format
-    let linkedinUsername = null;
-    if (linkedinUrl) {
-      const match = linkedinUrl.match(/linkedin\.com\/in\/([a-zA-Z0-9-]+)/);
-      if (match && match[1]) {
-        linkedinUsername = match[1];
-      }
-    }
-
-    // 1.1 Validation: Check for invalid 404 URLs
-    if (linkedinUrl && (linkedinUrl.includes('/404') || linkedinUrl.includes('unavailable'))) {
-      console.warn('[WORKFLOW] Invalid LinkedIn URL detected (404/unavailable):', linkedinUrl);
-      if (linkedinUsername) {
-        linkedinUrl = `https://www.linkedin.com/in/${linkedinUsername.replace(/\/+$/, '')}`;
-        console.log('[WORKFLOW] Reconstructed URL from username:', linkedinUrl);
-      } else {
-        linkedinUrl = null; // Clear bad URL
-      }
-    }
-
-    const nome = profileData.nome || profileData.perfil?.nome || profileData.name ||
-      (linkedinUsername ? linkedinUsername.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') : 'Candidato Desconhecido');
     const titulo = profileData.titulo || profileData.perfil?.titulo || profileData.headline;
 
     const payload = {
@@ -332,8 +338,8 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       jobId: selectedJob.id,
       linkedinUsername,
       linkedinUrl,
-      nome,
-      name: nome, // Mapping for external APIs
+      name: nome,
+      nome: nome,
       titulo,
       status: profileData.status || 'NEW'
     };
