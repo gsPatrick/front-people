@@ -101,7 +101,19 @@ const CandidateDetailView = ({
                 <div className={styles.candidateIdentifier}>
                     <div className={styles.avatar}>{candidate.name.substring(0, 2)}</div>
                     <div className={styles.nameContainer}>
-                        <h3>{candidate.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h3>{candidate.name}</h3>
+                            <span
+                                style={{
+                                    fontSize: '11px', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold',
+                                    backgroundColor: candidate.externalId || candidate.syncStatus === 'SYNCED' ? '#dbeafe' : '#fef9c3',
+                                    color: candidate.externalId || candidate.syncStatus === 'SYNCED' ? '#1e40af' : '#854d0e',
+                                    border: `1px solid ${candidate.externalId || candidate.syncStatus === 'SYNCED' ? '#bfdbfe' : '#fde047'}`
+                                }}
+                            >
+                                {candidate.externalId || candidate.syncStatus === 'SYNCED' ? 'InHire' : 'Local'}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div className={styles.headerActions}>

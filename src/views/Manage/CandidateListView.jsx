@@ -1,23 +1,24 @@
-
+// ATUALIZADO: CandidateListView com Botão de Adicionar e Modal
 import React, { useState, useEffect } from 'react';
 import styles from './CandidateListView.module.css';
 import * as api from '../../services/api.service';
 import Header from '../../components/Header/Header';
 
-const CandidateListView = ({ onSelectCandidate, onBack }) => {
+const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFromMatch, jobId }) => {
     const [talents, setTalents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         loadTalents();
-    }, []);
+    }, [jobId]); // Recarrega se mudar o JobId
 
     const loadTalents = async () => {
         setLoading(true);
         try {
-            // Fetch directly from local DB route
-            const result = await api.fetchAllTalents(1, 100);
+            // Fetch directly from local DB route, passing jobId filter if exists
+            const result = await api.fetchAllTalents(1, 100, { jobId }); // <-- Passa jobId no array de filtros
             if (result.success && result.data) {
                 setTalents(result.data.talents);
             }
@@ -54,11 +55,8 @@ const CandidateListView = ({ onSelectCandidate, onBack }) => {
         // Trigger Split-Screen Logic
         if (chrome && chrome.tabs && talent.linkedinUsername) {
             const url = `https://www.linkedin.com/in/${talent.linkedinUsername}`;
-
             // 1. Create or Focus Tab
-            chrome.tabs.create({ url, active: false }); // Open in background to keep extension open? 
-            // Actually, if we use SidePanel, the extension stays open.
-
+            chrome.tabs.create({ url, active: false }); // Open in background
             // 2. Open Detail View locally
             onSelectCandidate(talent);
         } else {
@@ -70,7 +68,7 @@ const CandidateListView = ({ onSelectCandidate, onBack }) => {
         <div className={styles.container}>
             <Header title="Banco de Talentos" onBack={onBack} />
 
-            <div style={{ marginBottom: '15px' }}>
+            <div className={styles.controlsBar} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                 <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
@@ -79,6 +77,17 @@ const CandidateListView = ({ onSelectCandidate, onBack }) => {
                     <option value="ALL">Ativos (Ocultar Rejeitados)</option>
                     <option value="REJECTED">Rejeitados</option>
                 </select>
+
+                <button
+                    className={styles.addButton}
+                    onClick={() => setShowAddModal(true)}
+                    style={{
+                        backgroundColor: '#2563eb', color: 'white', border: 'none',
+                        padding: '8px 16px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer'
+                    }}
+                >
+                    + Adicionar Candidato
+                </button>
             </div>
 
             {loading ? <p>Carregando...</p> : (
@@ -121,6 +130,54 @@ const CandidateListView = ({ onSelectCandidate, onBack }) => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* MODAL DE ADIÇÃO */}
+            {showAddModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white', padding: '25px', borderRadius: '12px', width: '320px',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)', textAlign: 'center'
+                    }}>
+                        <h3 style={{ marginTop: 0, color: '#1e293b' }}>Adicionar à Vaga</h3>
+                        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>Você quer buscar alguém que já existe ou encontrar alguém novo?</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button
+                                onClick={() => { setShowAddModal(false); if (onAddFromBank) onAddFromBank(); }}
+                                style={{
+                                    padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1',
+                                    backgroundColor: 'white', color: '#334155', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                }}
+                            >
+                                📂 Buscar no Banco de Talentos
+                            </button>
+
+                            <button
+                                onClick={() => { setShowAddModal(false); if (onAddFromMatch) onAddFromMatch(); }}
+                                style={{
+                                    padding: '12px', borderRadius: '8px', border: 'none',
+                                    backgroundColor: '#7e22ce', color: 'white', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                }}
+                            >
+                                🚀 Novo via Match / LinkedIn
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowAddModal(false)}
+                            style={{
+                                marginTop: '20px', backgroundColor: 'transparent', border: 'none',
+                                color: '#94a3b8', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline'
+                            }}
+                        >
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             )}
         </div>

@@ -9,11 +9,11 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
-    { id: 'dashboard_talents', label: 'Talentos', icon: <IoPeopleSharp /> },
+    { id: 'candidate_list', label: 'Banco de Talentos', icon: <IoPeopleSharp /> },
     { id: 'scorecard_hub', label: 'Scorecards', icon: <BsClipboardCheck /> },
-    { 
-      id: 'match_hub', 
-      label: 'Match', 
+    {
+      id: 'match_hub',
+      label: 'Match',
       icon: <BsBullseye />,
       // Sub-label dinâmico que mostra o scorecard ativo
       subLabel: activeMatchScorecardName || 'Nenhum scorecard ativo'
@@ -28,9 +28,9 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           <div className={styles.logoContainer}>
             <img src="/logo.png" alt="Logo" className={styles.logoImage} />
           </div>
-          <button 
+          <button
             onClick={onToggleSidebar}
-            className={styles.toggleButton} 
+            className={styles.toggleButton}
             title={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
           >
             {isSidebarCollapsed ? <BsLayoutSidebarInset /> : <BsLayoutSidebarInsetReverse />}
@@ -67,24 +67,24 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-            {onOpenInTab && (
-                <button
-                    className={styles.openInTabButton}
-                    onClick={onOpenInTab}
-                    title="Abrir em nova aba"
-                >
-                    <span className={styles.navIcon}><BsBoxArrowUpRight /></span>
-                    <span className={styles.navLabel}>Sempre Aberto</span>
-                </button>
-            )}
+          {onOpenInTab && (
             <button
-                className={styles.logoutButton}
-                onClick={onLogout}
-                title="Sair da conta"
+              className={styles.openInTabButton}
+              onClick={onOpenInTab}
+              title="Abrir em nova aba"
             >
-                <span className={styles.navIcon}><IoLogOutOutline /></span>
-                <span className={styles.navLabel}>Sair</span>
+              <span className={styles.navIcon}><BsBoxArrowUpRight /></span>
+              <span className={styles.navLabel}>Sempre Aberto</span>
             </button>
+          )}
+          <button
+            className={styles.logoutButton}
+            onClick={onLogout}
+            title="Sair da conta"
+          >
+            <span className={styles.navIcon}><IoLogOutOutline /></span>
+            <span className={styles.navLabel}>Sair</span>
+          </button>
         </div>
       </aside>
       <main className={styles.content}>

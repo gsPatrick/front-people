@@ -238,10 +238,28 @@ export const updateTalent = async (talentId, dataToUpdate) => {
   }
 };
 
+export const updateTalentStatus = async (talentId, status) => {
+  try {
+    const response = await apiClient.patch(`/talents/${talentId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const deleteTalent = async (talentId) => {
   try {
     await apiClient.delete(`/talents/${talentId}`);
     return { success: true };
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const createJob = async (jobData) => {
+  try {
+    const response = await apiClient.post('/jobs', jobData);
+    return response.data;
   } catch (error) {
     handleError(error);
   }

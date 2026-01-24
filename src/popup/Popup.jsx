@@ -340,12 +340,25 @@ const Popup = () => {
     switch (view.name) {
         case 'dashboard_jobs': contentToRender = <JobsDashboardView
             jobsData={jobsData}
-            onSelectJob={(job) => navigateTo('candidate_list', { jobId: job.id })} // MUDANÇA: Ir para Lista Filtrada
+            onSelectJob={(job) => workflow.handleSelectJobForDetails(job)} // RESTAURADO: Ir para Job Details (Kanban/List)
             activeStatusFilter={jobStatusFilter}
             onFilterChange={(s) => { setJobStatusFilter(s); fetchAndSetJobs(1, s) }}
             onNavigateToUpload={() => navigateTo('upload_pdf')}
             handleJobsPageChange={handleJobsPageChange}
             onNavigateToCandidates={() => navigateTo('candidate_list')} // Acesso ao Banco Geral
+            onCreateJob={async (jobData) => {
+                const toastId = addToast ? addToast('Criando vaga...', 'loading', 0) : null;
+                try {
+                    await api.createJob(jobData);
+                    if (addToast && toastId) removeToast(toastId);
+                    if (addToast) addToast('Vaga criada com sucesso!', 'success');
+                    fetchAndSetJobs(1, jobStatusFilter); // Refresh
+                } catch (err) {
+                    if (addToast && toastId) removeToast(toastId);
+                    if (addToast) addToast(`Erro ao criar vaga: ${err.message}`, 'error');
+                    else alert(`Erro: ${err.message}`);
+                }
+            }}
         />; break;
         case 'talent_profile': contentToRender = <TalentProfileView talent={workflow.currentTalent} onBack={goBack} onEditTalent={workflow.handleEditTalentInfo} onDeleteTalent={workflow.handleDeleteTalent} onAddNewApplication={() => navigateTo('select_job_contextual_for_talent')} onDeleteApplication={workflow.handleRemoveApplicationForTalent} />; break;
         case 'match_hub': contentToRender = <MatchResultView activeScorecard={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)} matchResult={matchResult} isLoading={isScrapingForMatch} isLocked={isMatchProfileLocked} onToggleLock={handleToggleLock} onAddTalent={() => { if (!currentScrapedProfile) return; workflow.setProfileContext({ exists: false, profileData: currentScrapedProfile, talent: null }); navigateTo('select_job_for_new_talent'); }} onChangeScorecard={handleChangeMatchScorecard} />; break;
@@ -431,7 +444,20 @@ const Popup = () => {
                 // Fallback: se não tiver vaga, ainda precisa navegar (modo antigo)
                 navigateTo('batch_select_job', { scorecardId: view.state?.scorecardId });
             }
-        }} onRejectProfile={() => { }} onGoBack={() => navigateTo('match_select_scorecard')}
+        }} onRejectProfile={(result) => {
+            console.log("[DEBUG] Rejecting and auto-saving to bank:", result.profileData.nome);
+            if (view.state?.job) {
+                workflow.handleCreateTalentInBackground(
+                    result.profileData,
+                    view.state.job,
+                    null // No match data needed for rejection, or pass it if we want the score stored
+                ).then(() => {
+                    if (addToast) addToast(`${result.profileData.nome} salvo no Banco (Rejeitado)`, 'info');
+                }).catch(err => console.error("Error saving rejected profile:", err));
+            } else {
+                console.warn("Cannot save rejected profile: No job context.");
+            }
+        }} onGoBack={() => navigateTo('match_select_scorecard')}
             onAutoSource={(url, scId, count) => batchQueue.sourceProfilesFromSearch(url, scId, count)}
         />; break;
         case 'batch_select_job': contentToRender = <JobsDashboardView isSelectionMode={true} jobsData={jobsData} onSelectJob={async (job) => {
@@ -445,9 +471,33 @@ const Popup = () => {
         }} onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} handleJobsPageChange={handleJobsPageChange} activeStatusFilter={jobStatusFilter} />; break;
         // NOVA ROTA: Lista de Candidatos (Local-First)
         case 'candidate_list': contentToRender = <CandidateListView
+            jobId={view.state?.jobId} // <-- PASSANDO O JOB ID
             onSelectCandidate={(talent) => workflow.handleSelectTalentForDetails(talent)}
             onBack={() => navigateTo('dashboard_jobs')}
+            // NOVOS HANDLERS
+            onAddFromBank={() => navigateTo('select_talent_for_job', { jobId: view.state?.jobId })}
+            onAddFromMatch={() => {
+                navigateTo('match_select_scorecard');
+            }}
         />; break;
+
+        // NOVA ROTA: Selecionar Talento para Vaga (Inverso de Vaga para Talento)
+        case 'select_talent_for_job': contentToRender = <TalentsDashboardView
+            isSelectionMode={true}
+            talentsData={talentsData}
+            onSelectTalent={async (talent) => {
+                if (view.state?.jobId) {
+                    await workflow.handleApplyTalentToJob(view.state.jobId, talent.id);
+                    goBack(); // Volta para a lista de candidatos
+                }
+            }}
+            onCancel={goBack}
+            handleTalentsPageChange={handleTalentsPageChange}
+            filters={filters}
+            onFilterChange={setFilters}
+            isPagingLoading={isPagingLoading}
+        />; break;
+
         default: contentToRender = <LoadingView />;
     }
 

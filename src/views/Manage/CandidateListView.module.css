@@ -1,22 +1,28 @@
 .container {
     padding: 20px;
     height: 100%;
-    background-color: #f8fafc;
+    background-color: var(--bg-primary);
     overflow-y: auto;
 }
 
 .title {
     font-size: 24px;
     margin-bottom: 20px;
-    color: #1e293b;
+    color: var(--text-primary);
     font-weight: 700;
 }
 
 .tableContainer {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    /* Slightly reduced radius for cleaner look */
+    box-shadow: var(--shadow);
+    /* Subtle shadow */
+    border: 1px solid var(--border-color);
+    /* Explicit border */
     overflow: hidden;
+    min-height: 200px;
+    /* Ensure it takes space even if empty */
 }
 
 .tableHeader {
@@ -24,35 +30,36 @@
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     /* Nome, Cargo, Score, Status, Ações */
     padding: 15px;
-    background-color: #f1f5f9;
+    background-color: var(--bg-tertiary);
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     font-size: 14px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .tableRow {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     padding: 15px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     align-items: center;
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .tableRow:hover {
-    background-color: #f8fafc;
+    background-color: var(--bg-tertiary);
 }
 
 .tableRow.rejected {
     opacity: 0.6;
-    background-color: #f1f5f9;
+    background-color: rgba(239, 68, 68, 0.1);
+    /* Red tint */
 }
 
 .cell {
     font-size: 14px;
-    color: #334155;
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -60,7 +67,7 @@
 
 .nameCell {
     font-weight: 600;
-    color: #0f172a;
+    color: var(--text-primary);
 }
 
 .scoreBadge {
@@ -141,4 +148,20 @@
 .actionButton:hover {
     background: #f1f5f9;
     border-color: #94a3b8;
+}
+
+/* NEW: Add Button Style */
+.addButton {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.addButton:hover {
+    background-color: #1d4ed8;
 }

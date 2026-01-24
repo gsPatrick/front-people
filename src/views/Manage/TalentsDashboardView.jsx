@@ -38,7 +38,9 @@ const TalentsDashboardView = ({
   filters,
   onFilterChange,
   isPagingLoading,
-  isLoading
+  isLoading,
+  isSelectionMode = false, // <-- Prop Nova
+  onCancel // <-- Prop Nova
 }) => {
 
   const handleSearchTermChange = (e) => {
@@ -50,8 +52,9 @@ const TalentsDashboardView = ({
   return (
     <div className={styles.container}>
       <Header
-        title="Banco de Talentos"
-        subtitle={`${talentsData.totalTalents || 0} talentos encontrados`}
+        title={isSelectionMode ? "Selecionar Talento" : "Banco de Talentos"}
+        subtitle={isSelectionMode ? "Clique em um talento para adicionar à vaga." : `${talentsData.totalTalents || 0} talentos encontrados`}
+        onBack={isSelectionMode && onCancel ? onCancel : null}
       />
 
       <div className={styles.filtersContainer}>

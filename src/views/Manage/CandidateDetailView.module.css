@@ -2,31 +2,33 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f8fafc;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .header {
-  background-color: white;
+  background-color: var(--bg-secondary);
   padding: 15px 20px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 15px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow);
 }
 
 .backButton {
   background: none;
   border: none;
   font-size: 20px;
-  color: #475569;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 5px;
   border-radius: 50%;
 }
 
 .backButton:hover {
-  background-color: #f1f5f9;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .candidateIdentifier {
@@ -52,7 +54,7 @@
 .nameContainer h3 {
   margin: 0;
   font-size: 16px;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .headerActions {
@@ -64,18 +66,18 @@
 .stageSelector {
   padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-color);
   font-size: 14px;
-  color: #334155;
-  background-color: white;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 }
 
 .tabs {
   display: flex;
   gap: 10px;
   padding: 10px 20px;
-  background-color: white;
-  border-bottom: 1px solid #e2e8f0;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
 }
 
@@ -84,7 +86,7 @@
   border: none;
   padding: 8px 12px;
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
@@ -92,19 +94,20 @@
 }
 
 .tabButton:hover {
-  background-color: #f1f5f9;
-  color: #334155;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .tabButton.active {
-  background-color: #eff6ff;
-  color: #2563eb;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
   font-weight: 600;
+  box-shadow: 0 0 10px var(--glow-color);
 }
 
 .tabDivider {
   width: 1px;
-  background-color: #cbd5e1;
+  background-color: var(--border-color);
   margin: 0 5px;
 }
 
@@ -114,6 +117,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-primary);
 }
 
 .scrollableArea {
@@ -124,19 +128,19 @@
 
 /* AI Feedback Styles */
 .aiFeedbackContainer {
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 20px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .aiTitle {
   font-size: 14px;
   font-weight: 700;
   margin-bottom: 12px;
-  color: #1e293b;
+  color: var(--accent-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -159,7 +163,7 @@
 
 .feedbackItem {
   font-size: 13px;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 6px;
   display: flex;
   align-items: flex-start;
@@ -174,10 +178,11 @@
 /* Fim AI Feedback */
 
 .infoContainer {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
 }
 
 .contactSection {
@@ -191,7 +196,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -200,12 +205,13 @@
 }
 
 .contactItem a {
-  color: #2563eb;
+  color: var(--accent-primary);
   text-decoration: none;
 }
 
 .contactItem a:hover {
   text-decoration: underline;
+  color: var(--accent-secondary);
 }
 
 .infoSection {
@@ -215,7 +221,7 @@
 .infoLabel {
   display: block;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   font-size: 14px;
 }
@@ -226,9 +232,9 @@
 }
 
 .outlineButton {
-  background: white;
-  border: 1px solid #cbd5e1;
-  color: #475569;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
@@ -237,21 +243,22 @@
 }
 
 .outlineButton:hover {
-  border-color: #94a3b8;
-  color: #334155;
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
 .noKitsContainer {
   text-align: center;
   padding: 40px;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
   margin-top: 20px;
+  border: 1px dashed var(--border-color);
 }
 
 .createKitButton {
-  background-color: #2563eb;
-  color: white;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
   border: none;
   padding: 10px 20px;
   border-radius: 6px;
@@ -275,54 +282,59 @@
 .customFieldLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
 .customFieldValue {
   font-size: 14px;
-  color: #1e293b;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .emptyFieldValue {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
 .booleanIconSuccess {
-  color: #16a34a;
+  color: var(--success);
 }
 
 .booleanIconFailure {
-  color: #dc2626;
+  color: var(--error);
 }
 
 .footer {
   padding: 15px 20px;
-  background-color: white;
-  border-top: 1px solid #e2e8f0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
 }
 
 .editInfoButton {
   padding: 8px 16px;
-  background-color: #0f172a;
-  color: white;
-  border: none;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.editInfoButton:hover {
+  background-color: var(--border-color);
 }
 
 .loader {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #3b82f6;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 40px auto;
@@ -340,20 +352,20 @@
 
 /* REJECT / RECONSIDER BUTTONS */
 .rejectedBadge {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--error);
   padding: 6px 10px;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
   margin-right: 10px;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--error);
 }
 
 .rejectButton {
-  background-color: white;
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  background-color: transparent;
+  color: var(--error);
+  border: 1px solid var(--error);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 13px;
@@ -363,13 +375,13 @@
 }
 
 .rejectButton:hover {
-  background-color: #fee2e2;
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .reconsiderButton {
-  background-color: #10b981;
+  background-color: var(--success);
   /* Verde esmeralda */
-  color: white;
+  color: var(--bg-primary);
   border: none;
   padding: 8px 12px;
   border-radius: 6px;

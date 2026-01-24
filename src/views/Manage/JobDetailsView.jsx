@@ -6,9 +6,9 @@ import Header from '../../components/Header/Header';
 import { BsSearch } from 'react-icons/bs'; // Importa o ícone de busca
 
 const TABS = [
-    { key: 'active', label: 'Ativos' },
-    { key: 'declined', label: 'Desistentes' },
-    { key: 'rejected', label: 'Reprovados' }
+  { key: 'active', label: 'Ativos' },
+  { key: 'declined', label: 'Desistentes' },
+  { key: 'rejected', label: 'Reprovados' }
 ];
 
 const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages }) => {
@@ -19,7 +19,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
   const candidatesInTab = useMemo(() => {
     return candidates.filter(c => c.application.status === activeTab);
   }, [candidates, activeTab]);
-  
+
   const filteredAndSortedCandidates = useMemo(() => {
     return candidatesInTab
       .filter(c => {
@@ -35,50 +35,50 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
 
   return (
     <div className={styles.container}>
-      <Header 
-        title={job.name} 
-        subtitle={`${candidates.length} Candidato(s) no total`} 
-        onBack={onBack} 
+      <Header
+        title={job.name}
+        subtitle={`${candidates.length} Candidato(s) no total`}
+        onBack={onBack}
       />
-      
+
       <div className={styles.filtersContainer}>
         {/* Adiciona o campo de busca aqui */}
         <div className={styles.searchBar}>
-            <BsSearch className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder="Buscar candidato por nome..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={styles.searchInput}
-            />
+          <BsSearch className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Buscar candidato por nome..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={styles.searchInput}
+          />
         </div>
 
         <div className={styles.tabs}>
-            {TABS.map(tab => (
-                <button 
-                    key={tab.key}
-                    className={`${styles.tabButton} ${activeTab === tab.key ? styles.active : ''}`}
-                    onClick={() => {
-                        setActiveTab(tab.key);
-                        setSelectedStageFilter('all');
-                    }}
-                >
-                    {tab.label}
-                </button>
-            ))}
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              className={`${styles.tabButton} ${activeTab === tab.key ? styles.active : ''}`}
+              onClick={() => {
+                setActiveTab(tab.key);
+                setSelectedStageFilter('all');
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <div className={styles.stageSelectorWrapper}>
-            <select 
-                className={styles.stageSelector}
-                value={selectedStageFilter}
-                onChange={(e) => setSelectedStageFilter(e.target.value)}
-            >
-                <option value="all">Todas as Etapas</option>
-                {availableStages.map(stage => (
-                    <option key={stage.id} value={stage.id}>{stage.name}</option>
-                ))}
-            </select>
+          <select
+            className={styles.stageSelector}
+            value={selectedStageFilter}
+            onChange={(e) => setSelectedStageFilter(e.target.value)}
+          >
+            <option value="all">Todas as Etapas</option>
+            {availableStages.map(stage => (
+              <option key={stage.id} value={stage.id}>{stage.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -87,19 +87,28 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
           filteredAndSortedCandidates.map(candidate => (
             <div key={candidate.application.id} className={styles.candidateCard}>
               <div className={styles.clickableArea} onClick={() => onSelectCandidateForDetails(candidate, job)}>
-                  <div className={styles.candidateInfo}>
-                      <div className={styles.avatar}>
-                          {candidate.name.substring(0, 2)}
-                      </div>
-                      <div className={styles.nameAndHeadline}>
-                          <span className={styles.candidateName}>{candidate.name}</span>
-                          <span className={styles.candidateHeadline}>{candidate.headline}</span>
-                      </div>
+                <div className={styles.candidateInfo}>
+                  <div className={styles.avatar}>
+                    {candidate.name.substring(0, 2)}
                   </div>
+                  <div className={styles.nameAndHeadline}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className={styles.candidateName}>{candidate.name}</span>
+                      {/* BADGE DE FONTE (LOCAL/CLOUD) */}
+                      <span
+                        className={`${styles.sourceBadge} ${candidate.externalId || candidate.syncStatus === 'SYNCED' ? styles.sourceCloud : styles.sourceLocal}`}
+                        title={candidate.externalId ? "Sincronizado com InHire" : "Apenas Local"}
+                      >
+                        {candidate.externalId || candidate.syncStatus === 'SYNCED' ? 'InHire' : 'Local'}
+                      </span>
+                    </div>
+                    <span className={styles.candidateHeadline}>{candidate.headline}</span>
+                  </div>
+                </div>
               </div>
-              
+
               <div className={styles.statusSelectWrapper}>
-                <select 
+                <select
                   className={styles.statusSelect}
                   value={candidate.application.stageId}
                   onChange={(e) => onUpdateApplicationStatus(candidate.application.id, e.target.value)}
@@ -114,7 +123,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
                 </select>
               </div>
               <div className={styles.clickableArea} onClick={() => onSelectCandidateForDetails(candidate, job)}>
-                  <span className={styles.arrow}>→</span>
+                <span className={styles.arrow}>→</span>
               </div>
             </div>
           ))
@@ -122,7 +131,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
           <p className={styles.emptyState}>Nenhum candidato encontrado para os filtros selecionados.</p>
         )}
       </main>
-      
+
     </div>
   );
 };

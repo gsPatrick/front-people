@@ -23,7 +23,8 @@ const JobsDashboardView = ({
   isSelectionMode = false,
   activeStatusFilter,
   onFilterChange,
-  onNavigateToCandidates, // <-- NOVA PROP
+  onNavigateToCandidates,
+  onCreateJob, // <-- NOVA PROP
   // NOVAS PROPS para customização
   customTitle,
   customSubtitle
@@ -31,6 +32,12 @@ const JobsDashboardView = ({
   // Usa os títulos customizados se eles forem fornecidos, senão usa os padrões
   const title = customTitle || (isSelectionMode ? "Selecione a Vaga" : "Dashboard de Vagas");
   const subtitle = customSubtitle || (isSelectionMode ? "Associe o candidato à vaga." : `${jobsData.totalJobs || 0} vagas com este status`);
+
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [newJobTitle, setNewJobTitle] = React.useState('');
+  const [newJobDescription, setNewJobDescription] = React.useState('');
+  // const [isCreating, setIsCreating] = React.useState(false); // Removed unused state
+
 
   const jobsToDisplay = Array.isArray(jobsData.jobs) ? jobsData.jobs : [];
 
@@ -51,13 +58,14 @@ const JobsDashboardView = ({
               </button>
             ))}
           </div>
-          {/* BOTÃO DE ACESSO GLOBAL */}
-          <button
-            className={styles.talentBankButton}
-            onClick={() => onNavigateToCandidates && onNavigateToCandidates()}
-          >
-            👥 Banco de Talentos
-          </button>
+          <div className={styles.actionButtons}>
+            <button
+              className={styles.createJobButton}
+              onClick={() => setShowCreateModal(true)}
+            >
+              + Nova Vaga
+            </button>
+          </div>
         </div>
       )}
 
@@ -66,11 +74,20 @@ const JobsDashboardView = ({
           jobsToDisplay.map(job => (
             <button key={job.id} className={styles.jobCard} onClick={() => onSelectJob(job)}>
               <div className={styles.jobInfo}>
-                <span className={styles.jobName}>{job.name}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className={styles.jobName}>{job.name}</span>
+                  {/* BADGE DE FONTE (LOCAL/CLOUD) - Lógica baseada em sincronização/externalId */}
+                  <span
+                    className={`${styles.sourceBadge} ${job.externalId || job.isSynced ? styles.sourceCloud : styles.sourceLocal}`}
+                    title={job.externalId ? "Sincronizado com InHire" : "Apenas Local"}
+                  >
+                    {job.externalId || job.isSynced ? 'InHire' : 'Local'}
+                  </span>
+                </div>
                 <div className={styles.jobDetails}>
-                  <span className={styles.detailItem}><AreaIcon /> {job.area?.name || 'N/A'}</span>
+                  <span className={styles.detailItem}><AreaIcon /> {job.area?.name || 'Geral'}</span>
                   <span className={styles.detailItem}><UsersIcon /> {job.activeTalents || 0} Ativos</span>
-                  <span className={styles.detailItem}><SlaIcon /> SLA: {job.slaDaysGoal || 'N/A'} dias</span>
+                  <span className={styles.detailItem}><SlaIcon /> SLA: {job.slaDaysGoal || 30} dias</span>
                 </div>
               </div>
               <span className={styles.arrow}>→</span>
@@ -80,6 +97,44 @@ const JobsDashboardView = ({
           <p className={styles.emptyState}>Nenhuma vaga encontrada para os filtros selecionados.</p>
         )}
       </main>
+
+      {/* MODAL DE CRIAÇÃO DE VAGA */}
+      {showCreateModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Nova Vaga Local</h3>
+            <input
+              type="text"
+              placeholder="Título da Vaga (ex: Desenvolvedor React)"
+              value={newJobTitle}
+              onChange={(e) => setNewJobTitle(e.target.value)}
+              className={styles.modalInput}
+            />
+            <textarea
+              placeholder="Descrição breve (opcional)"
+              value={newJobDescription}
+              onChange={(e) => setNewJobDescription(e.target.value)}
+              className={styles.modalTextarea}
+            />
+            <div className={styles.modalActions}>
+              <button onClick={() => setShowCreateModal(false)} className={styles.cancelButton}>Cancelar</button>
+              <button
+                onClick={() => {
+                  if (onCreateJob) {
+                    onCreateJob({ name: newJobTitle, description: newJobDescription });
+                  } else {
+                    console.error("onCreateJob prop is missing");
+                  }
+                  setShowCreateModal(false);
+                }}
+                className={styles.confirmButton}
+              >
+                Criar Vaga
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
