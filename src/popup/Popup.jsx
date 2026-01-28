@@ -416,7 +416,11 @@ const Popup = () => {
                 const toastId = addToast ? addToast(`Salvando ${result.profileData.nome || 'candidato'}...`, 'loading', 0) : null;
 
                 workflow.handleCreateTalentInBackground(
-                    result.profileData,
+                    {
+                        ...result.profileData,
+                        linkedinUrl: result.url,
+                        linkedinUsername: result.username
+                    },
                     view.state.job,
                     {
                         result: result.matchResult,
@@ -449,7 +453,12 @@ const Popup = () => {
 
             if (view.state?.job) {
                 workflow.handleCreateTalentInBackground(
-                    { ...result.profileData, status: 'REJECTED' },
+                    {
+                        ...result.profileData,
+                        status: 'REJECTED',
+                        linkedinUrl: result.url,
+                        linkedinUsername: result.username
+                    },
                     view.state.job,
                     null // No match data needed for rejection, or pass it if we want the score stored
                 ).then(() => {
