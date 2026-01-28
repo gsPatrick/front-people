@@ -19,8 +19,8 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   const extractLinkedInInfoFromText = (text) => {
     if (!text) return null;
     const urlPatterns = [
-      /https?:\/\/(?:www\.)?linkedin\.com\/in\/([a-zA-Z0-9-%]+)\/?/i,
-      /linkedin\.com\/in\/([a-zA-Z0-9-%]+)\/?/i
+      /https?:\/\/(?:[a-z]+\.)?linkedin\.com\/in\/([^/ \n\r?]+)/i,
+      /linkedin\.com\/in\/([^/ \n\r?]+)/i
     ];
 
     for (const pattern of urlPatterns) {
@@ -219,8 +219,9 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
       // MELHORIA: Lógica robusta de extração e normalização de nome/linkedin
       const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
 
-      const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
-      const linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null);
+      const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+      let linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.split(/[?#\s/]/)[0] : null);
+      if (linkedinUsername) linkedinUsername = linkedinUsername.replace(/\/+$/, '');
 
       // Normaliza Nome se for desconhecido
       let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
@@ -322,8 +323,9 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     // MELHORIA: Lógica robusta de extração e normalização
     const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
 
-    const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl;
-    const linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.replace(/\/+$/, '') : null);
+    const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+    let linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.split(/[?#\s/]/)[0] : null);
+    if (linkedinUsername) linkedinUsername = linkedinUsername.replace(/\/+$/, '');
 
     // Normalização de Nome
     let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
