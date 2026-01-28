@@ -80,14 +80,30 @@
     font-size: 14px;
 }
 
-.select {
+.select,
+.inputNumber {
     width: 100%;
-    padding: 10px;
-    border-radius: 6px;
+    padding: 12px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     margin-bottom: 15px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+}
+
+.inputNumber:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.2);
+}
+
+.inputHelp {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    margin-top: -10px;
 }
 
 .primaryButton {

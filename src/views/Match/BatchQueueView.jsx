@@ -153,16 +153,19 @@ const BatchQueueView = ({
                     <div className={styles.infoBox}>
                         <p>O sistema usará a busca aberta no LinkedIn.</p>
                     </div>
-                    <label className={styles.label}>Quantos perfis?</label>
-                    <select
-                        className={styles.select}
+                    <label className={styles.label}>Quantos perfis deseja buscar?</label>
+                    <input
+                        type="number"
+                        className={styles.inputNumber}
                         value={sourceTargetCount}
-                        onChange={(e) => setSourceTargetCount(Number(e.target.value))}
-                    >
-                        <option value={10}>10 perfis</option>
-                        <option value={50}>50 perfis</option>
-                        <option value={100}>100 perfis</option>
-                    </select>
+                        min={1}
+                        max={150}
+                        onChange={(e) => {
+                            const val = Math.max(1, Math.min(150, Number(e.target.value)));
+                            setSourceTargetCount(val);
+                        }}
+                    />
+                    <p className={styles.inputHelp}>Digite um valor entre 1 e 150</p>
                     <button
                         className={styles.primaryButton}
                         onClick={async () => {
