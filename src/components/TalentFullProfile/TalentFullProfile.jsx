@@ -17,12 +17,15 @@ const Section = ({ title, icon, children }) => (
 const TalentFullProfile = ({ profileData }) => {
     if (!profileData) return <div className={styles.emptyState}>Nenhum dado completo de perfil disponível.</div>;
 
-    // Normalização de dados (suporta scraping novo e legado)
-    const experiences = profileData.structureExperience || profileData.experience || [];
-    const education = profileData.structureEducation || profileData.education || profileData.formacao || [];
-    const skills = profileData.skills || [];
-    const certifications = profileData.certifications || [];
-    const summary = profileData.about || profileData.resumo;
+    // Normalização de dados (suporta scraping novo e legado e estruturas aninhadas)
+    const root = profileData.data || profileData; // Às vezes vem embrulhado em 'data'
+    const perfil = root.perfil || root; // Às vezes os dados estão em 'perfil'
+
+    const experiences = root.experiencias || root.structureExperience || root.experience || perfil.experiencias || [];
+    const education = root.formacao || root.structureEducation || root.education || perfil.formacao || [];
+    const skills = root.skills || root.competencias || perfil.skills || [];
+    const certifications = root.certificacoes || root.certifications || perfil.certificacoes || [];
+    const summary = root.resumo || root.about || perfil.resumo || perfil.about;
 
     return (
         <div className={styles.container}>

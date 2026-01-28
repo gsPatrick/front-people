@@ -33,12 +33,9 @@ const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onD
                 </span>
               </div>
               <div className={styles.cardActions}>
-                <button onClick={() => onSelect(sc.id)} className={styles.selectButton}>
-                  {isActive ? <><BsCheckLg /> Ativo</> : <><BsBullseye /> Ativar</>}
-                </button>
                 {onBatchSelect && (
                   <button onClick={() => onBatchSelect(sc.id)} className={styles.batchButton}>
-                    <BsCollection /> Fila
+                    <BsCollection /> Iniciar Fila
                   </button>
                 )}
               </div>

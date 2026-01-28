@@ -20,7 +20,6 @@ import LoginView from '../views/Auth/LoginView';
 import WelcomeView from '../views/Auth/WelcomeView';
 import AdminDashboardView from '../views/Admin/AdminDashboardView';
 import Layout from '../components/Layout/Layout';
-import DragDropOverlay from '../components/Layout/DragDropOverlay';
 import JobsDashboardView from '../views/Manage/JobsDashboardView';
 import TalentsDashboardView from '../views/Manage/TalentsDashboardView';
 import JobDetailsView from '../views/Manage/JobDetailsView';
@@ -56,7 +55,6 @@ const Popup = () => {
     const [isPagingLoading, setIsPagingLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [jobStatusFilter, setJobStatusFilter] = useState('open');
-    const [isDraggingFile, setIsDraggingFile] = useState(false);
     const [scorecardTemplates, setScorecardTemplates] = useState([]);
     const [scorecardFilters, setScorecardFilters] = useState({ term: '', ats: 'all' });
     const [activeMatchScorecardId, setActiveMatchScorecardId] = useState(null);
@@ -539,7 +537,6 @@ const Popup = () => {
                 </Layout>
             ) : contentToRender}
 
-            {isDraggingFile && !isMatchProfileLocked && <DragDropOverlay mode={activeMatchScorecardId ? 'match' : 'add'} />}
 
             <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
         </div>

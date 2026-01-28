@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from 'react';
 import * as api from '../services/api.service.js';
 
-const TIMEOUT_PER_TAB = 20000; // 20 segundos por aba
+const TIMEOUT_PER_TAB = 65000; // Aumentado para 65s para sincronizar com o timeout interno
 
 export const useBatchQueue = () => {
     const [queueState, setQueueState] = useState({
@@ -135,11 +135,11 @@ export const useBatchQueue = () => {
                         };
                         chrome.runtime.onMessage.addListener(listener);
 
-                        // Timeout interno
+                        // Timeout interno aumentado para 60s devido ao processamento controlado no backend
                         setTimeout(() => {
                             chrome.runtime.onMessage.removeListener(listener);
-                            resolveResult({ success: false, error: 'Timeout aguardando extração' });
-                        }, 15000);
+                            resolveResult({ success: false, error: 'Timeout aguardando extração (IA demorou mais de 60s)' });
+                        }, 60000);
                     });
                 };
 
@@ -205,8 +205,8 @@ export const useBatchQueue = () => {
                 resolve({
                     username: tab.username,
                     tabId: tab.id,
-                    name: profileData.perfil?.nome || tab.username,
-                    headline: profileData.perfil?.titulo,
+                    name: profileData.perfil?.nome || profileData.name || tab.username,
+                    headline: profileData.perfil?.titulo || profileData.headline || profileData.perfil?.titulo,
                     profileData: profileData,
                     matchResult: matchResult,
                     // Mapped Props for UI:
@@ -294,9 +294,10 @@ export const useBatchQueue = () => {
                 results: [...prev.results, result]
             }));
 
-            // Delay Humano (só se não for o último)
+            // Delay MAIOR entre perfis para evitar Rate Limit na OpenAI (10-15s)
             if (i < tabsToProcess.length - 1) {
-                const delay = Math.floor(Math.random() * (4000 - 2000 + 1) + 2000);
+                const delay = Math.floor(Math.random() * (15000 - 10000 + 1) + 10000);
+                console.log(`[BATCH] Aguardando ${delay / 1000}s antes do próximo perfil...`);
                 await new Promise(r => setTimeout(r, delay));
             }
         }

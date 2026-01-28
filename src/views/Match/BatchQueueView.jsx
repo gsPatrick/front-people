@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from './BatchQueue.module.css';
 import Header from '../../components/Header/Header';
-import { BsPlayFill, BsStopFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat, BsStarFill, BsStar, BsChevronLeft } from 'react-icons/bs';
+import { BsPlayFill, BsStopFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat, BsStarFill, BsStar, BsChevronLeft, BsSearch } from 'react-icons/bs';
 
 // Componente de estrelas
 const StarRating = ({ score, maxScore = 5 }) => {
@@ -34,13 +34,18 @@ const BatchQueueView = ({
     const processed = results.length;
     const progress = totalTabs > 0 ? (processed / totalTabs) * 100 : 0;
 
-    // Filtrar apenas resultados válidos (sem erro)
-    const validResults = useMemo(() => results.filter(r => !r.error), [results]);
-
-    // Ordenação por Score (Melhor Match Primeiro)
+    // MUDANÇA: Não filtrar erros, apenas ordenar para que erros fiquem no final ou inicio
     const sortedResults = useMemo(() => {
-        return [...validResults].sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
-    }, [validResults]);
+        // Separa sucessos de erros
+        const successes = results.filter(r => !r.error);
+        const failures = results.filter(r => r.error);
+
+        // Ordena sucessos pelo score
+        successes.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+
+        // Retorna tudo (erros primeiro para chamar atenção ou ultimo? Vou por ultimo)
+        return [...successes, ...failures];
+    }, [results]);
 
     const [currentTabUrl, setCurrentTabUrl] = useState('');
     const [processedIds, setProcessedIds] = useState(new Set());
@@ -124,9 +129,14 @@ const BatchQueueView = ({
                 <Header title="Buscando Perfis..." subtitle="O robô está trabalhando" />
                 <main className={styles.contentCentered}>
                     <div className={styles.loadingSpinner}></div>
-                    <div style={{ textAlign: 'center', color: '#64748b' }}>
-                        <p style={{ fontWeight: 'bold' }}>Navegando e coletando...</p>
-                        <p style={{ fontSize: '12px' }}>Não mexa no mouse.</p>
+                    <div style={{ textAlign: 'center', color: '#64748b', maxWidth: '320px' }}>
+                        <p style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '12px' }}>Navegando e coletando perfis... 🤖</p>
+                        <p style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '8px' }}>
+                            Fique tranquilo! Você pode <strong>minimizar esta aba</strong> ou <strong>abrir uma nova aba</strong> para continuar trabalhando.
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#94a3b8' }}>
+                            Quando voltar, tudo estará prontinho! ✨
+                        </p>
                     </div>
                 </main>
             </div>
@@ -185,7 +195,7 @@ const BatchQueueView = ({
                         <div className={styles.progressBar}><div className={styles.progressFill} style={{ width: `${progress}%` }} /></div>
                         <p className={styles.progressText}>{Math.round(progress)}%</p>
                         <div className={styles.currentProcessing}>
-                            {tabs[currentIndex] && <><BsArrowRepeat className={styles.spinIcon} /> <span>Processando: {tabs[currentIndex].username}</span></>}
+                            <BsArrowRepeat className={styles.spinIcon} /> <span>Analisando Perfil...</span>
                         </div>
                         <button onClick={onStopQueue} className={styles.stopButton}><BsStopFill /> Parar</button>
                     </div>
@@ -202,12 +212,30 @@ const BatchQueueView = ({
                 <main className={styles.content}>
                     <div className={styles.detectionSection}>
                         <h2>{totalTabs} perfis encontrados</h2>
-                        {totalTabs > 0 && <button onClick={onStartQueue} className={styles.startButton}><BsPlayFill /> Iniciar</button>}
-                        <button className={styles.sourceButton} onClick={() => {
-                            if (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) setShowSourceConfig(true);
-                            else window.open('https://www.linkedin.com/search/results/people/', '_blank');
-                        }}>
-                            {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? '📥 Importar Busca' : '🔍 Ir para Busca'}
+
+                        <button
+                            className={styles.sourceButton}
+                            style={{
+                                background: 'linear-gradient(135deg, var(--accent-secondary), var(--accent-primary))',
+                                width: '100%',
+                                padding: '14px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                color: 'var(--bg-primary)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px var(--glow-color)'
+                            }}
+                            onClick={() => {
+                                if (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) setShowSourceConfig(true);
+                                else window.open('https://www.linkedin.com/search/results/people/', '_blank');
+                            }}>
+                            {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? <><BsSearch /> Importar Busca</> : <><BsSearch /> Ir para Busca</>}
                         </button>
                     </div>
                 </main>
@@ -300,43 +328,87 @@ const BatchQueueView = ({
                     return (
                         <div
                             key={idx}
-                            className={`${styles.tableRow} ${isProcessed ? styles.dimmed : ''}`}
-                            onClick={() => setSelectedProfile(profile)}
+                            className={`${styles.tableRow} ${isProcessed ? styles.dimmed : ''} ${profile.error ? styles.errorRow : ''}`}
+                            onClick={() => {
+                                if (!profile.error) {
+                                    setSelectedProfile(profile);
+                                    // Abre o perfil no LinkedIn em nova aba se houver URL
+                                    if (profile.url) {
+                                        window.open(profile.url, '_blank');
+                                    } else if (profile.username) {
+                                        // Fallback se tiver apenas username
+                                        window.open(`https://www.linkedin.com/in/${profile.username}`, '_blank');
+                                    }
+                                }
+                            }}
+                            style={profile.error ? { borderLeft: '4px solid #ef4444', opacity: 0.8 } : {}}
                         >
-                            <div className={styles.scoreColumn}>
-                                <span className={styles.miniScore} style={{ backgroundColor: getScoreColor(profile.averageScore) }}>
-                                    {profile.averageScore?.toFixed(1) || '-'}
-                                </span>
-                            </div>
-                            <div className={styles.infoColumn}>
-                                <span className={styles.rowName}>{profile.name}</span>
-                                <span className={styles.rowHeadline}>{profile.headline}</span>
-                            </div>
-                            <div className={styles.actionsColumn}>
-                                {!isProcessed ? (
-                                    <>
-                                        <button
-                                            className={styles.miniRejectBtn}
-                                            onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'reject'); }}
-                                            title="Rejeitar"
-                                        >
-                                            ✕
-                                        </button>
-                                        <button
-                                            className={styles.miniAcceptBtn}
-                                            onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'accept'); }}
-                                            title="Aceitar"
-                                        >
-                                            ✓
-                                        </button>
-                                    </>
-                                ) : (
-                                    <span className={styles.processedCheck}>✓</span>
-                                )}
-                            </div>
+                            {profile.error ? (
+                                <div className={styles.errorContent} style={{ padding: '12px', color: '#ef4444', width: '100%' }}>
+                                    <strong>Falha:</strong> {profile.error}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className={styles.scoreColumn}>
+                                        <span className={styles.miniScore} style={{ backgroundColor: getScoreColor(profile.averageScore) }}>
+                                            {profile.averageScore?.toFixed(1) || '-'}
+                                        </span>
+                                    </div>
+                                    <div className={styles.infoColumn}>
+                                        <span className={styles.rowName}>{profile.name}</span>
+                                        <span className={styles.rowHeadline}>{profile.headline}</span>
+                                    </div>
+                                    <div className={styles.actionsColumn}>
+                                        {!isProcessed ? (
+                                            <>
+                                                <button
+                                                    className={styles.miniRejectBtn}
+                                                    onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'reject'); }}
+                                                    title="Rejeitar"
+                                                >
+                                                    ✕
+                                                </button>
+                                                <button
+                                                    className={styles.miniAcceptBtn}
+                                                    onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'accept'); }}
+                                                    title="Aceitar"
+                                                >
+                                                    ✓
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span className={styles.processedCheck}>✓</span>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Botão Limpar Lista */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                    onClick={onGoBack}
+                    style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                    }}
+                    onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)'; }}
+                    onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)'; }}
+                >
+                    🗑️ Limpar Lista e Voltar
+                </button>
             </div>
         </div>
     );

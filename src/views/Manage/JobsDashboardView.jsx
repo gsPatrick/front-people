@@ -76,13 +76,6 @@ const JobsDashboardView = ({
               <div className={styles.jobInfo}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className={styles.jobName}>{job.name}</span>
-                  {/* BADGE DE FONTE (LOCAL/CLOUD) - Lógica baseada em sincronização/externalId */}
-                  <span
-                    className={`${styles.sourceBadge} ${job.externalId || job.isSynced ? styles.sourceCloud : styles.sourceLocal}`}
-                    title={job.externalId ? "Sincronizado com InHire" : "Apenas Local"}
-                  >
-                    {job.externalId || job.isSynced ? 'InHire' : 'Local'}
-                  </span>
                 </div>
                 <div className={styles.jobDetails}>
                   <span className={styles.detailItem}><AreaIcon /> {job.area?.name || 'Geral'}</span>

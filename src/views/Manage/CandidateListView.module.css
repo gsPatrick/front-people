@@ -1,283 +1,234 @@
+/* CandidateListView.module.css - Modern Card Layout */
+
 .container {
-    padding: 20px;
-    height: 100%;
-    background-color: var(--bg-primary);
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-primary);
 }
 
+/* Controls Bar */
 .controlsBar {
     display: flex;
     gap: 12px;
-    margin-bottom: 20px;
-    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
     flex-wrap: wrap;
 }
 
 .searchWrapper {
-    flex: 1;
     position: relative;
+    flex: 1;
     min-width: 200px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
 }
 
 .searchInput {
     width: 100%;
-    padding: 10px 14px;
-    background-color: var(--bg-secondary);
+    padding: 12px 12px 12px 44px;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text-primary);
-    font-family: var(--font-sans);
     font-size: 14px;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
 .searchInput:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .filterSelect {
-    padding: 10px 32px 10px 14px;
-    background-color: var(--bg-secondary);
+    padding: 12px 16px;
+    background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text-primary);
-    font-family: var(--font-sans);
     font-size: 14px;
     cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239CA3AF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 16px;
     min-width: 160px;
 }
 
-.filterSelect:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-}
-
 .addButton {
-    background-color: var(--accent);
-    color: white;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+    color: #fff;
     border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-sans);
-    font-size: 14px;
+    transition: all 0.2s ease;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .addButton:hover {
-    filter: brightness(1.1);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
-.tableContainer {
+/* Talent List */
+.talentList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Talent Card */
+.talentCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
     background: var(--bg-secondary);
-    border-radius: 12px;
     border: 1px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.talentCard:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
+}
+
+.cardMain {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     overflow: hidden;
     flex: 1;
-    display: flex;
-    flex-direction: column;
 }
 
-.tableHeader {
-    display: grid;
-    grid-template-columns: 2.5fr 1fr 0.8fr 1fr 0.8fr;
-    padding: 14px 20px;
-    background-color: rgba(255, 255, 255, 0.03);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.tableBody {
-    overflow-y: auto;
-}
-
-.tableRow {
-    display: grid;
-    grid-template-columns: 2.5fr 1fr 0.8fr 1fr 0.8fr;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tableRow:last-child {
-    border-bottom: none;
-}
-
-.tableRow:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.tableRow.rejected {
-    background-color: rgba(239, 68, 68, 0.02);
-}
-
-.tableRow.rejected .nameCell {
-    color: var(--text-secondary);
-}
-
-.cell {
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-.nameInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    overflow: hidden;
-}
-
-.nameCell {
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.headlineCell {
-    font-size: 12px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* RESPONSIVE HELPERS */
-@media (max-width: 600px) {
-    .hideMobile {
-        display: none !important;
-    }
-
-    .tableHeader,
-    .tableRow {
-        grid-template-columns: 1fr auto !important;
-        /* Nome + Ações */
-    }
-
-    .container {
-        padding: 12px;
-    }
-
-    .controlsBar {
-        gap: 8px;
-    }
-
-    .addButton span {
-        display: none;
-        /* Só mostra o + */
-    }
-
-    .addButton {
-        padding: 10px 14px;
-    }
-}
-
-.scoreWrapper {
-    display: flex;
-    align-items: center;
-}
-
-.scoreBadge {
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 10px;
-    border-radius: 6px;
+    color: #fff;
     font-weight: 700;
-    font-size: 12px;
-    min-width: 40px;
-    background: rgba(255, 255, 255, 0.1);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.talentInfo {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.talentName {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.talentHeadline {
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+.cardActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .statusBadge {
-    display: inline-flex;
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.statusNew {
-    background-color: rgba(37, 99, 235, 0.15);
-    color: #60a5fa;
-}
-
-.statusActive {
-    background-color: rgba(16, 185, 129, 0.15);
-    color: #34d399;
-}
-
-.statusRejected {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-}
-
-.statusHired {
-    background-color: rgba(167, 139, 250, 0.15);
-    color: #c4b5fd;
-}
-
-.syncBadge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 6px;
+.reconsiderBtn {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.syncSynced {
+.reconsiderBtn:hover {
+    border-color: var(--accent-secondary);
+    color: var(--accent-secondary);
     background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
 }
 
-.syncPending {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-}
-
-.syncError {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
-
-.emptyState {
-    padding: 60px 20px;
-    text-align: center;
+.arrowIcon {
     color: var(--text-secondary);
+    font-size: 18px;
+    transition: transform 0.2s ease;
 }
 
+.talentCard:hover .arrowIcon {
+    transform: translateX(4px);
+    color: var(--accent-primary);
+}
+
+/* Empty State */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+
+/* Modal */
 .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -286,27 +237,26 @@
 }
 
 .modal {
-    background-color: var(--bg-secondary);
-    padding: 30px;
-    border-radius: 16px;
-    width: 380px;
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    padding: 28px;
+    width: 90%;
+    max-width: 400px;
+    animation: slideUp 0.3s ease-out;
 }
 
 .modalTitle {
-    margin-top: 0;
-    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text-primary);
-    font-size: 20px;
-    font-weight: 700;
+    margin: 0 0 8px 0;
 }
 
 .modalSub {
-    color: var(--text-secondary);
     font-size: 14px;
-    margin-bottom: 24px;
-    line-height: 1.5;
+    color: var(--text-secondary);
+    margin: 0 0 24px 0;
 }
 
 .modalActions {
@@ -317,34 +267,66 @@
 
 .modalBtnPrimary {
     padding: 14px;
-    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+    color: #fff;
     border: none;
-    background-color: var(--accent);
-    color: white;
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+}
+
+.modalBtnPrimary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .modalBtnSecondary {
     padding: 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background-color: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
     color: var(--text-primary);
-    font-weight: 600;
-    cursor: pointer;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
     font-size: 14px;
-    transition: all 0.2s;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modalBtnSecondary:hover {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
 }
 
 .modalBtnCancel {
-    background: none;
+    padding: 12px;
+    background: transparent;
+    color: var(--text-secondary);
     border: none;
-    color: var(--text-tertiary);
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
-    margin-top: 20px;
-    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.modalBtnCancel:hover {
+    color: var(--text-primary);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

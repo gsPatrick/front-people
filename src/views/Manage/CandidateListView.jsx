@@ -1,4 +1,4 @@
-// ATUALIZADO: CandidateListView com Busca e UI Premium
+// CandidateListView.jsx - Layout Moderno e Minimalista
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from './CandidateListView.module.css';
 import * as api from '../../services/api.service';
@@ -29,32 +29,27 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
         }
     };
 
-    const getScoreColor = (score) => {
-        if (!score) return 'var(--text-tertiary)';
-        if (score >= 4) return '#10b981';
-        if (score >= 3) return '#f59e0b';
-        return '#ef4444';
-    };
-
-    const renderSyncBadge = (status) => {
+    const getStatusStyle = (status) => {
         switch (status) {
-            case 'SYNCED': return <span className={`${styles.syncBadge} ${styles.syncSynced}`} title="Sincronizado na Nuvem">✅ Cloud</span>;
-            case 'PENDING': return <span className={`${styles.syncBadge} ${styles.syncPending}`} title="Aguardando Sincronização">⏳ Sync</span>;
-            case 'ERROR': return <span className={`${styles.syncBadge} ${styles.syncError}`} title="Erro no Sync">❌ Erro</span>;
-            default: return null;
+            case 'REJECTED':
+                return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171', text: 'Rejeitado' };
+            case 'ACTIVE':
+                return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', text: 'Ativo' };
+            case 'NEW':
+                return { bg: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', text: 'Novo' };
+            default:
+                return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', text: 'Ativo' };
         }
     };
 
     const filteredTalents = useMemo(() => {
         return talents.filter(t => {
-            // Filtro de Status
             let matchStatus = true;
             if (filterStatus === 'REJECTED') matchStatus = t.status === 'REJECTED';
             else if (filterStatus === 'ACTIVE') matchStatus = (t.status === 'ACTIVE' || t.status === 'NEW' || !t.status);
 
             if (!matchStatus) return false;
 
-            // Filtro de Busca
             if (!searchTerm) return true;
             const term = searchTerm.toLowerCase();
             return (
@@ -66,13 +61,11 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
     }, [talents, filterStatus, searchTerm]);
 
     const handleRowClick = (talent) => {
-        // Agora delegamos totalmente para o workflow, sem abrir abras extras aqui
         onSelectCandidate(talent);
     };
 
-
     const handleReconsiderClick = (e, talent) => {
-        e.stopPropagation(); // Evita navegar para detalhes ao clicar no botão
+        e.stopPropagation();
         if (onReconsider) onReconsider(talent);
     };
 
@@ -82,6 +75,10 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
 
             <div className={styles.controlsBar}>
                 <div className={styles.searchWrapper}>
+                    <svg className={styles.searchIcon} xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
                     <input
                         type="text"
                         className={styles.searchInput}
@@ -105,93 +102,76 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                     className={styles.addButton}
                     onClick={() => setShowAddModal(true)}
                 >
-                    <span>+</span> Adicionar Candidato
+                    + Adicionar Candidato
                 </button>
             </div>
 
-            <div className={styles.tableContainer}>
-                <div className={styles.tableHeader}>
-                    <div>Nome / Headline</div>
-                    <div className={styles.hideMobile}>Local</div>
-                    <div className={styles.hideMobile}>Match AI</div>
-                    <div className={styles.hideMobile}>Status</div>
-                    <div>Ações / Sinc</div>
-                </div>
-
-                <div className={styles.tableBody}>
-                    {loading ? (
-                        <div className={styles.emptyState}>Carregando talentos...</div>
-                    ) : filteredTalents.length === 0 ? (
-                        <div className={styles.emptyState}>
-                            {searchTerm ? `Nenhum talento encontrado para "${searchTerm}"` : "Nenhum talento cadastrado ainda."}
-                        </div>
-                    ) : (
-                        filteredTalents.map(talent => (
+            <div className={styles.talentList}>
+                {loading ? (
+                    <div className={styles.emptyState}>
+                        <div className={styles.loader}></div>
+                        <p>Carregando talentos...</p>
+                    </div>
+                ) : filteredTalents.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        <p>{searchTerm ? `Nenhum talento encontrado para "${searchTerm}"` : "Nenhum talento cadastrado ainda."}</p>
+                    </div>
+                ) : (
+                    filteredTalents.map(talent => {
+                        const statusInfo = getStatusStyle(talent.status);
+                        return (
                             <div
                                 key={talent.id}
-                                className={`${styles.tableRow} ${talent.status === 'REJECTED' ? styles.rejected : ''}`}
+                                className={styles.talentCard}
                                 onClick={() => handleRowClick(talent)}
                             >
-                                <div className={styles.nameInfo}>
-                                    <div className={styles.nameCell}>{talent.name}</div>
-                                    <div className={styles.headlineCell}>{talent.headline || '-'}</div>
-                                </div>
-                                <div className={`${styles.cell} ${styles.hideMobile}`}>{talent.location || '-'}</div>
-                                <div className={`${styles.cell} ${styles.hideMobile}`}>
-                                    <div className={styles.scoreWrapper}>
-                                        <span
-                                            className={styles.scoreBadge}
-                                            style={{ color: getScoreColor(talent.matchScore) }}
-                                        >
-                                            {talent.matchScore ? talent.matchScore.toFixed(1) : '-'}
-                                        </span>
+                                <div className={styles.cardMain}>
+                                    <div className={styles.avatar}>
+                                        {talent.name ? talent.name.substring(0, 2).toUpperCase() : '?'}
+                                    </div>
+                                    <div className={styles.talentInfo}>
+                                        <span className={styles.talentName}>{talent.name}</span>
+                                        <span className={styles.talentHeadline}>{talent.headline || 'Sem título definido'}</span>
                                     </div>
                                 </div>
-                                <div className={`${styles.cell} ${styles.hideMobile}`}>
-                                    <span className={`${styles.statusBadge} ${styles['status' + (talent.status?.charAt(0).toUpperCase() + talent.status?.slice(1).toLowerCase())]}`}>
-                                        {talent.status === 'NEW' ? 'Novo' :
-                                            talent.status === 'ACTIVE' ? 'Ativo' :
-                                                talent.status === 'REJECTED' ? 'Rejeitado' : (talent.status || 'Ativo')}
+
+                                <div className={styles.cardActions}>
+                                    <span
+                                        className={styles.statusBadge}
+                                        style={{ backgroundColor: statusInfo.bg, color: statusInfo.color }}
+                                    >
+                                        {statusInfo.text}
                                     </span>
-                                </div>
-                                <div className={styles.actionCell}>
-                                    {talent.status === 'REJECTED' ? (
+
+                                    {talent.status === 'REJECTED' && (
                                         <button
                                             className={styles.reconsiderBtn}
                                             onClick={(e) => handleReconsiderClick(e, talent)}
                                         >
                                             Reconsiderar
                                         </button>
-                                    ) : (
-                                        renderSyncBadge(talent.syncStatus)
                                     )}
+
+                                    <span className={styles.arrowIcon}>→</span>
                                 </div>
                             </div>
-                        ))
-                    )}
-                </div>
+                        );
+                    })
+                )}
             </div>
-
 
             {showAddModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowAddModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h3 className={styles.modalTitle}>Adicionar à Vaga</h3>
-                        <p className={styles.modalSub}>Selecione como deseja prosseguir com a adição deste candidato:</p>
+                        <h3 className={styles.modalTitle}>Adicionar Candidato</h3>
+                        <p className={styles.modalSub}>Capture um novo perfil diretamente do LinkedIn:</p>
 
                         <div className={styles.modalActions}>
-                            <button
-                                className={styles.modalBtnSecondary}
-                                onClick={() => { setShowAddModal(false); if (onAddFromBank) onAddFromBank(); }}
-                            >
-                                📂 Buscar no Banco de Talentos
-                            </button>
-
                             <button
                                 className={styles.modalBtnPrimary}
                                 onClick={() => { setShowAddModal(false); if (onAddFromMatch) onAddFromMatch(); }}
                             >
-                                🚀 Novo via Match / LinkedIn
+                                🚀 Capturar do LinkedIn
                             </button>
 
                             <button
@@ -209,4 +189,3 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
 };
 
 export default CandidateListView;
-

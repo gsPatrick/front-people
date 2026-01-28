@@ -66,20 +66,6 @@ const TalentProfileView = ({ talent, onBack, onEditTalent, onDeleteTalent, onAdd
           Info Geral
         </button>
         <button
-          onClick={() => setActiveTab('match')}
-          style={{
-            padding: '12px 0',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'match' ? '2px solid #2563eb' : '2px solid transparent',
-            color: activeTab === 'match' ? '#2563eb' : '#64748b',
-            fontWeight: activeTab === 'match' ? '600' : '500',
-            cursor: 'pointer'
-          }}
-        >
-          Match AI
-        </button>
-        <button
           onClick={() => setActiveTab('profile')}
           style={{
             padding: '12px 0',
@@ -169,9 +155,6 @@ const TalentProfileView = ({ talent, onBack, onEditTalent, onDeleteTalent, onAdd
           </section>
         )}
 
-        {activeTab === 'match' && (
-          <TalentMatchDisplay matchData={talent.aiReview ? { aiReview: talent.aiReview, matchScore: talent.matchScore } : null} />
-        )}
 
         {activeTab === 'profile' && (
           <TalentFullProfile profileData={talent.data || talent} />
@@ -179,14 +162,16 @@ const TalentProfileView = ({ talent, onBack, onEditTalent, onDeleteTalent, onAdd
 
       </main>
 
-      {isEditModalOpen && (
-        <EditTalentModal
-          talent={talent}
-          onSave={handleSaveEdit}
-          onClose={() => setIsEditModalOpen(false)}
-        />
-      )}
-    </div>
+      {
+        isEditModalOpen && (
+          <EditTalentModal
+            talent={talent}
+            onSave={handleSaveEdit}
+            onClose={() => setIsEditModalOpen(false)}
+          />
+        )
+      }
+    </div >
   );
 };
 
