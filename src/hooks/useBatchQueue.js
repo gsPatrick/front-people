@@ -208,6 +208,7 @@ export const useBatchQueue = () => {
                     name: profileData.perfil?.nome || profileData.name || tab.username,
                     headline: profileData.perfil?.titulo || profileData.headline || profileData.perfil?.titulo,
                     profileData: profileData,
+                    url: tab.url,
                     matchResult: matchResult,
                     // Mapped Props for UI:
                     averageScore: overallScore0to5,
@@ -225,6 +226,7 @@ export const useBatchQueue = () => {
                 clearTimeout(timeout);
                 resolve({
                     username: tab.username,
+                    url: tab.url,
                     tabId: tab.id,
                     error: error.message
                 });
