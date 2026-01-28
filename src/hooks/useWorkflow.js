@@ -241,7 +241,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
         titulo,
         status: profileData.status || 'NEW'
       };
-      const createResult = await api.createTalent(payload);
+      const createResult = await api.createTalent(payload, matchData);
       if (!createResult || !createResult.id) throw new Error("Falha ao criar o talento.");
       const detailsResult = await api.fetchCandidateDetails(selectedJob.id, createResult.id);
       if (!detailsResult.success) throw new Error(detailsResult.error);

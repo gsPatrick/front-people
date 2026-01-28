@@ -184,9 +184,11 @@ export const validateProfile = async (profileUrl) => {
   }
 };
 
-export const createTalent = async (talentData) => {
+export const createTalent = async (talentData, matchData = null) => {
   try {
-    const response = await apiClient.post('/create-talent', talentData);
+    const payload = { ...talentData };
+    if (matchData) payload.matchData = matchData;
+    const response = await apiClient.post('/create-talent', payload);
     return response.data;
   } catch (error) {
     handleError(error);
