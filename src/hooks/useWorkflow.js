@@ -216,12 +216,24 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
 
   const handleCreateAndGoToEvaluation = useCallback((profileData, selectedJob, matchData) => {
     executeAsync(async () => {
-      // MELHORIA: Lógica robusta de extração e normalização de nome/linkedin
-      const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
+      // [FIX] Prioritize explicit URL/Username (e.g. from Batch/Browser Tab)
+      // Only attempt text extraction if we don't have a solid URL
+      let linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+      let linkedinUsername = profileData.linkedinUsername || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.split(/[?#\s/]/)[0] : null);
 
-      const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
-      let linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.split(/[?#\s/]/)[0] : null);
-      if (linkedinUsername) linkedinUsername = linkedinUsername.replace(/\/+$/, '');
+      // If missing, try extraction
+      if (!linkedinUrl || !linkedinUsername) {
+        const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin); // Use any source text available
+        if (linkedInInfo) {
+          linkedinUrl = linkedinUrl || linkedInInfo.url;
+          linkedinUsername = linkedinUsername || linkedInInfo.username;
+        }
+      }
+
+      // Cleanup username
+      if (linkedinUsername) {
+        linkedinUsername = linkedinUsername.split(/[?#\s]/)[0].replace(/\/+$/, '');
+      }
 
       // Normaliza Nome se for desconhecido
       let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
@@ -320,12 +332,24 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     // NOTE: We do NOT use executeAsync here to avoid blocking the UI with a global spinner.
     // The caller (Popup.jsx) manages the "Toast/Island" state.
 
-    // MELHORIA: Lógica robusta de extração e normalização
-    const linkedInInfo = extractLinkedInInfoFromText(profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin);
+    // [FIX] Prioritize explicit URL/Username (e.g. from Batch/Browser Tab)
+    // Only attempt text extraction if we don't have a solid URL
+    let linkedinUrl = profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
+    let linkedinUsername = profileData.linkedinUsername;
 
-    const linkedinUrl = linkedInInfo?.url || profileData.linkedinUrl || profileData.perfil?.linkedinUrl || profileData.perfil?.linkedin;
-    let linkedinUsername = linkedInInfo?.username || (linkedinUrl ? linkedinUrl.split('/in/')[1]?.split(/[?#\s/]/)[0] : null);
-    if (linkedinUsername) linkedinUsername = linkedinUsername.replace(/\/+$/, '');
+    // If missing, try extraction
+    if (!linkedinUrl || !linkedinUsername) {
+      const linkedInInfo = extractLinkedInInfoFromText(linkedinUrl);
+      if (linkedInInfo) {
+        linkedinUrl = linkedinUrl || linkedInInfo.url;
+        linkedinUsername = linkedinUsername || linkedInInfo.username;
+      }
+    }
+
+    // Cleanup username
+    if (linkedinUsername) {
+      linkedinUsername = linkedinUsername.split(/[?#\s]/)[0].replace(/\/+$/, '');
+    }
 
     // Normalização de Nome
     let nome = profileData.nome || profileData.perfil?.nome || profileData.name;
