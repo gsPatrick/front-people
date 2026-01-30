@@ -143,16 +143,54 @@ export const useBatchQueue = () => {
                     });
                 };
 
-                const extractionResult = await waitForResult();
+                let extractionResult = await waitForResult();
 
                 if (!extractionResult.success) {
-                    clearTimeout(timeout);
-                    resolve({
-                        username: tab.username,
-                        tabId: tab.id,
-                        error: extractionResult.error
-                    });
-                    return;
+                    console.warn(`[BATCH] PDF Falhou (${extractionResult.error}). Tentando DOM Scraper...`);
+
+                    // --- FALLBACK: DOM SCRAPER ---
+                    try {
+                        await chrome.scripting.executeScript({
+                            target: { tabId: tab.id },
+                            files: ['scripts/linkedin_dom_scraper.js'] // Caminho relativo ao root da extensão
+                        });
+
+                        const domResult = await new Promise((resolveDom) => {
+                            const domListener = (message) => {
+                                if (message.type === 'DOM_PROFILE_DATA') {
+                                    chrome.runtime.onMessage.removeListener(domListener);
+                                    resolveDom({ success: true, data: message.payload });
+                                }
+                            };
+                            chrome.runtime.onMessage.addListener(domListener);
+
+                            // Timeout para DOM (mais curto, 10s)
+                            setTimeout(() => {
+                                chrome.runtime.onMessage.removeListener(domListener);
+                                resolveDom({ success: false, error: 'Timeout DOM Scraper' });
+                            }, 10000);
+                        });
+
+                        if (domResult.success) {
+                            console.log(`[BATCH] ✅ Recuperado com DOM Scraper`);
+                            extractionResult.success = true;
+                            extractionResult.data = domResult.data;
+                            // Limpa erro anterior
+                            extractionResult.error = null;
+                        } else {
+                            throw new Error(`PDF e DOM falharam. PDF: ${extractionResult.error}. DOM: ${domResult.error}`);
+                        }
+
+                    } catch (domError) {
+                        clearTimeout(timeout);
+                        resolve({
+                            username: tab.username,
+                            url: tab.url,
+                            tabId: tab.id,
+                            error: domError.message
+                        });
+                        return;
+                    }
                 }
 
                 // 6. Executa o Match com o Scorecard
