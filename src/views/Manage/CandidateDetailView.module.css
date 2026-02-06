@@ -136,23 +136,49 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+.aiHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .aiTitle {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin: 0;
   color: var(--accent-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.aiMatchBadge {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 10px var(--glow-color);
+}
+
+.feedbackGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
 .feedbackBlock {
-  margin-bottom: 15px;
+  margin-bottom: 0px;
 }
 
 .feedbackSubtitle {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 8px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .feedbackList {
@@ -163,7 +189,7 @@
 
 .feedbackItem {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin-bottom: 6px;
   display: flex;
   align-items: flex-start;
@@ -173,6 +199,57 @@
 
 .icon {
   font-weight: bold;
+}
+
+/* Novas seções de critérios */
+.aiCriteriaSection {
+  border-top: 1px solid var(--border-color);
+  padding-top: 15px;
+  margin-top: 5px;
+}
+
+.criteriaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.categoryInfo {
+  margin-bottom: 5px;
+}
+
+.categoryNameRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.categoryScore {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progressBar {
+  height: 6px;
+  background-color: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: var(--success);
+  border-radius: 3px;
+}
+
+.aiDisclaimer {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin-top: 15px;
 }
 
 /* Fim AI Feedback */

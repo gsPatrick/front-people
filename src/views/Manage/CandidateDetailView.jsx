@@ -140,31 +140,68 @@ const CandidateDetailView = ({
                     {/* SEÇÃO DE FEEDBACK DA IA (Novo) */}
                     {candidate.application?.aiReview && (
                         <div className={styles.aiFeedbackContainer}>
-                            <h3 className={styles.aiTitle}>🤖 Análise da IA</h3>
-
-                            <div className={styles.feedbackBlock}>
-                                <h4 className={styles.feedbackSubtitle} style={{ color: '#166534' }}>✅ Pontos Fortes</h4>
-                                <ul className={styles.feedbackList}>
-                                    {(candidate.application.aiReview.strengths || []).map((point, idx) => (
-                                        <li key={idx} className={styles.feedbackItem}>
-                                            <span className={styles.icon}>✓</span> {point}
-                                        </li>
-                                    ))}
-                                    {(!candidate.application.aiReview.strengths || candidate.application.aiReview.strengths.length === 0) && <li>Nenhum ponto forte destacado.</li>}
-                                </ul>
+                            <div className={styles.aiHeaderRow}>
+                                <h3 className={styles.aiTitle}>🤖 Análise da IA</h3>
+                                {candidate.application.matchScore && (
+                                    <div className={styles.aiMatchBadge}>
+                                        {Math.round(candidate.application.matchScore)}% Match
+                                    </div>
+                                )}
                             </div>
 
-                            <div className={styles.feedbackBlock}>
-                                <h4 className={styles.feedbackSubtitle} style={{ color: '#991b1b' }}>⚠️ Pontos de Atenção</h4>
-                                <ul className={styles.feedbackList}>
-                                    {(candidate.application.aiReview.weaknesses || []).map((point, idx) => (
-                                        <li key={idx} className={styles.feedbackItem}>
-                                            <span className={styles.icon}>!</span> {point}
-                                        </li>
-                                    ))}
-                                    {(!candidate.application.aiReview.weaknesses || candidate.application.aiReview.weaknesses.length === 0) && <li>Nenhum ponto de atenção destacado.</li>}
-                                </ul>
+                            {/* FEEDBACK EXECUTIVO */}
+                            <div className={styles.feedbackGrid}>
+                                <div className={styles.feedbackBlock}>
+                                    <h4 className={styles.feedbackSubtitle} style={{ color: '#166534' }}>✅ Pontos Fortes</h4>
+                                    <ul className={styles.feedbackList}>
+                                        {(candidate.application.aiReview.strengths || []).map((point, idx) => (
+                                            <li key={idx} className={styles.feedbackItem}>
+                                                <span className={styles.icon}>✓</span> {point}
+                                            </li>
+                                        ))}
+                                        {(!candidate.application.aiReview.strengths || candidate.application.aiReview.strengths.length === 0) && <li>Nenhum ponto forte destacado.</li>}
+                                    </ul>
+                                </div>
+
+                                <div className={styles.feedbackBlock}>
+                                    <h4 className={styles.feedbackSubtitle} style={{ color: '#991b1b' }}>⚠️ Pontos de Atenção</h4>
+                                    <ul className={styles.feedbackList}>
+                                        {(candidate.application.aiReview.weaknesses || []).map((point, idx) => (
+                                            <li key={idx} className={styles.feedbackItem}>
+                                                <span className={styles.icon}>!</span> {point}
+                                            </li>
+                                        ))}
+                                        {(!candidate.application.aiReview.weaknesses || candidate.application.aiReview.weaknesses.length === 0) && <li>Nenhum ponto de atenção destacado.</li>}
+                                    </ul>
+                                </div>
                             </div>
+
+                            {/* NOTAS POR CATEGORIA (Novo: Aparece mesmo sem Kit) */}
+                            {candidate.application.aiReview.categories && candidate.application.aiReview.categories.length > 0 && (
+                                <div className={styles.aiCriteriaSection}>
+                                    <h4 className={styles.feedbackSubtitle}>📊 Critérios Avaliados</h4>
+                                    <div className={styles.criteriaGrid}>
+                                        {candidate.application.aiReview.categories.map((cat, cIdx) => (
+                                            <div key={cIdx} className={styles.categoryInfo}>
+                                                <div className={styles.categoryNameRow}>
+                                                    <span>{cat.name}</span>
+                                                    <span className={styles.categoryScore}>{cat.score}%</span>
+                                                </div>
+                                                <div className={styles.progressBar}>
+                                                    <div
+                                                        className={styles.progressFill}
+                                                        style={{ width: `${cat.score}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className={styles.aiDisclaimer}>
+                                        Esta análise foi gerada automaticamente pela IA com base no perfil extraído.
+                                        {(!interviewKits || interviewKits.length === 0) && " Para editar ou adicionar notas manuais, crie um Kit de Entrevista para esta vaga."}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
