@@ -5,7 +5,7 @@ import styles from './MatchView.module.css';
 import Header from '../../components/Header/Header';
 import { BsBullseye, BsCheckLg, BsCollection } from 'react-icons/bs';
 
-const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onDeactivate, onGoToHub }) => {
+const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onDeactivate, onGoToHub, onViewJob }) => {
   return (
     <div className={styles.container}>
       <Header
@@ -25,14 +25,31 @@ const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onD
         {scorecards.length > 0 ? scorecards.map(sc => {
           const isActive = sc.id === activeScorecardId;
           return (
-            <div key={sc.id} className={`${styles.scorecardCard} ${isActive ? styles.active : ''}`}>
+            <div 
+              key={sc.id} 
+              className={`${styles.scorecardCard} ${isActive ? styles.active : ''}`}
+              onClick={() => onSelect(sc.id)}
+            >
               <div className={styles.cardContent}>
                 <h3 className={styles.cardTitle}>{sc.name}</h3>
-                <span className={`${styles.atsTag} ${styles[sc.atsIntegration]}`}>
-                  {sc.atsIntegration === 'inhire' ? 'InHire' : 'Interno'}
-                </span>
+                <div className={styles.metaRow}>
+                  <span className={`${styles.atsTag} ${styles[sc.atsIntegration || 'internal']}`}>
+                    {sc.atsIntegration === 'inhire' ? 'InHire' : 'Local'}
+                  </span>
+                  {sc.job && (
+                    <div className={styles.jobInfo}>
+                      <span className={styles.jobLabel}>Vaga:</span>
+                      <span className={styles.jobName}>{sc.job.name || sc.job.title}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className={styles.cardActions}>
+                {sc.job && (
+                  <button onClick={() => onViewJob(sc.job)} className={styles.viewJobButton} title="Ver detalhes da vaga">
+                    Ver Vaga
+                  </button>
+                )}
                 {onBatchSelect && (
                   <button onClick={() => onBatchSelect(sc.id)} className={styles.batchButton}>
                     <BsCollection /> Iniciar Fila

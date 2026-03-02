@@ -20,7 +20,7 @@ const LoginView = ({ onLogin, error, isLoading }) => {
       <img src="/logo.png" alt="Logo" className={styles.logo} />
       <h2 className={styles.title}>Bem-vindo de volta</h2>
       <p className={styles.subtitle}>Acesse sua conta para continuar.</p>
-      
+
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.inputGroup}>
           <label htmlFor="email">E-mail</label>
@@ -34,7 +34,7 @@ const LoginView = ({ onLogin, error, isLoading }) => {
             required
           />
         </div>
-        
+
         <div className={styles.inputGroup}>
           <label htmlFor="password">Senha</label>
           {/* Wrapper para posicionar o ícone */}
@@ -59,13 +59,17 @@ const LoginView = ({ onLogin, error, isLoading }) => {
             </button>
           </div>
         </div>
-        
+
         {error && <p className={styles.error}>{error}</p>}
-        
+
         <button type="submit" className={styles.loginButton} disabled={isLoading}>
           {isLoading ? <span className={styles.loader}></span> : 'Conectar'}
         </button>
       </form>
+
+      <footer className={styles.loginFooter}>
+        v1.0.0 da Ana Issidoro
+      </footer>
     </div>
   );
 };

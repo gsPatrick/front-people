@@ -1,10 +1,24 @@
-// NOVO: BatchQueueView Refatorado para Tabela (Lista Ranqueada)
+/* global chrome */
+// BatchQueueView Refatorado: Sem emojis e com validação profissional
 import React, { useState, useEffect, useMemo } from 'react';
 import styles from './BatchQueue.module.css';
 import Header from '../../components/Header/Header';
-import { BsPlayFill, BsStopFill, BsCheckCircleFill, BsXCircleFill, BsArrowRepeat, BsStarFill, BsStar, BsChevronLeft, BsSearch } from 'react-icons/bs';
+import {
+    BsPlayFill,
+    BsStopFill,
+    BsCheckCircleFill,
+    BsXCircleFill,
+    BsArrowRepeat,
+    BsStarFill,
+    BsStar,
+    BsChevronLeft,
+    BsSearch,
+    BsExclamationTriangleFill,
+    BsInfoCircleFill,
+    BsTrashFill
+} from 'react-icons/bs';
 
-// Componente de estrelas
+// Componente Interno de Estrelas (Profissional)
 const StarRating = ({ score, maxScore = 5 }) => {
     const stars = [];
     for (let i = 1; i <= maxScore; i++) {
@@ -19,61 +33,138 @@ const StarRating = ({ score, maxScore = 5 }) => {
     return <div className={styles.starsContainer}>{stars}</div>;
 };
 
+// Modal de Validação Profissional
+const ValidationModal = ({ isOpen, title, message, onClose }) => {
+    if (!isOpen) return null;
+    return (
+        <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+                <div className={styles.modalIcon}><BsExclamationTriangleFill size={24} /></div>
+                <h3 className={styles.modalTitle}>{title}</h3>
+                <p className={styles.modalMessage}>{message}</p>
+                <button className={styles.modalButton} onClick={onClose}>Entendido</button>
+            </div>
+        </div>
+    );
+};
+
 const BatchQueueView = ({
     scorecard,
     queueState,
+    // eslint-disable-next-line no-unused-vars
     onStartQueue,
     onStopQueue,
     onAcceptProfile,
     onRejectProfile,
     onGoBack,
-    onAutoSource
+    onAutoSource,
+    onResetQueue,
+    navigationState,
+    onStartDirect
 }) => {
     const { isRunning, tabs, currentIndex, results } = queueState;
     const totalTabs = tabs.length;
     const processed = results.length;
     const progress = totalTabs > 0 ? (processed / totalTabs) * 100 : 0;
 
-    // MUDANÇA: Não filtrar erros, apenas ordenar para que erros fiquem no final ou inicio
     const sortedResults = useMemo(() => {
-        // Separa sucessos de erros
         const successes = results.filter(r => !r.error);
         const failures = results.filter(r => r.error);
-
-        // Ordena sucessos pelo score
         successes.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
-
-        // Retorna tudo (erros primeiro para chamar atenção ou ultimo? Vou por ultimo)
         return [...successes, ...failures];
     }, [results]);
 
     const [currentTabUrl, setCurrentTabUrl] = useState('');
     const [processedIds, setProcessedIds] = useState(new Set());
-    const [selectedProfile, setSelectedProfile] = useState(null); // Para o Detalhe
+    const [selectedProfile, setSelectedProfile] = useState(null);
 
-    // Estado da Configuração de Sourcing
-    const [showSourceConfig, setShowSourceConfig] = useState(false);
-    const [sourceTargetCount, setSourceTargetCount] = useState(50);
-    const [isSourcing, setIsSourcing] = useState(false);
+    const [sourceTargetCount, setSourceTargetCount] = useState('50'); // String para permitir apagar
 
+    // Modal de Erro
+    const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '' });
+
+    // Perfis Analisados (para exibição na fila)
+    const statusItems = useMemo(() => {
+        const items = [];
+        // Perfis já finalizados
+        sortedResults.forEach((res, idx) => {
+            items.push({
+                id: res.username || `done-${idx}`,
+                name: res.name || 'Perfil Analisado',
+                status: 'completed',
+                score: res.averageScore
+            });
+        });
+
+        // Perfil sendo processado agora (se houver)
+        if (isRunning && currentIndex < totalTabs && currentIndex >= 0) {
+            items.push({
+                id: 'current',
+                name: `Perfil ${currentIndex + 1}`,
+                status: 'processing'
+            });
+        }
+
+        // Próximos na fila (limitado para não poluir o layout)
+        const remaining = isRunning ? (totalTabs - (currentIndex + 1)) : 0;
+        if (remaining > 0) {
+            const showNext = Math.min(remaining, 3);
+            for (let i = 1; i <= showNext; i++) {
+                items.push({
+                    id: `next-${i}`,
+                    name: `Perfil ${currentIndex + 1 + i}`,
+                    status: 'pending'
+                });
+            }
+            if (remaining > showNext) {
+                items.push({
+                    id: 'more',
+                    name: `+ ${remaining - showNext} perfis na fila`,
+                    status: 'more'
+                });
+            }
+        }
+
+        return items;
+    }, [sortedResults, currentIndex, totalTabs, isRunning]);
+
+    // O estado de configuração agora é controlado primariamente pelo que o sistema está fazendo
+    // Se não está rodando, não está buscando e não tem resultados, mostra config.
+    const isSourcing = queueState.isSourcing;
+    const showConfig = !isRunning && !isSourcing && results.length === 0;
+
+    // NOVO: Disparo automático se vier via "Analisar com IA" ou "Captura Individual"
+    useEffect(() => {
+        if (navigationState?.autoStartUrl && results.length === 0 && !isSourcing && !isRunning) {
+            console.log("[BatchQueueView] Auto-start detectado para:", navigationState.autoStartUrl);
+            onAutoSource(navigationState.autoStartUrl, scorecard?.id, 1);
+        }
+
+        if (navigationState?.autoStartDirectUrl && results.length === 0 && !isSourcing && !isRunning && onStartDirect) {
+            console.log("[BatchQueueView] Auto-start DIRETO detectado para:", navigationState.autoStartDirectUrl);
+            onStartDirect(navigationState.autoStartDirectUrl, scorecard?.id);
+        }
+    }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
+
+    // Sincroniza abertura do LinkedIn Search
+    // Sincroniza detecção da URL atual (apenas para exibição/config)
     useEffect(() => {
         const checkCurrentTab = () => {
             if (chrome?.tabs) {
                 chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
                     const url = tabs[0]?.url || '';
-                    if (url) {
-                        setCurrentTabUrl(url);
-                        // Auto-open config if on search page AND NOT sourcing/running
-                        if (url.includes('linkedin.com/search/results/people') && !isSourcing && !isRunning) {
-                            setShowSourceConfig(true);
-                        }
-                    }
+                    if (url) setCurrentTabUrl(url);
                 });
             }
         };
-        checkCurrentTab();
+
+        if (showConfig) {
+            checkCurrentTab();
+        }
+
         const handleUpdate = (tabId, changeInfo, tab) => { if (changeInfo.status === 'complete' && tab.active) checkCurrentTab(); };
         const handleActivated = () => checkCurrentTab();
+
         if (chrome?.tabs) {
             chrome.tabs.onUpdated.addListener(handleUpdate);
             chrome.tabs.onActivated.addListener(handleActivated);
@@ -84,14 +175,7 @@ const BatchQueueView = ({
                 chrome.tabs.onActivated.removeListener(handleActivated);
             }
         };
-    }, [isSourcing, isRunning]);
-
-    // Foca na aba do selecionado
-    useEffect(() => {
-        if (selectedProfile && selectedProfile.tabId && chrome?.tabs) {
-            chrome.tabs.update(selectedProfile.tabId, { active: true }).catch(() => { });
-        }
-    }, [selectedProfile]);
+    }, [showConfig]);
 
     const handleDecision = (profile, decision) => {
         setProcessedIds(prev => new Set([...prev, profile.username]));
@@ -100,42 +184,75 @@ const BatchQueueView = ({
         } else {
             onRejectProfile(profile);
         }
-        // Se estiver vendo detalhes, volta para lista? Não, talvez queira continuar no detalhe mas mostrar status.
-        // Mas o Requisito diz: "Decisão pode ser feita diretamente na lista"
-        // Vamos fechar a aba se for rejeitado/aceito? O usuário pediu persistence.
         if (profile.tabId && chrome?.tabs) {
             chrome.tabs.remove(profile.tabId).catch(() => { });
         }
-
-        // Se estiver no modo detalhe e decidir, volta pra lista
         if (selectedProfile && selectedProfile.username === profile.username) {
             setSelectedProfile(null);
         }
     };
 
-    const getScoreColor = (score) => {
+    const _GetScoreColor = (score) => {
         if (!score) return '#cbd5e1';
-        if (score >= 4) return '#22c55e'; // Green
-        if (score >= 3) return '#eab308'; // Yellow
-        return '#ef4444'; // Red
+        if (score >= 4) return '#22c55e';
+        if (score >= 3) return '#eab308';
+        return '#ef4444';
+    };
+
+    const handleStartSource = async () => {
+        const count = parseInt(sourceTargetCount);
+
+        if (!sourceTargetCount || count <= 0 || isNaN(count)) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Valor Inválido',
+                message: 'É necessário buscar pelo menos 1 perfil para iniciar a análise.'
+            });
+            return;
+        }
+
+        if (count > 150) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Limite Excedido',
+                message: 'O limite total do sistema é de 150 perfis por busca.'
+            });
+            return;
+        }
+
+        // Determina a URL de busca
+        const finalSearchUrl = (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
+            ? currentTabUrl
+            : 'https://www.linkedin.com/search/results/people/';
+
+        try {
+            await onAutoSource(finalSearchUrl, scorecard?.id, count);
+        } catch (error) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Erro na Busca',
+                message: error.message
+            });
+        }
     };
 
     // --- RENDERERS ---
 
-    // 1. Loading Sourcing
     if (isSourcing) {
         return (
             <div className={styles.container}>
-                <Header title="Buscando Perfis..." subtitle="O robô está trabalhando" />
+                <Header title="Buscando Perfis" subtitle="O sistema está processando a automação" />
                 <main className={styles.contentCentered}>
                     <div className={styles.loadingSpinner}></div>
                     <div style={{ textAlign: 'center', color: '#64748b', maxWidth: '320px' }}>
-                        <p style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '12px' }}>Navegando e coletando perfis... 🤖</p>
+                        <p style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '12px' }}>
+                            Navegando e coletando perfis...
+                        </p>
                         <p style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '8px' }}>
-                            Fique tranquilo! Você pode <strong>minimizar esta aba</strong> ou <strong>abrir uma nova aba</strong> para continuar trabalhando.
+                            O processamento ocorre em segundo plano. Você pode navegar em outras abas enquanto aguarda.
                         </p>
                         <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            Quando voltar, tudo estará prontinho! ✨
+                            Os resultados aparecerão automaticamente nesta tela ao finalizar.
                         </p>
                     </div>
                 </main>
@@ -143,102 +260,89 @@ const BatchQueueView = ({
         );
     }
 
-    // 2. Config Sourcing
-    if (showSourceConfig && !isSourcing && !isRunning) {
+    if (showConfig) {
+        const isOnSearchPage = currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people');
+
         return (
             <div className={styles.container}>
-                <Header title="Configurar Busca" subtitle="Defina os parâmetros" onBack={() => setShowSourceConfig(false)} />
+                <Header
+                    title="Configurar Busca"
+                    subtitle={isOnSearchPage ? "Importar da busca ativa" : "Iniciar nova busca"}
+                    onBack={onGoBack}
+                />
                 <main className={styles.paddingContent}>
-                    {/* ... (mantido igual, apenas resumindo para caber no replace) ... */}
                     <div className={styles.infoBox}>
-                        <p>O sistema usará a busca aberta no LinkedIn.</p>
+                        <BsInfoCircleFill style={{ marginRight: '8px' }} />
+                        <span>
+                            {isOnSearchPage
+                                ? "O sistema utilizará os filtros ativos na sua busca atual."
+                                : "A busca será aberta automaticamente no LinkedIn."}
+                        </span>
                     </div>
-                    <label className={styles.label}>Quantos perfis deseja buscar?</label>
+
+                    <label className={styles.label}>Quantidade de perfis</label>
                     <input
                         type="number"
                         className={styles.inputNumber}
                         value={sourceTargetCount}
-                        min={1}
-                        max={150}
-                        onChange={(e) => {
-                            const val = Math.max(1, Math.min(150, Number(e.target.value)));
-                            setSourceTargetCount(val);
-                        }}
+                        placeholder="Ex: 50"
+                        onChange={(e) => setSourceTargetCount(e.target.value)}
                     />
-                    <p className={styles.inputHelp}>Digite um valor entre 1 e 150</p>
-                    <button
-                        className={styles.primaryButton}
-                        onClick={async () => {
-                            setShowSourceConfig(false);
-                            setIsSourcing(true);
-                            try {
-                                await onAutoSource(currentTabUrl, scorecard?.id, sourceTargetCount);
-                                setIsSourcing(false);
-                            } catch (error) {
-                                alert("Erro: " + error.message);
-                                setIsSourcing(false);
-                                setShowSourceConfig(true);
-                            }
-                        }}
-                    >
-                        🚀 Iniciar Busca
+                    <p className={styles.inputHelp}>Valor recomendado: até 50 perfis por vez.</p>
+
+                    <button className={styles.primaryButton} onClick={handleStartSource}>
+                        {isOnSearchPage ? "Capturar Resultados" : "Abrir LinkedIn e Buscar"}
                     </button>
+
+                    <ValidationModal
+                        isOpen={modalConfig.isOpen}
+                        title={modalConfig.title}
+                        message={modalConfig.message}
+                        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+                    />
                 </main>
             </div>
         );
     }
 
-    // 3. Queue Running Progress
     if (isRunning) {
         return (
             <div className={styles.container}>
-                <Header title="Processando Fila" subtitle={`${processed}/${totalTabs} processados`} />
-                <main className={styles.content}>
+                <Header title="Processando Fila" subtitle={`${processed}/${totalTabs} perfis finalizados`} />
+                <main className={styles.contentCentered}>
                     <div className={styles.progressSection}>
-                        <div className={styles.progressBar}><div className={styles.progressFill} style={{ width: `${progress}%` }} /></div>
-                        <p className={styles.progressText}>{Math.round(progress)}%</p>
-                        <div className={styles.currentProcessing}>
-                            <BsArrowRepeat className={styles.spinIcon} /> <span>Analisando Perfil...</span>
+                        <div className={styles.progressText}>{Math.round(progress)}%</div>
+                        <div className={styles.progressBar}>
+                            <div className={styles.progressFill} style={{ width: `${progress}%` }} />
                         </div>
-                        <button onClick={onStopQueue} className={styles.stopButton}><BsStopFill /> Parar</button>
-                    </div>
-                </main>
-            </div>
-        );
-    }
 
-    // 4. Empty State (Detection)
-    if (results.length === 0) {
-        return (
-            <div className={styles.container}>
-                <Header title="Fila em Lote" subtitle={`Scorecard: ${scorecard?.name || '-'}`} onBack={onGoBack} />
-                <main className={styles.content}>
-                    <div className={styles.detectionSection}>
-                        <h2>{totalTabs} perfis encontrados</h2>
+                        <div className={styles.queueList}>
+                            {statusItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className={`${styles.queueItem} ${item.status === 'processing' ? styles.queueItemActive : ''}`}
+                                >
+                                    <div className={styles.queueItemInfo}>
+                                        {item.status === 'completed' && <BsCheckCircleFill className={styles.successIcon} />}
+                                        {item.status === 'processing' && <div className={styles.modernSpinner} />}
+                                        {item.status === 'pending' && <BsPlayFill style={{ color: '#64748b' }} />}
+                                        {item.status === 'more' && <BsInfoCircleFill style={{ color: '#64748b' }} />}
 
-                        <button
-                            className={styles.sourceButton}
-                            style={{
-                                background: 'linear-gradient(135deg, var(--accent-secondary), var(--accent-primary))',
-                                width: '100%',
-                                padding: '14px',
-                                fontSize: '15px',
-                                fontWeight: '600',
-                                color: 'var(--bg-primary)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '8px',
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 12px var(--glow-color)'
-                            }}
-                            onClick={() => {
-                                if (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) setShowSourceConfig(true);
-                                else window.open('https://www.linkedin.com/search/results/people/', '_blank');
-                            }}>
-                            {(currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people')) ? <><BsSearch /> Importar Busca</> : <><BsSearch /> Ir para Busca</>}
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span className={styles.queueItemName}>{item.name}</span>
+                                            <span className={styles.queueItemStatus}>
+                                                {item.status === 'completed' ? `Score: ${item.score?.toFixed(1) || '-'}` : ''}
+                                                {item.status === 'processing' ? 'Analisando...' : ''}
+                                                {item.status === 'pending' ? 'Aguardando...' : ''}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button onClick={onStopQueue} className={styles.stopButton}>
+                            <BsStopFill /> Parar Processamento
                         </button>
                     </div>
                 </main>
@@ -246,30 +350,30 @@ const BatchQueueView = ({
         );
     }
 
-    // 5. DETAIL VIEW (Drill Down)
+    // A tela de "Vazia/Detecção" foi removida para ir direto para a config via logic acima.
+
     if (selectedProfile) {
         const isProcessed = processedIds.has(selectedProfile.username);
         return (
             <div className={styles.container}>
                 <div className={styles.detailHeader}>
                     <button onClick={() => setSelectedProfile(null)} className={styles.iconButton}>
-                        <BsChevronLeft /> Voltar
+                        <BsChevronLeft /> Voltar para Lista
                     </button>
-                    <span className={styles.detailTitle}>Detalhes do Match</span>
+                    <span className={styles.detailTitle}>Análise Detalhada</span>
                 </div>
                 <main className={styles.content}>
                     <div className={styles.reviewCard}>
                         <div className={styles.cardHeader}>
                             <div className={styles.info}>
-                                <h3>{selectedProfile.name}</h3>
-                                <p>{selectedProfile.headline}</p>
+                                <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{selectedProfile.name}</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{selectedProfile.headline}</p>
                             </div>
-                            <div className={styles.scoreBadge} style={{ backgroundColor: getScoreColor(selectedProfile.averageScore) }}>
+                            <div className={styles.scoreBadge}>
                                 {selectedProfile.averageScore?.toFixed(1) || '-'}
                             </div>
                         </div>
 
-                        {/* Ações no Detalhe */}
                         {!isProcessed && (
                             <div className={styles.reviewActions}>
                                 <button onClick={() => handleDecision(selectedProfile, 'reject')} className={styles.rejectButton}>
@@ -285,33 +389,50 @@ const BatchQueueView = ({
                         )}
 
                         <div className={styles.matchDetails}>
-                            <div className={styles.detailItem}>
-                                <span className={styles.icon}>🎯</span>
-                                <div><strong>Pontos Fortes</strong><p>{selectedProfile.strengths?.join(', ') || '-'}</p></div>
-                            </div>
-                            <div className={styles.detailItem}>
-                                <span className={styles.icon}>⚠️</span>
-                                <div><strong>Pontos de Atenção</strong><p>{selectedProfile.weaknesses?.join(', ') || '-'}</p></div>
+                            <div className={styles.sectionCard}>
+                                <div className={styles.detailItem}>
+                                    <div className={styles.icon} style={{ color: 'var(--accent-primary)', marginTop: '4px' }}><BsPlayFill /></div>
+                                    <div style={{ width: '100%' }}>
+                                        <strong style={{ fontSize: '18px', color: 'var(--text-primary)', display: 'block', marginBottom: '16px' }}>Resumo Geral</strong>
+                                        <ul className={styles.summaryList}>
+                                            {(selectedProfile.strengths || []).map((s, i) => (
+                                                <li key={`s-${i}`} className={styles.summaryItem}>{s}</li>
+                                            ))}
+                                            {(selectedProfile.weaknesses || []).map((w, i) => (
+                                                <li key={`w-${i}`} className={styles.summaryItem}>{w}</li>
+                                            ))}
+                                            {(!selectedProfile.strengths?.length && !selectedProfile.weaknesses?.length) && (
+                                                <li className={styles.summaryItem}>Nenhuma informação de resumo identificada.</li>
+                                            )}
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div className={styles.categoriesReview}>
                             {selectedProfile.categories?.map((cat, idx) => (
-                                <div key={idx} className={styles.categoryBlock}>
-                                    <div className={styles.catRow}>
-                                        <span className={styles.catName}>{cat.name}</span>
+                                <div key={idx} className={styles.sectionCard}>
+                                    <div className={styles.catRow} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+                                        <span className={styles.catName} style={{ fontWeight: '700', fontSize: '18px', color: 'var(--text-primary)' }}>{cat.name}</span>
                                         <StarRating score={cat.averageScore} />
                                     </div>
-                                    <p className={styles.catJustification}>{cat.justification}</p>
-                                    {/* Exibir itens individuais se existirem */}
-                                    <div className={styles.catCriteriaList}>
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <span className={styles.qLabel}>Análise da Categoria</span>
+                                        <p className={styles.detailItem} style={{ fontStyle: 'italic', fontSize: '15px' }}>{cat.justification}</p>
+                                    </div>
+
+                                    <div className={styles.catCriteriaList} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         {(cat.criteria || []).map((crit, cidx) => (
-                                            <div key={cidx} className={styles.miniCrit}>
-                                                <strong>{crit.name}:</strong> {crit.justification}
+                                            <div key={cidx} className={styles.miniCrit} style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', color: '#cbd5e1', border: '1px solid var(--border-color)' }}>
+                                                <span className={styles.qLabel}>Pergunta / Critério</span>
+                                                <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '12px', fontSize: '15px', lineHeight: '1.4' }}>{crit.name}</strong>
+
+                                                <span className={styles.qLabel}>Resposta / Análise</span>
+                                                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{crit.justification}</p>
                                             </div>
                                         ))}
                                     </div>
-
                                 </div>
                             ))}
                         </div>
@@ -321,7 +442,6 @@ const BatchQueueView = ({
         );
     }
 
-    // 6. TABLE LIST (Main View)
     return (
         <div className={styles.container}>
             <Header title="Resultados do Match" subtitle={`${sortedResults.length} perfis analisados`} onBack={onGoBack} />
@@ -335,11 +455,9 @@ const BatchQueueView = ({
                             onClick={() => {
                                 if (!profile.error) {
                                     setSelectedProfile(profile);
-                                    // Abre o perfil no LinkedIn em nova aba se houver URL
                                     if (profile.url) {
                                         window.open(profile.url, '_blank');
                                     } else if (profile.username) {
-                                        // Fallback se tiver apenas username
                                         window.open(`https://www.linkedin.com/in/${profile.username}`, '_blank');
                                     }
                                 }
@@ -348,12 +466,12 @@ const BatchQueueView = ({
                         >
                             {profile.error ? (
                                 <div className={styles.errorContent} style={{ padding: '12px', color: '#ef4444', width: '100%' }}>
-                                    <strong>Falha:</strong> {profile.error}
+                                    <strong>Falha técnica:</strong> {profile.error}
                                 </div>
                             ) : (
                                 <>
                                     <div className={styles.scoreColumn}>
-                                        <span className={styles.miniScore} style={{ backgroundColor: getScoreColor(profile.averageScore) }}>
+                                        <span className={styles.miniScore}>
                                             {profile.averageScore?.toFixed(1) || '-'}
                                         </span>
                                     </div>
@@ -369,18 +487,18 @@ const BatchQueueView = ({
                                                     onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'reject'); }}
                                                     title="Rejeitar"
                                                 >
-                                                    ✕
+                                                    <BsXCircleFill />
                                                 </button>
                                                 <button
                                                     className={styles.miniAcceptBtn}
                                                     onClick={(e) => { e.stopPropagation(); handleDecision(profile, 'accept'); }}
                                                     title="Aceitar"
                                                 >
-                                                    ✓
+                                                    <BsCheckCircleFill />
                                                 </button>
                                             </>
                                         ) : (
-                                            <span className={styles.processedCheck}>✓</span>
+                                            <span className={styles.processedCheck}><BsCheckCircleFill /></span>
                                         )}
                                     </div>
                                 </>
@@ -390,27 +508,34 @@ const BatchQueueView = ({
                 })}
             </div>
 
-            {/* Botão Limpar Lista */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
                 <button
-                    onClick={onGoBack}
+                    onClick={() => {
+                        // Limpa os resultados antes de voltar
+                        if (onResetQueue) {
+                            onResetQueue();
+                        }
+                        onGoBack();
+                    }}
                     style={{
                         width: '100%',
                         padding: '12px',
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: '#fff',
-                        border: 'none',
+                        background: '#fff', // Fundo branco como solicitado para o tema
+                        color: '#ef4444', // Texto vermelho para indicar ação de apagar
+                        border: '1px solid #ef4444',
                         borderRadius: '10px',
                         fontSize: '14px',
                         fontWeight: '600',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
                     }}
-                    onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)'; }}
-                    onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)'; }}
                 >
-                    🗑️ Limpar Lista e Voltar
+                    Limpar Fila e Voltar
                 </button>
             </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styles from './ScorecardEditView.module.css';
 import Header from '../../components/Header/Header';
 
-const ScorecardEditView = ({ onSave, onCancel, initialData }) => {
+const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
   const isEditing = !!initialData?.id;
   const isCreatingFromTemplate = initialData && !initialData.id;
   
@@ -15,6 +15,8 @@ const ScorecardEditView = ({ onSave, onCancel, initialData }) => {
 
   const [name, setName] = useState(initialName);
   const [categories, setCategories] = useState(initialCategories);
+  const [selectedJobId, setSelectedJobId] = useState(initialData?.jobId || '');
+  const [syncNow, setSyncNow] = useState(false);
 
   const handleCategoryChange = (index, value) => {
     const newCategories = [...categories];
@@ -37,14 +39,17 @@ const ScorecardEditView = ({ onSave, onCancel, initialData }) => {
 
   const handleSave = () => {
     if (!name.trim()) return alert('O nome do modelo é obrigatório.');
+    if (!selectedJobId) return alert('Por favor, vincule uma vaga a este scorecard.');
     
     const payload = {
         id: isEditing ? initialData.id : undefined,
         name,
-        atsIntegration: 'internal', // Sempre será interno
+        jobId: selectedJobId,
+        syncStatus: syncNow ? 'PENDING' : (initialData?.syncStatus || 'LOCAL'),
+        atsIntegration: initialData?.atsIntegration || 'internal',
         categories: categories.map(cat => ({
             name: cat.name,
-            criteria: cat.criteria.filter(crit => crit.name.trim() !== '') // Envia apenas critérios preenchidos
+            criteria: cat.criteria.filter(crit => crit.name.trim() !== '')
         }))
     };
     onSave(payload);
@@ -59,9 +64,39 @@ const ScorecardEditView = ({ onSave, onCancel, initialData }) => {
       />
 
       <main className={styles.form}>
-        <div className={styles.inputGroup}>
-          <label>Nome do Modelo</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Desenvolvedor(a) Sênior" />
+        <div className={styles.setupGroup} style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-tertiary)', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
+          <div className={styles.inputGroup}>
+            <label>Nome do Modelo</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Desenvolvedor(a) Sênior" />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label>Vaga Vinculada *</label>
+            <select 
+              value={selectedJobId} 
+              onChange={(e) => setSelectedJobId(e.target.value)}
+              className={styles.jobSelect}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              <option value="">Selecione uma vaga...</option>
+              {(jobs || []).map(j => (
+                <option key={j.id} value={j.id}>{j.name || j.title}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.syncOptionRow} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+            <input 
+              type="checkbox" 
+              id="syncNow" 
+              checked={syncNow} 
+              onChange={(e) => setSyncNow(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <label htmlFor="syncNow" style={{ cursor: 'pointer', fontSize: '14px', color: 'var(--accent-primary)', fontWeight: '500' }}>
+              Sincronizar com InHire após salvar
+            </label>
+          </div>
         </div>
 
         <div className={styles.structureBuilder}>

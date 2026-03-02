@@ -1,34 +1,52 @@
 .container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
 
 .header {
   background-color: var(--bg-secondary);
-  padding: 15px 20px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 15px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.backButton {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 5px;
+.avatar {
+  width: 64px;
+  height: 64px;
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 0 15px var(--glow-color);
 }
 
-.backButton:hover {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
+.iconLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.iconLink:hover {
+  color: var(--accent-primary);
+}
+
+.iconLink svg {
+  font-size: 16px;
 }
 
 .candidateIdentifier {
@@ -38,71 +56,106 @@
   flex: 1;
 }
 
-.avatar {
-  width: 40px;
-  height: 40px;
-  background-color: #3b82f6;
-  color: white;
-  border-radius: 50%;
+.candidateHeader {
+  padding: 24px;
   display: flex;
+  gap: 24px;
   align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 16px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.nameContainer h3 {
+.headerInfo {
+  flex: 1;
+}
+
+.candidateName {
   margin: 0;
-  font-size: 16px;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.candidateHeadline {
+  margin: 4px 0 16px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
 }
 
-.stageSelector {
+.stageControl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.stageLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.stageSelect {
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   font-size: 14px;
-  color: var(--text-primary);
-  background-color: var(--bg-primary);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.stageSelect:hover {
+  border-color: var(--accent-primary);
+}
+
+.tabsContainer {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .tabs {
   display: flex;
-  gap: 10px;
-  padding: 10px 20px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  gap: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tabButton {
   background: none;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 12px 16px;
   color: var(--text-secondary);
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* Overlap with container border */
 }
 
 .tabButton:hover {
-  background-color: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
 .tabButton.active {
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
   font-weight: 600;
-  box-shadow: 0 0 10px var(--glow-color);
 }
 
 .tabDivider {
@@ -129,11 +182,11 @@
 /* AI Feedback Styles */
 .aiFeedbackContainer {
   background-color: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .aiHeaderRow {
@@ -255,11 +308,40 @@
 /* Fim AI Feedback */
 
 .infoContainer {
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border-color);
+  padding: 8px 0; /* Simpler padding, no border/background for integrated feel */
+}
+
+.standardFieldsGrid, .customFieldsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.infoGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infoLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.infoValueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .contactSection {

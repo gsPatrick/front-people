@@ -46,6 +46,7 @@
     padding: 16px;
     transition: all 0.2s ease;
     border-left: 4px solid transparent;
+    cursor: pointer;
 }
 
 .scorecardCard.active {
@@ -147,4 +148,46 @@
 .batchButton:hover {
     box-shadow: 0 0 15px var(--glow-color);
     transform: translateY(-1px);
+}
+.metaRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.jobInfo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.jobLabel {
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+
+.jobName {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.viewJobButton {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.viewJobButton:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border-color: var(--accent-primary);
 }

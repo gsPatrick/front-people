@@ -29,20 +29,21 @@ const renderFieldInput = (field, formData, handleChange) => {
     switch (field.type) {
         case 'text':
         case 'shortText': 
-            return <input type="text" name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="Preencha o campo" />;
+            return <input type="text" name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="--" />;
         
         case 'number':
-            return <input type="number" name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="Preencha o campo" />;
+            return <input type="number" name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="--" />;
         
         case 'date':
             return <input type="date" name={fieldIdentifier} value={currentValue} onChange={handleChange} />;
         
         case 'textarea':
         case 'longText': 
-             return <textarea name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="Preencha o campo" />;
+             return <textarea name={fieldIdentifier} value={currentValue} onChange={handleChange} placeholder="--" />;
 
-        case 'select':
-            // `field.answerOptions` agora virá do backend com todas as opções
+        case 'select': {
+            // `field.answerOptions` ou `field.options` dependendo da entidade
+            const options = field.answerOptions || field.options || [];
             return (
                 <select 
                     name={fieldIdentifier} 
@@ -50,11 +51,14 @@ const renderFieldInput = (field, formData, handleChange) => {
                     onChange={handleChange}
                 >
                     <option value="">Selecione uma opção</option>
-                    {(field.answerOptions || []).map(opt => (
-                        <option key={opt.id} value={opt.id}>{opt.label || opt.title}</option>
+                    {options.map((opt, idx) => (
+                        <option key={opt.id || opt.value || idx} value={opt.id || opt.value || opt}>
+                            {opt.label || opt.title || opt.name || opt.value || opt}
+                        </option>
                     ))}
                 </select>
             );
+        }
         
         case 'boolean':
             return (

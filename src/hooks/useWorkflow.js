@@ -1,10 +1,11 @@
-// ARQUIVO COMPLETO E CORRIGIDO: src/hooks/useWorkflow.js
+/* global chrome */
+// src/hooks/useWorkflow.js
 
 import { useState, useCallback, useMemo } from 'react';
 import * as api from '../services/api.service';
 import { extractTextFromPdf } from '../services/pdf.service';
 
-export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) => {
+export const useWorkflow = (executeAsync, navigateTo, goBack) => {
   const [profileContext, setProfileContext] = useState(null);
   const [currentJob, setCurrentJob] = useState(null);
   const [currentTalent, setCurrentTalent] = useState(null);
@@ -118,50 +119,63 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
   // CORREÇÃO PRINCIPAL AQUI
   // Trocamos `api.updateTalent` por `api.updateFullProfile`
   // ==========================================================
-  const handleProfileUpdateFromExtraction = useCallback((profileData) => {
+  const handleProfileUpdateFromExtraction = useCallback((profileData, matchData = null) => {
     executeAsync(async () => {
       if (!currentTalent?.id || !currentApplication?.id) {
         throw new Error("Contexto perdido. Não é possível atualizar.");
       }
 
+      console.log("[WORKFLOW] Updating profile with data:", profileData.nome);
       // 1. Atualizar Perfil Completo
       await api.updateFullProfile(currentTalent.id, currentApplication.id, profileData);
 
-      // 2. Se houver Kit Selecionado (Contexto de Update), rodar IA e Salvar Scorecard
-      if (updateContext.kitId) {
+      // 2. Se houver Kit/Match contextual, salvar Scorecard
+      const kitId = matchData?.scorecardId || updateContext.kitId;
+
+      if (kitId) {
         // Recarrega estrutura do kit para ter certeza
-        const kitRes = await api.fetchInterviewKit(updateContext.kitId);
+        const kitRes = await api.fetchInterviewKit(kitId);
         if (kitRes.success && kitRes.kit) {
           const kit = kitRes.kit;
-          // Roda IA (simulando o MatchResultView logic)
-          console.log("[DEBUG] Iniciando avaliação com IA para o Kit:", kit.name);
-          const aiResult = await api.evaluateScorecardWithAI(currentTalent.id, currentJob, kit, {});
 
-          if (aiResult && aiResult.evaluations) {
+          // Roda IA apenas se não tivermos o resultado pronto
+          const aiResult = matchData?.result || await api.evaluateScorecardWithAI(currentTalent.id, currentJob, kit, {});
+
+          if (aiResult && (aiResult.evaluations || aiResult.categories)) {
             const ratings = {};
-
-            // Helper para normalizar strings para comparação
             const normalize = (str) => str ? str.toLowerCase().trim() : '';
+
+            // Se vier do Match (Fila), as chaves podem estar em 'categories'
+            // Se vier do 'evaluateScorecardWithAI', as chaves estão em 'evaluations'
+            const evaluationsList = aiResult.evaluations || [];
+
+            // Fallback: achatar categorias se necessário (para matchData.result)
+            if (evaluationsList.length === 0 && aiResult.categories) {
+              aiResult.categories.forEach(cat => {
+                if (cat.criteria) {
+                  cat.criteria.forEach(crit => {
+                    evaluationsList.push({
+                      ...crit,
+                      // O critério do match já tem name, score e justification
+                    });
+                  });
+                }
+              });
+            }
 
             if (kit.skillCategories) {
               kit.skillCategories.forEach(cat => {
                 if (cat.skills) {
                   cat.skills.forEach(skill => {
-                    // Tenta match exato por ID (se disponível) ou fallback para nome
-                    const evaluationById = aiResult.evaluations.find(ev => ev.id === skill.id);
-                    const evaluationByName = aiResult.evaluations.find(ev => normalize(ev.name) === normalize(skill.name));
-
-                    const bestMatch = evaluationById || evaluationByName;
+                    const bestMatch = evaluationsList.find(ev =>
+                      (ev.id === skill.id) || (normalize(ev.name) === normalize(skill.name))
+                    );
 
                     if (bestMatch) {
-                      console.log(`[DEBUG] Match encontrado para skill '${skill.name}':`, bestMatch);
-                      if (skill.id) {
-                        ratings[skill.id] = {
-                          // Garante nota mínima 1 para exibir o campo de texto na UI
-                          score: Math.max(1, bestMatch.score),
-                          description: bestMatch.justification
-                        };
-                      }
+                      ratings[skill.id] = {
+                        score: Math.max(1, bestMatch.score),
+                        description: bestMatch.justification || bestMatch.description || ''
+                      };
                     }
                   });
                 }
@@ -172,7 +186,7 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
               ratings,
               decision: aiResult.finalDecision || 'NO_DECISION',
               feedback: aiResult.overallFeedback || '',
-              notes: 'Avaliação gerada automaticamente via Atualização de Dados com IA.'
+              notes: matchData ? 'Avaliação gerada automaticamente via Busca Direta/Fila.' : 'Avaliação gerada automaticamente via Atualização de Dados com IA.'
             };
 
             await api.submitScorecard(currentApplication.id, kit.id, submitPayload);
@@ -453,6 +467,34 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     navigateTo('job_details');
   }), [executeAsync, navigateTo]);
 
+  const handleEditJob = useCallback((job) => executeAsync(async () => {
+    if (job) {
+       // Se for edição, busca detalhes frescos (incluindo custom fields)
+       const detailsResult = await api.fetchJobDetails(job.id);
+       if (detailsResult.success) {
+           setCurrentJob(detailsResult.job);
+           navigateTo('edit_job');
+       }
+    } else {
+       // Se for criação
+       setCurrentJob(null);
+       navigateTo('edit_job');
+    }
+  }), [executeAsync, navigateTo]);
+
+  const handleSyncJobToInHire = useCallback((jobId) => executeAsync(async () => {
+    const result = await api.syncJobToInHire(jobId);
+    if (result.success) {
+        alert("Vaga sincronizada com sucesso!");
+        // Refresh local details
+        const detailsResult = await api.fetchJobDetails(jobId);
+        if (detailsResult.success) setCurrentJob(detailsResult.job);
+        return true;
+    } else {
+        throw new Error(result.error || "Falha ao sincronizar.");
+    }
+  }), [executeAsync]);
+
   const handleUpdateApplicationStatus = useCallback((applicationId, newStageId) => executeAsync(async () => {
     await api.updateApplicationStatus(applicationId, newStageId);
     if (currentTalent?.application?.id === applicationId) {
@@ -540,9 +582,9 @@ export const useWorkflow = (executeAsync, navigateTo, goBack, onCaptureProfile) 
     return Array.isArray(fields) ? fields.map(field => ({ ...field, id: field.customFieldId || field.id })) : [];
   }, [currentTalent]);
 
-  const state = { profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext };
-  const setters = { setProfileContext, setCurrentJob, setCurrentTalent, setCurrentCandidates, setCurrentJobStages, setCurrentApplication, setCurrentInterviewKits, setCurrentScorecardSummary };
-  const actions = { handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground, handleUpdateTalentStatus };
+  const state = useMemo(() => ({ profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext }), [profileContext, currentJob, currentTalent, currentCandidates, currentJobStages, currentApplication, applicationCustomFields, currentInterviewKits, currentScorecardSummary, updateContext]);
+  const setters = useMemo(() => ({ setProfileContext, setCurrentJob, setCurrentTalent, setCurrentCandidates, setCurrentJobStages, setCurrentApplication, setCurrentInterviewKits, setCurrentScorecardSummary }), []);
+  const actions = useMemo(() => ({ handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground, handleUpdateTalentStatus, handleEditJob, handleSyncJobToInHire }), [handleSelectTalentForDetails, handleSelectJobForDetails, handleSelectCandidateForDetails, handleUpdateApplicationStatus, handleEditTalentInfo, handleDeleteTalent, handleApplyTalentToJob, handleRemoveApplicationForTalent, handleCreateAndGoToEvaluation, handleRequestProfileUpdate, handlePdfUpload, handleConfirmCreation, handlePdfUpdate, handleProfileUpdateFromExtraction, refreshScorecardSummary, handleCreateTalentInBackground, handleUpdateTalentStatus, handleEditJob, handleSyncJobToInHire]);
 
-  return { ...state, ...setters, ...actions };
+  return useMemo(() => ({ ...state, ...setters, ...actions }), [state, setters, actions]);
 };

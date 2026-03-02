@@ -84,7 +84,8 @@ const ScorecardView = ({
   onSaveWeights,
   aiAnalysisCache,
   onCacheAIResult,
-  onSaveAsTemplate // <-- NOVA PROP
+  onSaveAsTemplate,
+  onBatchAnalyse // <-- NOVA PROP
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [openWeightSelector, setOpenWeightSelector] = useState(null);
@@ -165,6 +166,19 @@ const ScorecardView = ({
   }, [initialEvaluationData, scorecard]);
   const runAIAssist = useCallback(async () => {
     if (!isAIEnabled) return;
+
+    /* 
+    // DESATIVADO TEMPORARIAMENTE A PEDIDO DO USUÁRIO (Robô ficando preso na config)
+    if (onBatchAnalyse) {
+      // Prioriza o username (slug) para busca direta conforme solicitado
+      const searchKeyword = candidate.linkedinUsername || candidate.name;
+      const searchUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchKeyword)}&origin=GLOBAL_SEARCH_HEADER`;
+      onBatchAnalyse(searchUrl, scorecard.id);
+      return;
+    }
+    */
+
+    // FALLBACK (legado):
     setIsInitializing(true);
     const cacheKey = `${candidate.id}-${scorecard.id}`;
 

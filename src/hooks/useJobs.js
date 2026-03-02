@@ -1,6 +1,6 @@
 // ATUALIZE O ARQUIVO: src/hooks/useJobs.js
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import * as api from '../services/api.service';
 
 const PAGE_LIMIT_JOBS = 3;
@@ -8,23 +8,42 @@ const PAGE_LIMIT_JOBS = 3;
 export const useJobs = (executeAsync) => {
   const [jobsData, setJobsData] = useState({ jobs: [], currentPage: 1, totalPages: 1, totalJobs: 0 });
 
-  // CORREÇÃO: A função agora aceita o status como parâmetro
   const fetchAndSetJobs = useCallback(async (page, status = 'open') => {
-    executeAsync(async () => {
-      // Passa o status para a chamada da API
+    return executeAsync(async () => {
       const data = await api.fetchJobsPaginated(page, PAGE_LIMIT_JOBS, status);
       if (data) {
         setJobsData(data);
       }
+      return data;
     });
   }, [executeAsync]);
 
-  // CORREÇÃO: handleJobsPageChange também precisa saber o status atual para paginar corretamente
-  const handleJobsPageChange = (newPage, currentStatus) => {
+  const handleJobsPageChange = useCallback((newPage, currentStatus) => {
     if (newPage > 0 && newPage <= jobsData.totalPages) {
       fetchAndSetJobs(newPage, currentStatus);
     }
-  };
+  }, [fetchAndSetJobs, jobsData.totalPages]);
 
-  return { jobsData, fetchAndSetJobs, handleJobsPageChange };
+  const handleDeleteJob = useCallback(async (jobId, currentStatus) => {
+    if (!window.confirm("Deseja realmente excluir esta vaga? Esta ação remove apenas a vaga local.")) {
+      return;
+    }
+
+    // Primeiro executamos a exclusão
+    await executeAsync(async () => {
+      await api.deleteJob(jobId);
+    });
+
+    // Depois que a trava do DELETE foi liberada, chamamos o refresh
+    // Isso garante que o segundo executeAsync (dentro do fetchAndSetJobs) consiga rodar
+    alert("Vaga removida!");
+    await fetchAndSetJobs(jobsData.currentPage, currentStatus);
+  }, [executeAsync, fetchAndSetJobs, jobsData.currentPage]);
+
+  return useMemo(() => ({ 
+    jobsData, 
+    fetchAndSetJobs, 
+    handleJobsPageChange, 
+    handleDeleteJob 
+  }), [jobsData, fetchAndSetJobs, handleJobsPageChange, handleDeleteJob]);
 };

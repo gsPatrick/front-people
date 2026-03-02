@@ -1,6 +1,7 @@
-// ARQUIVO FINAL COM A CORREÇÃO: src/hooks/useApp.js
+/* global chrome */
+// src/hooks/useApp.js
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { saveSettings, loadSettings } from '../services/session.service';
 import * as api from '../services/api.service';
 
@@ -8,18 +9,6 @@ import * as api from '../services/api.service';
 function autoDownloadPdfFunction() {
     (async function () {
         console.log('[AUTODOWNLOAD] Script de download automático ativado.');
-        const waitForElement = (selector, timeout = 5000) => {
-            return new Promise((resolve, reject) => {
-                const interval = setInterval(() => {
-                    const element = document.querySelector(selector);
-                    if (element) { clearInterval(interval); resolve(element); }
-                }, 100);
-                setTimeout(() => {
-                    clearInterval(interval);
-                    reject(new Error(`[AUTODOWNLOAD] Elemento não encontrado: ${selector}`));
-                }, timeout);
-            });
-        };
         try {
             console.log('[AUTODOWNLOAD] Procurando o botão "Mais..."');
             let moreButton =
@@ -106,7 +95,7 @@ export const useApp = (executeAsync, navigateTo) => {
         handleTabChange();
 
         const listeners = {
-            onUpdated: (tabId, changeInfo, tab) => {
+            onUpdated: (tabId, changeInfo) => {
                 if (tabId === currentTab?.id && changeInfo.url) {
                     handleTabChange();
                 }
@@ -137,7 +126,7 @@ export const useApp = (executeAsync, navigateTo) => {
         setSettings(newSettings);
         await saveSettings(newSettings);
         if (key === 'isSidePanelModeEnabled' && chrome.runtime) {
-            try { chrome.runtime.reload(); } catch (e) { navigateTo('restart_required'); }
+            try { chrome.runtime.reload(); } catch { navigateTo('restart_required'); }
         }
     }, [settings, navigateTo]);
 
@@ -145,34 +134,26 @@ export const useApp = (executeAsync, navigateTo) => {
     // ==========================================================
     // MUDANÇA PRINCIPAL AQUI
     // ==========================================================
-    const handleCaptureLinkedInProfile = async () => {
+    const handleCaptureLinkedInProfile = useCallback(async () => {
         try {
             if (!currentTab || !currentTab.url || !currentTab.url.includes("linkedin.com/in/")) {
                 alert("Para capturar um perfil, navegue até uma página de perfil do LinkedIn.");
                 return;
             }
 
-            // Mensagem ajustada para informar que a ação ocorre em segundo plano
             alert("Iniciando a captura do perfil. O processo continuará em segundo plano na aba do LinkedIn.");
 
-            // REMOVIDO: A linha abaixo foi removida para impedir a mudança de tela.
-            // navigateTo('scraping');
-
-            // 1. Injeta o Relay (ISOLATED WORLD) para ouvir a mensagem e falar com o Background
             await chrome.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 files: ['scripts/pdf_relay.js']
-                // world default is ISOLATED, which is what we want for chrome.runtime access
             });
 
-            // 2. Injeta o Interceptador (MAIN WORLD) para monkey-patch e pegar o PDF
             await chrome.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 files: ['scripts/linkedin_pdf_scraper.js'],
                 world: 'MAIN'
             });
 
-            // 3. Injeta a automação que clica nos botões (pode ser ISOLATED ou MAIN, tanto faz, mas ISOLATED é mais seguro)
             await chrome.scripting.executeScript({
                 target: { tabId: currentTab.id },
                 func: autoDownloadPdfFunction
@@ -180,15 +161,11 @@ export const useApp = (executeAsync, navigateTo) => {
 
         } catch (error) {
             console.error("[POPUP] Erro ao injetar scripts:", error);
-            // Mensagem de erro direta, sem redirecionamento
             alert(`Ocorreu um erro ao tentar iniciar a captura: ${error.message}`);
-
-            // REMOVIDO: A linha abaixo foi removida para não redirecionar em caso de erro.
-            // navigateTo('dashboard_jobs');
         }
-    };
+    }, [currentTab]);
 
-    return {
+    return useMemo(() => ({
         settings,
         setSettings,
         currentTab,
@@ -196,5 +173,5 @@ export const useApp = (executeAsync, navigateTo) => {
         initializeApp,
         handleSettingChange,
         handleCaptureLinkedInProfile,
-    };
+    }), [settings, currentTab, currentProfileStatus, initializeApp, handleSettingChange, handleCaptureLinkedInProfile]);
 };

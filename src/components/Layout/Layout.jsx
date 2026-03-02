@@ -9,7 +9,12 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
-    { id: 'candidate_list', label: 'Banco de Talentos', icon: <IoPeopleSharp /> },
+    {
+      id: 'candidate_list',
+      label: 'Banco de Talentos',
+      displayLabel: <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', alignItems: 'flex-start', paddingTop: '2px', paddingBottom: '2px' }}><span>Banco</span><span>de Talentos</span></div>,
+      icon: <IoPeopleSharp />
+    },
     { id: 'scorecard_hub', label: 'Scorecards', icon: <BsClipboardCheck /> },
     {
       id: 'match_hub',
@@ -57,7 +62,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <div className={styles.navLabelContainer}>
-                <span className={styles.navLabel}>{item.label}</span>
+                <span className={styles.navLabel}>{item.displayLabel || item.label}</span>
                 {/* Renderiza o sub-label se ele existir e a sidebar não estiver recolhida */}
                 {item.subLabel && !isSidebarCollapsed && (
                   <span className={styles.navSubLabel}>{item.subLabel}</span>
@@ -85,6 +90,10 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
             <span className={styles.navIcon}><IoLogOutOutline /></span>
             <span className={styles.navLabel}>Sair</span>
           </button>
+
+          <div className={styles.versionInfo}>
+            v1.0.0 da Ana Issidoro
+          </div>
         </div>
       </aside>
       <main className={styles.content}>

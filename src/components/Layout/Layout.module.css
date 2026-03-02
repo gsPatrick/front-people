@@ -34,7 +34,7 @@
 }
 
 .layout.collapsed .sidebarHeader {
-    justify-content: center;
+  justify-content: center;
 }
 
 .logoContainer {
@@ -46,9 +46,9 @@
 }
 
 .logoImage {
-    width: 100px;
-    height: auto;
-    object-fit: contain;
+  width: 100px;
+  height: auto;
+  object-fit: contain;
 }
 
 .layout.collapsed .logoContainer {
@@ -148,36 +148,39 @@
 }
 
 .sidebarFooter {
-    margin-top: auto;
+  margin-top: auto;
 }
 
 .openInTabButton {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background-color: transparent;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    width: 100%;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
+
 .openInTabButton:hover {
-    border-color: var(--border-color);
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
+  border-color: var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
+
 .layout.collapsed .openInTabButton {
-    justify-content: center;
+  justify-content: center;
 }
+
 .openInTabButton .navIcon {
-    font-size: 18px;
+  font-size: 18px;
 }
 
 .content {
@@ -193,53 +196,56 @@
   color: var(--accent-primary);
   margin-bottom: 16px;
 }
+
 .captureButton:hover {
   background-color: var(--accent-primary);
   color: var(--bg-primary);
   box-shadow: 0 0 15px var(--glow-color);
 }
+
 .captureButton .navIcon {
   color: var(--accent-primary);
 }
+
 .captureButton:hover .navIcon {
   color: var(--bg-primary);
 }
 
 .logoutButton {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    background-color: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-    width: 100%;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .layout.collapsed .logoutButton {
-    justify-content: center;
+  justify-content: center;
 }
 
 .logoutButton:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #f87171;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171;
 }
 
 .logoutButton .navIcon {
-    font-size: 20px;
-    color: var(--text-secondary);
-    transition: color 0.2s ease;
+  font-size: 20px;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
 }
 
 .logoutButton:hover .navIcon {
-    color: #f87171;
+  color: #f87171;
 }
 
 .navLabelContainer {
@@ -256,10 +262,28 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px; /* Evita que o texto quebre a sidebar */
+  max-width: 100px;
+  /* Evita que o texto quebre a sidebar */
 }
 
 .navItem.active .navSubLabel {
   color: var(--bg-primary);
   opacity: 0.7;
+}
+
+.versionInfo {
+  margin-top: 12px;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-weight: 500;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout.collapsed .versionInfo {
+  display: none;
 }

@@ -8,6 +8,7 @@ const API_BASE_URL = 'https://geral-people-api.r954jc.easypanel.host/api'; // <-
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 1800000 // 30 minutos de limite de timeout para lidar com respostas longas da IA
 });
 
 // INTERCEPTADOR: Adiciona o token de autenticação a cada requisição
@@ -167,13 +168,21 @@ export const updateScorecard = async (id, scorecardData) => {
 
 export const deleteScorecard = async (id) => {
   try {
-    await apiClient.delete(`/scorecards/${id}`);
-    return { success: true };
+    const response = await apiClient.delete(`/scorecards/${id}`);
+    return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
+export const syncScorecardToInHire = async (id) => {
+  try {
+    const response = await apiClient.post(`/scorecards/${id}/sync-inhire`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
 
 export const validateProfile = async (profileUrl) => {
   try {
@@ -276,6 +285,51 @@ export const fetchJobsPaginated = async (page = 1, limit = 3, status = 'open') =
   }
 };
 
+export const fetchJobDetails = async (jobId) => {
+  try {
+    const response = await apiClient.get(`/jobs/${jobId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateJobDetails = async (jobId, data) => {
+  try {
+    const response = await apiClient.patch(`/jobs/${jobId}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const syncJobToInHire = async (jobId) => {
+  try {
+    const response = await apiClient.post(`/jobs/${jobId}/sync-inhire`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteJob = async (jobId) => {
+  try {
+    const response = await apiClient.delete(`/jobs/${jobId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const fetchAreas = async () => {
+    try {
+      const response = await apiClient.get('/areas');
+      return response.data;
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
 export const fetchCandidatesForJob = async (jobId) => {
   try {
     const response = await apiClient.get(`/jobs/${jobId}/candidates`);
@@ -332,6 +386,7 @@ export const removeApplication = async (applicationId) => {
 
 export const fetchCustomFieldsForEntity = async (entity) => {
   try {
+    // entity: 'TALENTS', 'JOB_TALENTS' ou 'JOBS'
     const response = await apiClient.get(`/custom-fields/${entity}`);
     return response.data;
   } catch (error) {

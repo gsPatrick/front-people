@@ -73,36 +73,90 @@
 
 /* SOURCE BADGE STYLES */
 .sourceBadge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sourceCloud {
-  background-color: #dbeafe;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background-color: rgba(30, 64, 175, 0.2);
+  color: #60a5fa;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 .sourceLocal {
-  background-color: #fef9c3;
-  color: #854d0e;
-  border: 1px solid #fde047;
+  background-color: rgba(6, 95, 70, 0.2);
+  color: #34d399;
+  border: 1px solid #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
 }
 
 .arrow {
-  font-size: 26px;
-  color: var(--text-secondary);
-  transition: transform 0.2s ease, color 0.2s ease;
+  display: none; /* Removido para dar espaço aos botões na direita */
 }
 
-.jobCard:hover .arrow {
-  transform: translateX(5px);
-  color: var(--accent-primary);
+.jobActionsRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto; /* Empurra para a direita */
+  z-index: 2;
+}
+
+.syncButton, .editButton, .deleteButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.syncButton {
+  background-color: var(--accent-primary);
+  color: white;
+  border: none;
+}
+
+.syncButton:hover {
+  background-color: var(--accent-secondary);
+  filter: brightness(1.2);
+}
+
+.editButton {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.editButton:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.deleteButton {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.deleteButton:hover {
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
 }
 
 .filtersBar {
@@ -118,6 +172,7 @@
 .statusFilters {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .filterButton {
@@ -264,6 +319,43 @@
   display: flex;
   gap: 10px;
   margin-left: auto;
+}
+
+@media (max-width: 850px) {
+  .filtersBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px 20px;
+  }
+
+  .statusFilters {
+    justify-content: flex-start;
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filterButton {
+    flex: initial;
+    padding: 8px 14px;
+    font-size: 13px;
+    flex-grow: 1;
+    min-width: 100px;
+  }
+
+  .actionButtons {
+    margin-left: 0;
+    width: 100%;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+  }
+
+  .createJobButton {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+  }
 }
 
 .createJobButton {

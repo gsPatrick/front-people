@@ -5,7 +5,7 @@ import styles from './ScorecardHubView.module.css';
 import Header from '../../components/Header/Header';
 import { BsSearch, BsPuzzle, BsPencilFill, BsTrashFill, BsChevronDown, BsChevronUp, BsEye, BsEyeSlash } from 'react-icons/bs';
 
-const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onFilterChange }) => {
+const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onSync, onFilterChange }) => {
   // Estado para controlar quais cards estão expandidos
   // Por padrão, todos começam expandidos (User Request)
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -96,12 +96,26 @@ const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onFilterChan
                 >
                   <div className={styles.headerTitleGroup}>
                     <h3 className={styles.cardTitle}>{sc.name}</h3>
-                    <span className={`${styles.atsTag} ${styles[sc.ats]}`}>
-                      {sc.ats === 'inhire' ? 'InHire' : 'Interno'}
-                    </span>
+                    <div className={styles.tagsGroup}>
+                      <span className={`${styles.atsTag} ${styles[sc.atsIntegration || 'internal']}`}>
+                        {sc.atsIntegration === 'inhire' ? 'InHire' : 'Local'}
+                      </span>
+                      {sc.syncStatus && (
+                        <span className={`${styles.syncTag} ${styles[sc.syncStatus.toLowerCase()]}`} title={`Status: ${sc.syncStatus}`}>
+                          {sc.syncStatus === 'SYNCHRONIZED' ? 'Sincronizado' : sc.syncStatus === 'PENDING' ? 'Pendente' : 'Falha'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className={styles.expandIcon}>
-                    {isExpanded ? <BsChevronUp /> : <BsChevronDown />}
+                  <div className={styles.headerMeta}>
+                    {sc.job && (
+                      <span className={styles.jobLinkInfo}>
+                        Vaga: <strong>{sc.job.name || sc.job.title}</strong>
+                      </span>
+                    )}
+                    <div className={styles.expandIcon}>
+                      {isExpanded ? <BsChevronUp /> : <BsChevronDown />}
+                    </div>
                   </div>
                 </div>
 
@@ -109,13 +123,13 @@ const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onFilterChan
                 {isExpanded && (
                   <div className={styles.cardBody}>
                     <p style={{ marginBottom: '12px' }}>
-                      <strong>{sc.categories.length}</strong> Categorias,
-                      <strong>{sc.categories.reduce((acc, cat) => acc + (cat.criteria || []).length, 0)}</strong> Critérios
+                      <strong>{sc.categories?.length || 0}</strong> Categorias,
+                      <strong>{(sc.categories || []).reduce((acc, cat) => acc + (cat.criteria || []).length, 0)}</strong> Critérios
                     </p>
 
                     {/* Lista de Categorias e Critérios */}
                     <div className={styles.criteriaPreview}>
-                      {sc.categories.map((cat, catIdx) => (
+                      {(sc.categories || []).map((cat, catIdx) => (
                         <div key={catIdx} className={styles.categoryPreview}>
                           <span className={styles.categoryLabel}>{cat.name || 'Categoria sem nome'}</span>
                           <ul className={styles.criteriaList}>
@@ -137,9 +151,21 @@ const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onFilterChan
                 )}
 
                 <div className={styles.cardFooter}>
-                  <button onClick={() => onEdit(sc)} className={styles.actionButton}>
-                    <BsPencilFill /> Editar
-                  </button>
+                  <div className={styles.footerActionsLeft}>
+                    <button onClick={() => onEdit(sc)} className={styles.actionButton}>
+                      <BsPencilFill /> Editar
+                    </button>
+                    {sc.syncStatus !== 'SYNCHRONIZED' && (
+                       <button 
+                        onClick={() => onSync(sc)} 
+                        className={`${styles.actionButton} ${styles.syncButton}`}
+                        title={sc.jobId ? "Sincronizar com InHire" : "Vincule uma vaga para sincronizar"}
+                        disabled={!sc.jobId}
+                       >
+                        Sincronizar
+                      </button>
+                    )}
+                  </div>
                   <button onClick={() => onDelete(sc.id)} className={`${styles.actionButton} ${styles.deleteButton}`}>
                     <BsTrashFill /> Excluir
                   </button>
