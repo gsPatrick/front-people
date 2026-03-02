@@ -12,11 +12,10 @@
 .jobList {
   flex-grow: 1;
   padding: 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   overflow-y: auto;
-  align-content: flex-start;
 
   scrollbar-width: thin;
   scrollbar-color: var(--bg-tertiary) var(--bg-primary);
