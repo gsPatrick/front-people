@@ -89,10 +89,10 @@ const JobsDashboardView = ({
         {jobsToDisplay.length > 0 ? (
           jobsToDisplay.map(job => (
             <div key={job.id} className={styles.jobCardWrapper}>
-              <button className={styles.jobCard} onClick={() => onSelectJob(job)}>
+              <div className={styles.jobCard} onClick={() => onSelectJob(job)}>
                 <div className={styles.jobInfo}>
                   <div className={styles.jobTitleRow}>
-                    <span className={styles.jobName}>{job.name}</span>
+                    <span className={styles.jobName}>{job.name || job.title}</span>
                     <div className={styles.sourceBadges}>
                       {job.source === 'INHIRE' ? (
                         <span className={`${styles.sourceBadge} ${styles.sourceCloud}`} title="Esta vaga foi importada do InHire e está sincronizada com a plataforma externa.">InHire</span>
@@ -102,29 +102,35 @@ const JobsDashboardView = ({
                     </div>
                     <div className={styles.jobActionsRow}>
                       {job.source === 'LOCAL' && job.syncStatus !== 'SYNCHRONIZED' && (
-                        <button 
+                        <div 
                           className={styles.syncButton}
                           onClick={(e) => handleSyncClick(e, job)}
                           title="Enviar esta vaga e seus candidatos para a plataforma InHire."
+                          role="button"
+                          tabIndex={0}
                         >
                           <MdSync /> Sincronizar
-                        </button>
+                        </div>
                       )}
-                      <button 
+                      <div 
                         className={styles.editButton}
                         onClick={(e) => handleEditClick(e, job)}
                         title="Editar Vaga"
+                        role="button"
+                        tabIndex={0}
                       >
                         <MdEdit /> Editar
-                      </button>
+                      </div>
                       {job.source === 'LOCAL' && (
-                        <button 
+                        <div 
                           className={styles.deleteButton}
                           onClick={(e) => handleDeleteClick(e, job)}
                           title="Excluir Vaga"
+                          role="button"
+                          tabIndex={0}
                         >
                           Excluir
-                        </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -135,7 +141,7 @@ const JobsDashboardView = ({
                   </div>
                 </div>
                 <span className={styles.arrow}>→</span>
-              </button>
+              </div>
             </div>
           ))
         ) : (
