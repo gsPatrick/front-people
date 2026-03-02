@@ -5,7 +5,7 @@ import { BsBriefcaseFill, BsLayoutSidebarInsetReverse, BsLayoutSidebarInset, BsB
 import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline } from 'react-icons/io5';
 
 // Adicionada a prop activeMatchScorecardName
-const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout, activeMatchScorecardName }) => {
+const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout }) => {
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
@@ -19,9 +19,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
     {
       id: 'match_hub',
       label: 'Match',
-      icon: <BsBullseye />,
-      // Sub-label dinâmico que mostra o scorecard ativo
-      subLabel: activeMatchScorecardName || 'Nenhum scorecard ativo'
+      icon: <BsBullseye />
     },
     { id: 'settings', label: 'Configurações', icon: <IoSettingsSharp /> },
   ];

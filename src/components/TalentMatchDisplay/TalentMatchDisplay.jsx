@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../views/Match/MatchResultView.module.css'; // Reusing existing styles for consistency
+import styles from './TalentMatchDisplay.module.css';
 
 const TalentMatchDisplay = ({ matchData }) => {
     if (!matchData) return <div className={styles.emptyState}>Nenhuma avaliação de IA disponível.</div>;

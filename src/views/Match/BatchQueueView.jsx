@@ -146,6 +146,16 @@ const BatchQueueView = ({
         }
     }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
 
+    // NOVO: Abrir busca automaticamente ao entrar se não houver abas detectadas
+    useEffect(() => {
+        if (showConfig && navigationState?.autoOpenSearch && !currentTabUrl.includes('linkedin.com/search/results/people')) {
+            if (window.chrome && chrome.tabs) {
+                console.log("[BatchQueueView] Abrindo busca do LinkedIn automaticamente...");
+                chrome.tabs.create({ url: 'https://www.linkedin.com/search/results/people/', active: true });
+            }
+        }
+    }, [showConfig, navigationState?.autoOpenSearch, currentTabUrl]);
+
     // Sincroniza abertura do LinkedIn Search
     // Sincroniza detecção da URL atual (apenas para exibição/config)
     useEffect(() => {
@@ -224,6 +234,14 @@ const BatchQueueView = ({
         const finalSearchUrl = (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
             ? currentTabUrl
             : 'https://www.linkedin.com/search/results/people/';
+
+        if (!currentTabUrl.includes('linkedin.com/search/results/people')) {
+            // Se não está na página de busca, apenas abre a aba e deixa o usuário filtrar
+            if (window.chrome && chrome.tabs) {
+                chrome.tabs.create({ url: finalSearchUrl, active: true });
+            }
+            return;
+        }
 
         try {
             await onAutoSource(finalSearchUrl, scorecard?.id, count);
@@ -323,10 +341,10 @@ const BatchQueueView = ({
                                     className={`${styles.queueItem} ${item.status === 'processing' ? styles.queueItemActive : ''}`}
                                 >
                                     <div className={styles.queueItemInfo}>
-                                        {item.status === 'completed' && <BsCheckCircleFill className={styles.successIcon} />}
-                                        {item.status === 'processing' && <div className={styles.modernSpinner} />}
-                                        {item.status === 'pending' && <BsPlayFill style={{ color: '#64748b' }} />}
-                                        {item.status === 'more' && <BsInfoCircleFill style={{ color: '#64748b' }} />}
+                                        {item.status === 'completed' && <BsCheckCircleFill className={styles.successIcon} title="Este perfil foi processado e salvo com sucesso." />}
+                                        {item.status === 'processing' && <div className={styles.modernSpinner} title="O robô está extraindo as informações deste perfil no momento." />}
+                                        {item.status === 'pending' && <BsPlayFill style={{ color: '#64748b' }} title="Este perfil está na fila e será processado em breve." />}
+                                        {item.status === 'more' && <BsInfoCircleFill style={{ color: '#64748b' }} title="Existem mais perfis na fila aguardando processamento." />}
 
                                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                                             <span className={styles.queueItemName}>{item.name}</span>

@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import * as api from '../services/api.service';
 
-const PAGE_LIMIT_JOBS = 3;
+const PAGE_LIMIT_JOBS = 50;
 
 export const useJobs = (executeAsync) => {
   const [jobsData, setJobsData] = useState({ jobs: [], currentPage: 1, totalPages: 1, totalJobs: 0 });

@@ -3,32 +3,23 @@
 import React from 'react';
 import styles from './MatchView.module.css';
 import Header from '../../components/Header/Header';
-import { BsBullseye, BsCheckLg, BsCollection } from 'react-icons/bs';
+import { BsCollection } from 'react-icons/bs';
 
-const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onDeactivate, onGoToHub, onViewJob }) => {
+const MatchView = ({ scorecards, onBatchSelect, onGoToHub, onViewJob }) => {
   return (
     <div className={styles.container}>
       <Header
-        title="Modo de Match"
-        subtitle="Selecione um scorecard para analisar perfis no LinkedIn"
+        title="Match Inteligente"
+        subtitle="Analise múltiplos perfis do LinkedIn em lote"
       />
-
-      {activeScorecardId && (
-        <div className={styles.deactivateSection}>
-          <button onClick={onDeactivate} className={styles.deactivateButton}>
-            Desativar Modo Match
-          </button>
-        </div>
-      )}
 
       <main className={styles.cardList}>
         {scorecards.length > 0 ? scorecards.map(sc => {
-          const isActive = sc.id === activeScorecardId;
           return (
             <div 
               key={sc.id} 
-              className={`${styles.scorecardCard} ${isActive ? styles.active : ''}`}
-              onClick={() => onSelect(sc.id)}
+              className={styles.scorecardCard}
+              onClick={() => onBatchSelect(sc.id)}
             >
               <div className={styles.cardContent}>
                 <h3 className={styles.cardTitle}>{sc.name}</h3>
@@ -46,15 +37,20 @@ const MatchView = ({ scorecards, activeScorecardId, onSelect, onBatchSelect, onD
               </div>
               <div className={styles.cardActions}>
                 {sc.job && (
-                  <button onClick={() => onViewJob(sc.job)} className={styles.viewJobButton} title="Ver detalhes da vaga">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onViewJob(sc.job); }} 
+                    className={styles.viewJobButton} 
+                    title="Ver detalhes da vaga"
+                  >
                     Ver Vaga
                   </button>
                 )}
-                {onBatchSelect && (
-                  <button onClick={() => onBatchSelect(sc.id)} className={styles.batchButton}>
-                    <BsCollection /> Iniciar Fila
-                  </button>
-                )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onBatchSelect(sc.id); }} 
+                  className={styles.batchButton}
+                >
+                  <BsCollection /> Iniciar Fila
+                </button>
               </div>
             </div>
           );

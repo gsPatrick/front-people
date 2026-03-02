@@ -5,7 +5,6 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import styles from './Popup.module.css';
 import { loadAuthData, saveAuthData, clearAuthData } from '../services/session.service';
 import * as api from '../services/api.service';
-import { extractTextFromPdf } from '../services/pdf.service';
 
 // Hooks
 import { useApp } from '../hooks/useApp';
@@ -37,11 +36,9 @@ import UpdatePdfView from '../views/AddCandidate/UpdatePdfView';
 import ScorecardHubView from '../views/Scorecards/ScorecardHubView';
 import ScorecardEditView from '../views/Scorecards/ScorecardEditView';
 import MatchView from '../views/Match/MatchView';
-import MatchResultView from '../views/Match/MatchResultView';
 import BatchQueueView from '../views/Match/BatchQueueView';
 import CandidateListView from '../views/Manage/CandidateListView'; // IMPORTADO
 import EditJobView from '../views/Manage/EditJobView'; // NOVO
-import ExitMatchModeModal from '../components/Modals/ExitMatchModeModal';
 import ExtractedTextView from '../views/Shared/ExtractedTextView';
 import ProfileStatusNotification from '../components/Layout/ProfileStatusNotification';
 import { ToastProvider, useToast } from '../contexts/ToastContext';
@@ -61,13 +58,7 @@ const Popup = () => {
     const [availableAreas, setAvailableAreas] = useState([]); // NOVA
     const [jobCustomFields, setJobCustomFields] = useState([]); // NOVA
     const [scorecardFilters, setScorecardFilters] = useState({ term: '', ats: 'all' });
-    const [activeMatchScorecardId, setActiveMatchScorecardId] = useState(null);
-    const [matchResult, setMatchResult] = useState(null);
-    const [isScrapingForMatch, setIsScrapingForMatch] = useState(false);
-    const [currentScrapedProfile, setCurrentScrapedProfile] = useState(null);
-    const [isMatchProfileLocked, setIsMatchProfileLocked] = useState(false);
-    const [isExitModalVisible, setIsExitModalVisible] = useState(false);
-    const [navigationTarget, setNavigationTarget] = useState(null);
+
     const [isDraggingFile, setIsDraggingFile] = useState(false);
     const isLoadingRef = useRef(false);
 
@@ -203,20 +194,7 @@ const Popup = () => {
         }
     }, [batchQueue.queueState, view.name, view.state?.isSingleUpdate, view.state?.scorecardId, workflow]);
 
-    const handlePdfMatch = useCallback((pdfFile) => {
-        if (!activeMatchScorecardId) return;
-        executeAsync(async () => {
-            setIsScrapingForMatch(true); setMatchResult(null);
-            try {
-                const extractedText = await extractTextFromPdf(pdfFile);
-                if (!extractedText) throw new Error("Não foi possível extrair texto do PDF para o match.");
-                const jsonData = await api.processProfileFromText(extractedText);
-                if (!jsonData) throw new Error("A API de IA não retornou dados válidos para o match.");
-                const result = await api.analyzeProfileWithAI(activeMatchScorecardId, jsonData);
-                setMatchResult(result); setCurrentScrapedProfile(jsonData);
-            } finally { setIsScrapingForMatch(false); }
-        });
-    }, [executeAsync, activeMatchScorecardId]);
+
 
     const handleCaptureProfileVisual = useCallback(async () => {
         if (!currentTab || !currentTab.url || !currentTab.url.includes("linkedin.com/in/")) {
@@ -240,51 +218,39 @@ const Popup = () => {
             status: 'pending'
         };
 
-        // NOVO: Em vez de ir direto para a fila, vai para a seleção de scorecard
         navigateTo('match_select_scorecard', {
             mode: 'single_capture',
             captureTab: singleTab
         });
     }, [currentTab, navigateTo]);
 
-    const handleToggleLock = () => setIsMatchProfileLocked(p => !p);
-    const handleSelectMatchScorecard = useCallback((id) => {
-        const selectedScorecard = scorecardTemplates.find(sc => sc.id === id);
-        if (!selectedScorecard) return;
+    // Removido handleToggleLock
 
-        setActiveMatchScorecardId(id); 
-        setMatchResult(null); 
-        setCurrentScrapedProfile(null); 
-        setIsMatchProfileLocked(false);
-
-        if (view.state?.mode === 'single_capture') {
-            navigateTo('batch_queue', {
-                scorecardId: id,
-                jobId: selectedScorecard.jobId,
-                job: selectedScorecard.job,
-                mode: 'single_capture',
-                autoStartDirectUrl: view.state.captureTab.url
+    const handleSelectMatchScorecard = useCallback((scorecardId) => {
+        const sc = scorecardTemplates.find(s => s.id === scorecardId);
+        
+        // Se o scorecard já tem uma vaga vinculada, pula a seleção de vaga e vai direto para a fila
+        if (sc && sc.jobId) {
+            const job = { id: sc.jobId, name: sc.job?.name || sc.job?.title || 'Vaga Vinculada' };
+            
+            // Detecta abas do LinkedIn e vai para a fila
+            batchQueue.detectLinkedInTabs().then((tabs) => {
+                navigateTo('batch_queue', {
+                    scorecardId: scorecardId,
+                    jobId: sc.jobId,
+                    job: job,
+                    autoOpenSearch: tabs.length === 0 // Abre busca se não houver abas
+                });
             });
-            return;
+        } else {
+            // Se não tem vaga, vai para a seleção de vaga (comportamento legado para scorecards sem vínculo)
+            navigateTo('match_select_job_pre_queue', { scorecardId });
         }
+    }, [scorecardTemplates, navigateTo, batchQueue]);
 
-        goBack();
-    }, [view.state, navigateTo, goBack, scorecardTemplates]);
+    // handleStartBatchMode removido pois é redundante
 
-    // Handler para iniciar modo de fila em lote
-    const handleStartBatchMode = useCallback(async (scorecardId) => {
-        const selectedScorecard = scorecardTemplates.find(sc => sc.id === scorecardId);
-        if (!selectedScorecard) return;
-
-        await batchQueue.detectLinkedInTabs();
-        navigateTo('batch_queue', { 
-            scorecardId,
-            jobId: selectedScorecard.jobId,
-            job: selectedScorecard.job
-        });
-    }, [navigateTo, scorecardTemplates, batchQueue]);
-
-    useEffect(() => { if (activeMatchScorecardId && view.name !== 'match_hub') navigateTo('match_hub'); }, [activeMatchScorecardId, navigateTo, view.name]);
+    // Removido useEffect que redirecionava para match_hub (página que não existe mais)
 
     useEffect(() => {
         const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer.types?.includes('Files')) setIsDraggingFile(true); };
@@ -298,7 +264,6 @@ const Popup = () => {
             e.preventDefault();
             e.stopPropagation();
             setIsDraggingFile(false);
-            if (isMatchProfileLocked) return;
 
             const file = e.dataTransfer.files[0];
             if (file?.type !== 'application/pdf') {
@@ -306,15 +271,9 @@ const Popup = () => {
                 return;
             }
 
-            // Lógica condicional:
-            if (activeMatchScorecardId) {
-                // Se o modo Match estiver ativo, chama a função de match.
-                handlePdfMatch(file);
-            } else if (view.name === 'update_pdf') {
-                // Se estivermos na tela de atualização, chama a função de ATUALIZAÇÃO.
+            if (view.name === 'update_pdf') {
                 workflow.handlePdfUpdate(file);
             } else {
-                // Caso contrário, usa a função padrão de CRIAÇÃO.
                 workflow.handlePdfUpload(file);
             }
         };
@@ -329,7 +288,7 @@ const Popup = () => {
             document.body.removeEventListener('dragover', handleDragOver);
             document.body.removeEventListener('drop', handleDrop);
         };
-    }, [workflow, handlePdfMatch, activeMatchScorecardId, isMatchProfileLocked, view.name]); // Adicionado view.name às dependências
+    }, [workflow, view.name, isDraggingFile]); // Adicionado isDraggingFile
 
     useEffect(() => {
         const checkAuthAndInit = async () => {
@@ -365,23 +324,12 @@ const Popup = () => {
     const handleLogout = async () => { await clearAuthData(); window.location.reload(); };
 
     const handleLayoutNavigate = (newViewName) => {
-        if (activeMatchScorecardId && newViewName !== 'match_hub') {
-            setNavigationTarget(newViewName); setIsExitModalVisible(true);
-            return;
-        }
-        if (newViewName === 'match_hub' && !activeMatchScorecardId) navigateTo('match_select_scorecard');
+        if (newViewName === 'match_hub') navigateTo('match_select_scorecard');
         else navigateTo(newViewName);
     };
-    const handleConfirmExitMatch = () => {
-        setActiveMatchScorecardId(null); setMatchResult(null); setCurrentScrapedProfile(null); setIsMatchProfileLocked(false);
-        if (navigationTarget) navigateTo(navigationTarget);
-        setIsExitModalVisible(false); setNavigationTarget(null);
-    };
-    const handleCancelExitMatch = () => { setIsExitModalVisible(false); setNavigationTarget(null); };
-    const handleChangeMatchScorecard = () => {
-        setActiveMatchScorecardId(null); setMatchResult(null); setCurrentScrapedProfile(null); setIsMatchProfileLocked(false);
-        navigateTo('match_select_scorecard');
-    };
+    
+    // handleConfirmExitMatch e handleCancelExitMatch removidos
+    // handleChangeMatchScorecard removido pois era usado na MatchResultView
 
     const handleSaveScorecard = (scorecardData) => executeAsync(async () => {
         if (scorecardData.id) {
@@ -449,13 +397,9 @@ const Popup = () => {
             onDeleteJob={handleDeleteJob}
         />; break;
         case 'talent_profile': contentToRender = <TalentProfileView talent={workflow.currentTalent} onBack={goBack} onEditTalent={workflow.handleEditTalentInfo} onDeleteTalent={workflow.handleDeleteTalent} onAddNewApplication={() => navigateTo('select_job_contextual_for_talent')} onDeleteApplication={workflow.handleRemoveApplicationForTalent} />; break;
-        case 'match_hub': contentToRender = <MatchResultView activeScorecard={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)} matchResult={matchResult} isLoading={isScrapingForMatch} isLocked={isMatchProfileLocked} onToggleLock={handleToggleLock} onAddTalent={() => { if (!currentScrapedProfile) return; workflow.setProfileContext({ exists: false, profileData: currentScrapedProfile, talent: null }); navigateTo('select_job_for_new_talent'); }} onChangeScorecard={handleChangeMatchScorecard} />; break;
         case 'match_select_scorecard': contentToRender = <MatchView 
             scorecards={scorecardTemplates} 
-            activeScorecardId={activeMatchScorecardId} 
-            onSelect={handleSelectMatchScorecard} 
-            onBatchSelect={handleStartBatchMode} 
-            onDeactivate={() => setActiveMatchScorecardId(null)} 
+            onBatchSelect={handleSelectMatchScorecard} 
             onGoToHub={() => navigateTo('scorecard_hub')} 
             onViewJob={(job) => {
                 workflow.handleSelectJobForDetails(job);
@@ -519,11 +463,13 @@ const Popup = () => {
                     });
                 } else {
                     // Fluxo de Fila em Lote padrão: detecta todas as abas abertas
-                    await batchQueue.detectLinkedInTabs();
-                    navigateTo('batch_queue', {
-                        scorecardId: view.state.scorecardId,
-                        jobId: job.id,
-                        job: job
+                    batchQueue.detectLinkedInTabs().then((tabs) => {
+                        navigateTo('batch_queue', {
+                            scorecardId: view.state.scorecardId,
+                            jobId: job.id,
+                            job: job,
+                            autoOpenSearch: tabs.length === 0
+                        });
                     });
                 }
             }}
@@ -712,10 +658,10 @@ const Popup = () => {
                     onNavigate={handleLayoutNavigate}
                     isSidebarCollapsed={!isSidebarOpen}
                     onToggleSidebar={() => setIsSidebarOpen(p => !p)}
-                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')) } } : null}
+                    onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')); window.close(); } } : null}
                     onCaptureProfile={handleCaptureProfileVisual}
                     onLogout={handleLogout}
-                    activeMatchScorecardName={scorecardTemplates.find(sc => sc.id === activeMatchScorecardId)?.name}
+
                 >
                     <ProfileStatusNotification
                         status={validationResult}
@@ -726,7 +672,7 @@ const Popup = () => {
             ) : contentToRender}
 
 
-            <ExitMatchModeModal isOpen={isExitModalVisible} onConfirm={handleConfirmExitMatch} onCancel={handleCancelExitMatch} />
+
             {isDraggingFile && <div className={styles.dragOverlay}>Solte o PDF aqui</div>}
         </div>
     );

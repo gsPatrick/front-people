@@ -309,7 +309,14 @@ export const useBatchQueue = () => {
         let searchTab = null;
         let collectedUrls = new Set();
         try {
-            searchTab = await chrome.tabs.create({ url: searchUrl, active: true });
+            // Tenta encontrar uma aba já aberta com a URL de busca para evitar duplicatas
+            const existingTabs = await new Promise(r => chrome.tabs.query({ url: searchUrl }, r));
+            if (existingTabs && existingTabs.length > 0) {
+                searchTab = existingTabs[0];
+                await chrome.tabs.update(searchTab.id, { active: true });
+            } else {
+                searchTab = await chrome.tabs.create({ url: searchUrl, active: true });
+            }
             while (collectedUrls.size < targetCount) {
                 await new Promise(r => setTimeout(r, 6000));
                 await chrome.scripting.executeScript({ target: { tabId: searchTab.id }, files: ['scripts/linkedin_search_scraper.js'] });

@@ -1,6 +1,6 @@
 // ARQUIVO COMPLETO E CORRIGIDO: src/views/Scorecards/ScorecardHubView.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styles from './ScorecardHubView.module.css';
 import Header from '../../components/Header/Header';
 import { BsSearch, BsPuzzle, BsPencilFill, BsTrashFill, BsChevronDown, BsChevronUp, BsEye, BsEyeSlash } from 'react-icons/bs';
@@ -9,16 +9,7 @@ const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onSync, onFi
   // Estado para controlar quais cards estão expandidos
   // Por padrão, todos começam expandidos (User Request)
   const [expandedIds, setExpandedIds] = useState(new Set());
-  const [isAllExpanded, setIsAllExpanded] = useState(true);
-
-  // Inicializa expandindo tudo quando os scorecards mudam
-  useEffect(() => {
-    if (scorecards.length > 0) {
-      const allIds = new Set(scorecards.map(sc => sc.id));
-      setExpandedIds(allIds);
-      setIsAllExpanded(true);
-    }
-  }, [scorecards]);
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   // Toggle Global
   const toggleGlobalExpand = () => {
@@ -101,7 +92,16 @@ const ScorecardHubView = ({ scorecards, onAddNew, onEdit, onDelete, onSync, onFi
                         {sc.atsIntegration === 'inhire' ? 'InHire' : 'Local'}
                       </span>
                       {sc.syncStatus && (
-                        <span className={`${styles.syncTag} ${styles[sc.syncStatus.toLowerCase()]}`} title={`Status: ${sc.syncStatus}`}>
+                        <span 
+                          className={`${styles.syncTag} ${styles[sc.syncStatus.toLowerCase()]}`} 
+                          title={
+                            sc.syncStatus === 'SYNCHRONIZED' 
+                              ? 'Este modelo está totalmente sincronizado com a vaga no InHire.' 
+                              : sc.syncStatus === 'PENDING' 
+                                ? 'Existem alterações locais que ainda não foram enviadas para o InHire.' 
+                                : 'Houve um erro na última tentativa de sincronização.'
+                          }
+                        >
                           {sc.syncStatus === 'SYNCHRONIZED' ? 'Sincronizado' : sc.syncStatus === 'PENDING' ? 'Pendente' : 'Falha'}
                         </span>
                       )}

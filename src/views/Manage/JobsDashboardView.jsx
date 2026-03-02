@@ -60,15 +60,19 @@ const JobsDashboardView = ({
       {!isSelectionMode && (
         <div className={styles.filtersBar}>
           <div className={styles.statusFilters}>
-            {JOB_STATUSES.map(status => (
               <button
                 key={status.value}
                 className={`${styles.filterButton} ${activeStatusFilter === status.value ? styles.active : ''}`}
                 onClick={() => onFilterChange(status.value)}
+                title={
+                  status.value === 'open' ? 'Vagas ativas e recebendo novos candidatos.' :
+                  status.value === 'paused' ? 'Vagas temporariamente paradas. Candidatos existentes continuam, mas novos não são priorizados.' :
+                  status.value === 'closed' ? 'Processo seletivo finalizado com sucesso.' :
+                  'Vaga cancelada e interrompida sem preenchimento.'
+                }
               >
                 {status.label}
               </button>
-            ))}
           </div>
           <div className={styles.actionButtons}>
             <button
@@ -91,9 +95,9 @@ const JobsDashboardView = ({
                     <span className={styles.jobName}>{job.name}</span>
                     <div className={styles.sourceBadges}>
                       {job.source === 'INHIRE' ? (
-                        <span className={`${styles.sourceBadge} ${styles.sourceCloud}`} title="Sincronizada do InHire">InHire</span>
+                        <span className={`${styles.sourceBadge} ${styles.sourceCloud}`} title="Esta vaga foi importada do InHire e está sincronizada com a plataforma externa.">InHire</span>
                       ) : (
-                        <span className={`${styles.sourceBadge} ${styles.sourceLocal}`} title="Vaga Local">Local</span>
+                        <span className={`${styles.sourceBadge} ${styles.sourceLocal}`} title="Esta é uma vaga criada localmente no PeopleAi.">Local</span>
                       )}
                     </div>
                     <div className={styles.jobActionsRow}>
@@ -101,7 +105,7 @@ const JobsDashboardView = ({
                         <button 
                           className={styles.syncButton}
                           onClick={(e) => handleSyncClick(e, job)}
-                          title="Sincronizar com InHire"
+                          title="Enviar esta vaga e seus candidatos para a plataforma InHire."
                         >
                           <MdSync /> Sincronizar
                         </button>
