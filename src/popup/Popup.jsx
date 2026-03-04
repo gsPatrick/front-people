@@ -10,7 +10,6 @@ import * as api from '../services/api.service';
 import { useApp } from '../hooks/useApp';
 import { useNavigation } from '../hooks/useNavigation';
 import { useJobs } from '../hooks/useJobs';
-import { useTalents } from '../hooks/useTalents';
 import { useWorkflow } from '../hooks/useWorkflow';
 import { useScorecard } from '../hooks/useScorecard';
 import { useBatchQueue } from '../hooks/useBatchQueue';
@@ -21,7 +20,6 @@ import WelcomeView from '../views/Auth/WelcomeView';
 import AdminDashboardView from '../views/Admin/AdminDashboardView';
 import Layout from '../components/Layout/Layout';
 import JobsDashboardView from '../views/Manage/JobsDashboardView';
-import TalentsDashboardView from '../views/Manage/TalentsDashboardView';
 import JobDetailsView from '../views/Manage/JobDetailsView';
 import JobScorecardView from '../views/Manage/JobScorecardView';
 import CandidateDetailView from '../views/Manage/CandidateDetailView';
@@ -52,7 +50,6 @@ const Popup = () => {
     const [showWelcome, setShowWelcome] = useState(false);
     const [isGlobalLoading, setIsGlobalLoading] = useState(true);
     const [globalError, setGlobalError] = useState(null);
-    const [isPagingLoading, setIsPagingLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [jobStatusFilter, setJobStatusFilter] = useState('open');
     const [scorecardTemplates, setScorecardTemplates] = useState([]);
@@ -63,16 +60,16 @@ const Popup = () => {
     const [isDraggingFile, setIsDraggingFile] = useState(false);
     const isLoadingRef = useRef(false);
 
-    const executeAsync = useCallback(async (asyncFunction, isPaging = false) => {
+    const executeAsync = useCallback(async (asyncFunction) => {
         if (isLoadingRef.current) return;
         isLoadingRef.current = true;
         setGlobalError(null);
-        isPaging ? setIsPagingLoading(true) : setIsGlobalLoading(true);
+        setIsGlobalLoading(true);
         try { await asyncFunction(); } catch (err) {
             if (err.status === 401 || err.status === 403) { await clearAuthData(); window.location.reload(); }
             else { setGlobalError(err.message || 'Ocorreu um erro inesperado.'); }
         } finally {
-            isLoadingRef.current = false; setIsGlobalLoading(false); setIsPagingLoading(false);
+            isLoadingRef.current = false; setIsGlobalLoading(false);
         }
     }, []);
 
@@ -99,7 +96,6 @@ const Popup = () => {
     }, [validationResult, workflow]); 
 
     const { jobsData, fetchAndSetJobs, handleJobsPageChange, handleDeleteJob } = useJobs(executeAsync);
-    const { talentsData, filters, setFilters, handleTalentsPageChange } = useTalents(executeAsync, view);
     const { addToast, removeToast } = useToast() || {}; // Hook at top level
 
     const scorecard = useScorecard({
@@ -406,9 +402,9 @@ const Popup = () => {
                 workflow.handleSelectJobForDetails(job);
             }}
         />; break;
-        case 'dashboard_talents': contentToRender = <TalentsDashboardView talentsData={talentsData} onSelectTalent={workflow.handleSelectTalentForDetails} handleTalentsPageChange={handleTalentsPageChange} filters={filters} onFilterChange={setFilters} isPagingLoading={isPagingLoading} />; break;
+        case 'dashboard_talents': contentToRender = <CandidateListView onSelectCandidate={(talent) => workflow.handleSelectTalentForDetails(talent)} onBack={() => navigateTo('dashboard_jobs')} onAddFromMatch={() => navigateTo('match_select_scorecard')} />; break;
         case 'job_details': contentToRender = <JobDetailsView job={workflow.currentJob} candidates={workflow.currentCandidates} onBack={goBack} onUpdateApplicationStatus={workflow.handleUpdateApplicationStatus} onSelectCandidateForDetails={workflow.handleSelectCandidateForDetails} availableStages={workflow.currentJobStages} onEditJob={() => workflow.handleEditJob(workflow.currentJob)} onViewScorecard={(job) => navigateTo('job_scorecard', { job })} />; break;
-        case 'job_scorecard': contentToRender = <JobScorecardView job={view.state?.job || workflow.currentJob} onBack={goBack} onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} />; break;
+        case 'job_scorecard': contentToRender = <JobScorecardView job={view.state?.job || workflow.currentJob} onBack={goBack} onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} onStartMatch={(scorecardId, job) => batchQueue.detectLinkedInTabs().then((tabs) => navigateTo('batch_queue', { scorecardId, jobId: job.id, job, autoOpenSearch: tabs.length === 0 }))} />; break;
         case 'candidate_details': contentToRender = <CandidateDetailView candidate={workflow.currentTalent} job={workflow.currentJob} onBack={goBack} onUpdateStage={workflow.handleUpdateApplicationStatus} stages={workflow.currentJobStages} onGoToEdit={() => navigateTo('edit_candidate')} applicationCustomFields={workflow.applicationCustomFields} interviewKits={workflow.currentInterviewKits} initialState={view.state} scorecardSummary={scorecard.scorecardData?.content} scorecardHooks={scorecard} onUpdateRequest={workflow.handleRequestProfileUpdate} onSaveScorecardAsTemplate={handleSaveScorecardAsTemplate}
             onBatchAnalyse={(url, scorecardId) => {
                 // Navega para a fila passando o contexto da vaga atual para o auto-save funcionar
@@ -568,7 +564,7 @@ const Popup = () => {
                 console.warn("Cannot save rejected profile: No job context.");
                 if (addToast && toastId) removeToast(toastId);
             }
-        }} onGoBack={() => navigateTo('match_select_scorecard')}
+        }} onGoBack={goBack}
             onAutoSource={batchQueue.sourceProfilesFromSearch}
             onResetQueue={batchQueue.resetQueue}
             navigationState={view.state}
@@ -633,20 +629,16 @@ const Popup = () => {
         />; break;
 
         // NOVA ROTA: Selecionar Talento para Vaga (Inverso de Vaga para Talento)
-        case 'select_talent_for_job': contentToRender = <TalentsDashboardView
-            isSelectionMode={true}
-            talentsData={talentsData}
-            onSelectTalent={async (talent) => {
+        case 'select_talent_for_job': contentToRender = <CandidateListView
+            jobId={view.state?.jobId}
+            onSelectCandidate={async (talent) => {
                 if (view.state?.jobId) {
                     await workflow.handleApplyTalentToJob(view.state.jobId, talent.id);
                     goBack(); // Volta para a lista de candidatos
                 }
             }}
-            onCancel={goBack}
-            handleTalentsPageChange={handleTalentsPageChange}
-            filters={filters}
-            onFilterChange={setFilters}
-            isPagingLoading={isPagingLoading}
+            onBack={goBack}
+            onAddFromMatch={() => navigateTo('match_select_scorecard')}
         />; break;
 
         default: contentToRender = <LoadingView />;

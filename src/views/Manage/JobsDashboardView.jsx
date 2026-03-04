@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './JobsDashboardView.module.css';
 import Header from '../../components/Header/Header';
-import { MdSync, MdSyncProblem, MdCheckCircle, MdEdit } from 'react-icons/md';
+import { MdSync, MdEdit, MdDelete } from 'react-icons/md';
 
 // Ícones
 const UsersIcon = () => (<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
@@ -97,9 +97,9 @@ const JobsDashboardView = ({
                     <span className={styles.jobName}>{job.name || job.title}</span>
                     <div className={styles.sourceBadges}>
                       {job.source === 'INHIRE' ? (
-                        <span className={`${styles.sourceBadge} ${styles.sourceCloud}`} title="Esta vaga foi importada do InHire e está sincronizada com a plataforma externa.">InHire</span>
+                        <span className={`${styles.sourceBadge} ${styles.sourceCloud}`} title="Vaga InHire">inhire</span>
                       ) : (
-                        <span className={`${styles.sourceBadge} ${styles.sourceLocal}`} title="Esta é uma vaga criada localmente no PeopleAi.">Local</span>
+                        <span className={`${styles.sourceBadge} ${styles.sourceLocal}`} title="Vaga criada localmente">Ana Issidoro</span>
                       )}
                     </div>
                     <div className={styles.jobActionsRow}>
@@ -107,11 +107,11 @@ const JobsDashboardView = ({
                         <div 
                           className={styles.syncButton}
                           onClick={(e) => handleSyncClick(e, job)}
-                          title="Enviar esta vaga e seus candidatos para a plataforma InHire."
+                          title="Sincronizar com InHire"
                           role="button"
                           tabIndex={0}
                         >
-                          <MdSync /> Sincronizar
+                          <MdSync size={16} />
                         </div>
                       )}
                       <div 
@@ -121,7 +121,7 @@ const JobsDashboardView = ({
                         role="button"
                         tabIndex={0}
                       >
-                        <MdEdit /> Editar
+                        <MdEdit size={16} />
                       </div>
                       {job.source === 'LOCAL' && (
                         <div 
@@ -131,7 +131,7 @@ const JobsDashboardView = ({
                           role="button"
                           tabIndex={0}
                         >
-                          Excluir
+                          <MdDelete size={16} />
                         </div>
                       )}
                     </div>

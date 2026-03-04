@@ -1,0 +1,169 @@
+/* src/components/TalentHistory/HistoricalScorecard.module.css */
+.scorecardContainer {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.scorecardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.jobTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.date {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.scoreBadge {
+  display: flex;
+  align-items: baseline;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background-color: #fce7f3; /* Default light pink */
+  color: #db2777;
+}
+
+.scoreBadge[data-score^="8"], .scoreBadge[data-score^="9"], .scoreBadge[data-score="100"] {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+.scoreBadge[data-score^="6"], .scoreBadge[data-score^="7"] {
+  background-color: #fef9c3;
+  color: #ca8a04;
+}
+
+.scoreValue {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.scoreMax {
+  font-size: 12px;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+.essentialAlert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.category {
+  margin-bottom: 24px;
+}
+
+.categoryName {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.criterionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.criterionInfo {
+  flex-grow: 1;
+}
+
+.criterionName {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--text-primary);
+  display: block;
+}
+
+.priorityBadge, .essentialBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+
+.priorityBadge {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.essentialBadge {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.justification {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.justification svg {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.ratingBar {
+  flex-shrink: 0;
+  width: 120px;
+  height: 8px;
+  background-color: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-left: 16px;
+  position: relative;
+  overflow: visible;
+}
+
+.ratingFill {
+  height: 100%;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 4px;
+}
+
+.scoreText {
+  position: absolute;
+  right: -35px;
+  top: -5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}

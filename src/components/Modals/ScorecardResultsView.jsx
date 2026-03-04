@@ -55,8 +55,8 @@ const ScorecardResultsView = ({ results, onClose, onEdit }) => {
                                                 {category.skills.map(skill => (
                                                     <li key={skill.name}>
                                                         <span>{skill.name}</span>
-                                                        <div className={styles.ratingBar} title={`Nota: ${skill.score || 'N/A'}`}>
-                                                            <div className={styles.ratingFill} style={{ width: `${(skill.score || 0) * 20}%` }}></div>
+                                                        <div className={styles.ratingBar} title={`Nota: ${skill.score || '0'}/100`}>
+                                                            <div className={styles.ratingFill} style={{ width: `${skill.score || 0}%` }}></div>
                                                         </div>
                                                         <IoIosInformationCircleOutline title={skill.description || 'Sem descrição'} />
                                                     </li>

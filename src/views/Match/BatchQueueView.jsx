@@ -17,6 +17,9 @@ import {
     BsInfoCircleFill,
     BsTrashFill
 } from 'react-icons/bs';
+import { FaRobot, FaExclamationTriangle } from 'react-icons/fa';
+import EssentialFailureModal from '../../components/Modals/EssentialFailureModal';
+import * as api from '../../services/api.service';
 
 // Componente Interno de Estrelas (Profissional)
 const StarRating = ({ score, maxScore = 5 }) => {
@@ -82,6 +85,28 @@ const BatchQueueView = ({
 
     // Modal de Erro
     const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '' });
+    const [essentialModalOpen, setEssentialModalOpen] = useState(false);
+    const [currentEssentialProfile, setCurrentEssentialProfile] = useState(null);
+
+    const handleReconsider = async (profile, feedback) => {
+        if (feedback) {
+            try {
+                await api.createAIMemory({
+                    term: `Reconsideração: ${profile.essentialTag || 'Geral'}`,
+                    definition: `Candidato ${profile.name} foi reconsiderado apesar de falhar no critério essencial. Motivo: ${feedback}`
+                });
+            } catch (err) {
+                console.error("Erro ao salvar feedback da IA:", err);
+            }
+        }
+        setEssentialModalOpen(false);
+        handleDecision(profile, 'accept');
+    };
+
+    const handleRejectEssential = (profile) => {
+        setEssentialModalOpen(false);
+        handleDecision(profile, 'reject');
+    };
 
     // Perfis Analisados (para exibição na fila)
     const statusItems = useMemo(() => {
@@ -469,14 +494,19 @@ const BatchQueueView = ({
                     return (
                         <div
                             key={idx}
-                            className={`${styles.tableRow} ${isProcessed ? styles.dimmed : ''} ${profile.error ? styles.errorRow : ''}`}
+                            className={`${styles.tableRow} ${isProcessed ? styles.dimmed : ''} ${profile.error ? styles.errorRow : ''} ${profile.essentialFailed ? styles.essentialRow : ''}`}
                             onClick={() => {
                                 if (!profile.error) {
-                                    setSelectedProfile(profile);
-                                    if (profile.url) {
-                                        window.open(profile.url, '_blank');
-                                    } else if (profile.username) {
-                                        window.open(`https://www.linkedin.com/in/${profile.username}`, '_blank');
+                                    if (profile.essentialFailed && !isProcessed) {
+                                        setCurrentEssentialProfile(profile);
+                                        setEssentialModalOpen(true);
+                                    } else {
+                                        setSelectedProfile(profile);
+                                        if (profile.url) {
+                                            window.open(profile.url, '_blank');
+                                        } else if (profile.username) {
+                                            window.open(`https://www.linkedin.com/in/${profile.username}`, '_blank');
+                                        }
                                     }
                                 }
                             }}
@@ -494,7 +524,14 @@ const BatchQueueView = ({
                                         </span>
                                     </div>
                                     <div className={styles.infoColumn}>
-                                        <span className={styles.rowName}>{profile.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <span className={styles.rowName}>{profile.name}</span>
+                                            {profile.essentialFailed && (
+                                                <span className={styles.essentialTag}>
+                                                    {profile.essentialTag || 'Imprescindível'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className={styles.rowHeadline}>{profile.headline}</span>
                                     </div>
                                     <div className={styles.actionsColumn}>
@@ -556,6 +593,13 @@ const BatchQueueView = ({
                     Limpar Fila e Voltar
                 </button>
             </div>
+            <EssentialFailureModal
+                isOpen={essentialModalOpen}
+                onClose={() => setEssentialModalOpen(false)}
+                profile={currentEssentialProfile}
+                onReconsider={handleReconsider}
+                onReject={handleRejectEssential}
+            />
         </div>
     );
 };

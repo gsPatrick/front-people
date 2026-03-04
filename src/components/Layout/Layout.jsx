@@ -15,12 +15,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
       displayLabel: <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', alignItems: 'flex-start', paddingTop: '2px', paddingBottom: '2px' }}><span>Banco</span><span>de Talentos</span></div>,
       icon: <IoPeopleSharp />
     },
-    {
-      id: 'match_hub',
-      label: 'Match',
-      icon: <BsBullseye />
-    },
-    { id: 'settings', label: 'Configurações', icon: <IoSettingsSharp /> },
+    { id: 'settings', label: 'Configurações', icon: <IoSettingsSharp /> }
   ];
 
   return (

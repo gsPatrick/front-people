@@ -11,11 +11,43 @@
 /* Controls Bar */
 .controlsBar {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 16px;
     padding: 16px 24px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
+}
+
+.filterGroup {
+    display: flex;
+    gap: 12px;
+    align-items: center;
     flex-wrap: wrap;
+}
+
+.dateFilter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-tertiary);
+    padding: 2px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.dateInput {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 8px 0;
+    outline: none;
+    cursor: pointer;
+}
+
+.dateDivider {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 .searchWrapper {
@@ -152,7 +184,32 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+}
+
+.nameRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.matchBadge {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.jobInfo {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: var(--accent-primary);
+    font-weight: 500;
+    margin-top: 4px;
 }
 
 .cardActions {

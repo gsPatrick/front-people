@@ -39,7 +39,8 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
   const isCreatingFromTemplate = initialData && !initialData.id;
   
   const initialName = isCreatingFromTemplate ? `Cópia de ${initialData.name}` : initialData?.name || '';
-  const initialCategories = initialData?.categories?.map(cat => ({
+  const rawCategories = initialData?.categories || initialData?.skillCategories;
+  const initialCategories = rawCategories?.map(cat => ({
       name: cat.name,
       criteria: (cat.criteria || cat.skills || [{ name: '' }]).map(c => ({
         name: c.name || '',
@@ -134,33 +135,37 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Desenvolvedor(a) Sênior" />
           </div>
 
-          <div className={styles.inputGroup}>
-            <label>Vaga Vinculada *</label>
-            <select 
-              value={selectedJobId} 
-              onChange={(e) => setSelectedJobId(e.target.value)}
-              className={styles.jobSelect}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-            >
-              <option value="">Selecione uma vaga...</option>
-              {(jobs || []).map(j => (
-                <option key={j.id} value={j.id}>{j.name || j.title}</option>
-              ))}
-            </select>
-          </div>
+          {!isEditing && (
+            <>
+              <div className={styles.inputGroup}>
+                <label>Vaga Vinculada *</label>
+                <select 
+                  value={selectedJobId} 
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                  className={styles.jobSelect}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                >
+                  <option value="">Selecione uma vaga...</option>
+                  {(jobs || []).map(j => (
+                    <option key={j.id} value={j.id}>{j.name || j.title}</option>
+                  ))}
+                </select>
+              </div>
 
-          <div className={styles.syncOptionRow} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
-            <input 
-              type="checkbox" 
-              id="syncNow" 
-              checked={syncNow} 
-              onChange={(e) => setSyncNow(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-            />
-            <label htmlFor="syncNow" style={{ cursor: 'pointer', fontSize: '14px', color: 'var(--accent-primary)', fontWeight: '500' }}>
-              Sincronizar com InHire após salvar
-            </label>
-          </div>
+              <div className={styles.syncOptionRow} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+                <input 
+                  type="checkbox" 
+                  id="syncNow" 
+                  checked={syncNow} 
+                  onChange={(e) => setSyncNow(e.target.checked)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <label htmlFor="syncNow" style={{ cursor: 'pointer', fontSize: '14px', color: 'var(--accent-primary)', fontWeight: '500' }}>
+                  Sincronizar com InHire após salvar
+                </label>
+              </div>
+            </>
+          )}
         </div>
 
         <div className={styles.structureBuilder}>

@@ -258,6 +258,15 @@ export const updateTalentStatus = async (talentId, status) => {
   }
 };
 
+export const addTalentToJob = async (talentId, jobId) => {
+  try {
+    const response = await apiClient.post(`/talents/${talentId}/add-to-job`, { jobId });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const deleteTalent = async (talentId) => {
   try {
     await apiClient.delete(`/talents/${talentId}`);

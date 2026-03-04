@@ -10,6 +10,19 @@ const TalentMatchDisplay = ({ matchData }) => {
 
     return (
         <div className={styles.resultsContainer} style={{ animation: 'none', padding: '0' }}>
+            {result.essentialFailed && (
+                <div className={styles.essentialAlert}>
+                    <div className={styles.alertHeader}>
+                        <span className={styles.alertIcon}>⚠️</span>
+                        <span className={styles.alertTitle}>Reprovado em Critério Imprescindível</span>
+                    </div>
+                    <div className={styles.alertContent}>
+                        O candidato não atende ao requisito: <strong>{result.essentialCriterion} ({result.essentialTag})</strong>.
+                        <p className={styles.alertJustification}>{result.essentialJustification}</p>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.summaryHeader} style={{ marginBottom: '16px', paddingBottom: '16px' }}>
                 <div className={styles.overallScoreWrapper}>
                     <span className={styles.overallScore}>{overallScore}%</span>
@@ -50,8 +63,13 @@ const TalentMatchDisplay = ({ matchData }) => {
                             {(category.criteria || []).map((criterion, cIdx) => (
                                 <div key={cIdx} className={styles.criterionItem}>
                                     <div className={styles.criterionMain}>
-                                        <span className={styles.criterionScore}>{criterion.score}/5</span>
-                                        <span className={styles.criterionName}>{criterion.name}</span>
+                                        <div className={styles.criterionHeader}>
+                                            <span className={styles.criterionScore}>{criterion.score}%</span>
+                                            <span className={styles.criterionName}>{criterion.name}</span>
+                                            {criterion.weightType === 'priority' && <span className={styles.priorityBadge}>2x</span>}
+                                            {criterion.weightType === 'essential' && <span className={styles.essentialBadge}>Imprescindível</span>}
+                                        </div>
+                                        {criterion.tag && <span className={styles.criterionTag}>TAG: {criterion.tag}</span>}
                                     </div>
                                     <p className={styles.criterionJustification}>{criterion.justification}</p>
                                 </div>

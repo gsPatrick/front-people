@@ -1,24 +1,42 @@
 // CandidateListView.jsx - Layout Moderno e Minimalista
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './CandidateListView.module.css';
 import * as api from '../../services/api.service';
 import Header from '../../components/Header/Header';
 
-const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFromMatch, onReconsider, jobId }) => {
+const CandidateListView = ({ onSelectCandidate, onBack, onAddFromMatch, onReconsider, jobId }) => {
     const [talents, setTalents] = useState([]);
+    const [jobs, setJobs] = useState([]); // Nova lista de vagas para o filtro
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState(jobId ? 'ACTIVE' : 'ALL'); // Status da candidatura/perfil
+    const [selectedJobId, setSelectedJobId] = useState(jobId || ''); // JobID selecionado no filtro
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
 
-    useEffect(() => {
-        loadTalents();
-    }, [jobId]);
+    const loadJobs = useCallback(async () => {
+        try {
+            const result = await api.fetchJobsPaginated(1, 100, 'all');
+            if (result && result.jobs) {
+                setJobs(result.jobs);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar vagas:", error);
+        }
+    }, []);
 
-    const loadTalents = async () => {
+    const loadTalents = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await api.fetchAllTalents(1, 100, { jobId });
+            const filters = {
+                jobId: selectedJobId,
+                status: filterStatus !== 'ALL' ? filterStatus : undefined,
+                startDate,
+                endDate,
+                searchTerm
+            };
+            const result = await api.fetchAllTalents(1, 100, filters);
             if (result.success && result.data) {
                 setTalents(result.data.talents);
             }
@@ -27,7 +45,15 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedJobId, filterStatus, startDate, endDate, searchTerm]);
+
+    useEffect(() => {
+        loadJobs();
+    }, [loadJobs]);
+
+    useEffect(() => {
+        loadTalents();
+    }, [loadTalents]);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -42,23 +68,7 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
         }
     };
 
-    const filteredTalents = useMemo(() => {
-        return talents.filter(t => {
-            let matchStatus = true;
-            if (filterStatus === 'REJECTED') matchStatus = t.status === 'REJECTED';
-            else if (filterStatus === 'ACTIVE') matchStatus = (t.status === 'ACTIVE' || t.status === 'NEW' || !t.status);
-
-            if (!matchStatus) return false;
-
-            if (!searchTerm) return true;
-            const term = searchTerm.toLowerCase();
-            return (
-                t.name?.toLowerCase().includes(term) ||
-                t.headline?.toLowerCase().includes(term) ||
-                t.linkedinUsername?.toLowerCase().includes(term)
-            );
-        });
-    }, [talents, filterStatus, searchTerm]);
+    const filteredTalents = Array.isArray(talents) ? talents : [];
 
     const handleRowClick = (talent) => {
         onSelectCandidate(talent);
@@ -88,15 +98,50 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                     />
                 </div>
 
-                <select
-                    className={styles.filterSelect}
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                    <option value="ALL">Todos os Perfis</option>
-                    <option value="ACTIVE">Apenas Ativos</option>
-                    <option value="REJECTED">Rejeitados</option>
-                </select>
+                <div className={styles.filterGroup}>
+                    <select
+                        className={styles.filterSelect}
+                        value={selectedJobId}
+                        onChange={(e) => setSelectedJobId(e.target.value)}
+                    >
+                        <option value="">Todas as Vagas</option>
+                        {jobs.map(j => (
+                            <option key={j.id} value={j.id}>{j.title || j.name}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        className={styles.filterSelect}
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="ALL">Status (Todos)</option>
+                        <option value="Applied">Novo</option>
+                        <option value="Screened">Triagem</option>
+                        <option value="Interview">Entrevista</option>
+                        <option value="Offered">Proposta</option>
+                        <option value="Hired">Contratado</option>
+                        <option value="REJECTED">Rejeitado</option>
+                    </select>
+
+                    <div className={styles.dateFilter}>
+                        <input 
+                            type="date" 
+                            className={styles.dateInput}
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            title="De"
+                        />
+                        <span className={styles.dateDivider}>atê</span>
+                        <input 
+                            type="date" 
+                            className={styles.dateInput}
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            title="Até"
+                        />
+                    </div>
+                </div>
 
                 <button
                     className={styles.addButton}
@@ -118,7 +163,9 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                     </div>
                 ) : (
                     filteredTalents.map(talent => {
-                        const statusInfo = getStatusStyle(talent.status);
+                        const status = talent.lastStatus || talent.status;
+                        const statusInfo = getStatusStyle(status);
+                        const matchScore = talent.matchScore || 0;
                         return (
                             <div
                                 key={talent.id}
@@ -130,8 +177,22 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromBank, onAddFrom
                                         {talent.name ? talent.name.substring(0, 2).toUpperCase() : '?'}
                                     </div>
                                     <div className={styles.talentInfo}>
-                                        <span className={styles.talentName}>{talent.name}</span>
+                                        <div className={styles.nameRow}>
+                                            <span className={styles.talentName}>{talent.name}</span>
+                                            {matchScore > 0 && (
+                                                <div className={styles.matchBadge} title="Score de Match IA">
+                                                    {matchScore}%
+                                                </div>
+                                            )}
+                                        </div>
                                         <span className={styles.talentHeadline}>{talent.headline || 'Sem título definido'}</span>
+                                        <div className={styles.jobInfo}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px', opacity: 0.7 }}>
+                                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                            </svg>
+                                            {talent.primaryJobName}
+                                        </div>
                                     </div>
                                 </div>
 

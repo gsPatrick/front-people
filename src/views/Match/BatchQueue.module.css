@@ -679,3 +679,29 @@
         opacity: 1;
     }
 }
+
+.essentialRow {
+  border: 2px solid #ef4444 !important;
+  animation: pulsatingRed 1.5s infinite ease-in-out;
+  position: relative;
+  background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+@keyframes pulsatingRed {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.essentialTag {
+  background-color: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-left: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}

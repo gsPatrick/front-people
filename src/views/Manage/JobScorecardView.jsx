@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from './JobScorecardView.module.css';
 import Header from '../../components/Header/Header';
-import { BsChevronRight, BsPencilSquare, BsPlusCircle } from 'react-icons/bs';
+import { BsChevronRight, BsPencilSquare, BsPlusCircle, BsCircle, BsStarFill, BsExclamationTriangleFill, BsBullseye } from 'react-icons/bs';
 import * as api from '../../services/api.service';
 
-const JobScorecardView = ({ job, onBack, onEditScorecard, onCreateScorecard }) => {
+const JobScorecardView = ({ job, onBack, onEditScorecard, onCreateScorecard, onStartMatch }) => {
   const [scorecardData, setScorecardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,17 +55,43 @@ const JobScorecardView = ({ job, onBack, onEditScorecard, onCreateScorecard }) =
             </span>
             <span className={styles.metaInfo}>{categories.length} {categories.length === 1 ? 'categoria' : 'categorias'}</span>
           </div>
-          <button
-            className={styles.editButton}
-            onClick={() => onEditScorecard && onEditScorecard(sc)}
-            title="Editar este scorecard"
-          >
-            <BsPencilSquare /> Editar
-          </button>
+          <div className={styles.metaActions}>
+            <button
+              className={styles.editButton}
+              onClick={() => onEditScorecard && onEditScorecard(sc)}
+              title="Editar este scorecard"
+            >
+              <BsPencilSquare /> Editar
+            </button>
+            <button
+              className={styles.matchButton}
+              onClick={() => onStartMatch && onStartMatch(sc.id, job)}
+              title="Iniciar Análise de Match para esta vaga"
+            >
+              <BsBullseye /> Fazer Match
+            </button>
+          </div>
         </div>
       )}
 
       <main className={styles.content}>
+        {hasScorecard && (
+          <div className={styles.legendContainer}>
+            <div className={styles.legendItem}>
+              <span className={styles.normalBadge}><BsCircle /></span>
+              <span>Normal (Nota Padrão 1x)</span>
+            </div>
+            <div className={styles.legendItem}>
+              <span className={styles.priorityBadge}><BsStarFill /></span>
+              <span>Prioridade (Nota Dobrada 2x)</span>
+            </div>
+            <div className={styles.legendItem}>
+              <span className={styles.essentialBadge}><BsExclamationTriangleFill /></span>
+              <span>Imprescindível (Reprova Candidato)</span>
+            </div>
+          </div>
+        )}
+
         {hasScorecard ? (
           categories.length > 0 ? (
             categories.map((cat, catIdx) => {
@@ -78,14 +104,25 @@ const JobScorecardView = ({ job, onBack, onEditScorecard, onCreateScorecard }) =
                       <li key={critIdx} className={styles.criterionItem}>
                         <BsChevronRight className={styles.criterionIcon} />
                         <span>{crit.name}</span>
-                        {crit.weightType === 'priority' && (
-                          <span className={styles.priorityBadge} title="Nota deste critério vale o dobro">2x</span>
-                        )}
-                        {crit.weightType === 'essential' && (
-                          <span className={styles.essentialBadge} title={`Imprescindível: ${crit.tag || ''}`}>
-                            {crit.tag || 'Imprescindível'}
-                          </span>
-                        )}
+                        <div className={styles.badgesWrapper}>
+                          {crit.tag && (
+                            <span className={styles.tagBadge}>TAG: {crit.tag}</span>
+                          )}
+
+                          {!crit.weightType || crit.weightType === 'normal' ? (
+                            <span className={styles.normalBadge} title="Peso Normal (1x)">
+                              <BsCircle /> Normal
+                            </span>
+                          ) : crit.weightType === 'priority' ? (
+                            <span className={styles.priorityBadge} title="Pesado/Prioridade (2x)">
+                              <BsStarFill /> Prioridade
+                            </span>
+                          ) : crit.weightType === 'essential' ? (
+                            <span className={styles.essentialBadge} title="Critério Imprescindível">
+                              <BsExclamationTriangleFill /> Imprescindível
+                            </span>
+                          ) : null}
+                        </div>
                       </li>
                     ))}
                   </ul>

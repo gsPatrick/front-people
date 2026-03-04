@@ -105,58 +105,58 @@
 
 .jobActionsRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  margin-left: auto; /* Empurra para a direita */
+  margin-left: auto;
   z-index: 2;
 }
 
 .syncButton, .editButton, .deleteButton {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  font-size: 11px;
-  border-radius: 6px;
-  font-weight: 600;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .syncButton {
-  background-color: var(--accent-primary);
-  color: white;
-  border: none;
+  background-color: rgba(37, 99, 235, 0.1);
+  color: #3b82f6;
+  border: 1px solid transparent;
 }
 
 .syncButton:hover {
-  background-color: var(--accent-secondary);
-  filter: brightness(1.2);
+  background-color: #3b82f6;
+  color: white;
+  transform: scale(1.05);
 }
 
 .editButton {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  background-color: rgba(100, 116, 139, 0.1);
+  color: #64748b;
+  border: 1px solid transparent;
 }
 
 .editButton:hover {
-  background-color: var(--bg-tertiary);
+  background-color: rgba(100, 116, 139, 0.2);
   color: var(--text-primary);
-  border-color: var(--accent-primary);
+  transform: scale(1.05);
 }
 
 .deleteButton {
   background-color: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid transparent;
 }
 
 .deleteButton:hover {
   background-color: #ef4444;
   color: white;
-  border-color: #ef4444;
+  transform: scale(1.05);
 }
 
 .filtersBar {
