@@ -15,7 +15,6 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
       displayLabel: <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2', alignItems: 'flex-start', paddingTop: '2px', paddingBottom: '2px' }}><span>Banco</span><span>de Talentos</span></div>,
       icon: <IoPeopleSharp />
     },
-    { id: 'scorecard_hub', label: 'Scorecards', icon: <BsClipboardCheck /> },
     {
       id: 'match_hub',
       label: 'Match',

@@ -10,12 +10,164 @@
 .categoryBox { background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
 .categoryInput { background-color: transparent; border: none; border-bottom: 2px solid var(--border-color); color: var(--text-primary); padding: 10px 4px; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
 .categoryInput:focus { outline: none; border-bottom-color: var(--accent-primary); }
-.criteriaContainer { display: flex; flex-direction: column; gap: 8px; } /* Renomeado */
-.criterionInput { background-color: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: 8px; font-size: 14px; } /* Renomeado */
-.addCriterionButton, .addCategoryButton { background: none; border: 1px dashed var(--border-color); color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; cursor: pointer; align-self: flex-start; } /* Renomeado */
-.addCriterionButton:hover, .addCategoryButton:hover { color: var(--accent-primary); border-color: var(--accent-primary); } /* Renomeado */
+.criteriaContainer { display: flex; flex-direction: column; gap: 12px; }
+.criterionInput { background-color: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 12px; border-radius: 8px; font-size: 14px; flex-grow: 1; }
+.addCriterionButton, .addCategoryButton { background: none; border: 1px dashed var(--border-color); color: var(--text-secondary); padding: 8px 12px; border-radius: 8px; cursor: pointer; align-self: flex-start; }
+.addCriterionButton:hover, .addCategoryButton:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
 .addCategoryButton { align-self: center; }
 .footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border-color); flex-shrink: 0; }
 .cancelButton, .saveButton { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
 .cancelButton { background-color: var(--bg-tertiary); color: var(--text-secondary); }
 .saveButton { background-color: var(--accent-primary); color: var(--bg-primary); }
+
+/* Criterion Row Layout */
+.criterionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+/* Weight Type Selector */
+.weightSelector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.weightButton {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.weightButton:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.weightButton.weightActive {
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* TAG Badge */
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+/* TAG Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tagModal {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tagModal h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tagModalHint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.tagModalHint strong {
+  color: var(--accent-primary);
+}
+
+.tagModalDescription {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  opacity: 0.8;
+}
+
+.tagInput {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.tagInput:focus {
+  outline: none;
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.tagModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.confirmButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #EF4444;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

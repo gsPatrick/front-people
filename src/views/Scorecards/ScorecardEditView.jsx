@@ -1,6 +1,38 @@
 import React, { useState } from 'react';
 import styles from './ScorecardEditView.module.css';
 import Header from '../../components/Header/Header';
+import { BsExclamationTriangleFill, BsStarFill } from 'react-icons/bs';
+
+const WEIGHT_TYPES = [
+  { value: 'normal', label: 'Normal', color: 'var(--text-secondary)' },
+  { value: 'priority', label: 'Prioridade (2x)', color: '#F59E0B' },
+  { value: 'essential', label: 'Imprescindível', color: '#EF4444' }
+];
+
+const TagModal = ({ criterionName, initialTag, onConfirm, onCancel }) => {
+  const [tag, setTag] = useState(initialTag || '');
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.tagModal}>
+        <h4>Definir TAG Imprescindível</h4>
+        <p className={styles.tagModalHint}>Critério: <strong>{criterionName}</strong></p>
+        <p className={styles.tagModalDescription}>Esta TAG será exibida quando o candidato não atender esse critério. Ajuda a identificar rapidamente o motivo da rejeição.</p>
+        <input
+          type="text"
+          value={tag}
+          onChange={(e) => setTag(e.target.value)}
+          placeholder="Ex: Inglês Fluente, 5+ anos de experiência..."
+          className={styles.tagInput}
+          autoFocus
+        />
+        <div className={styles.tagModalActions}>
+          <button onClick={onCancel} className={styles.cancelButton}>Cancelar</button>
+          <button onClick={() => onConfirm(tag)} className={styles.confirmButton} disabled={!tag.trim()}>Confirmar</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
   const isEditing = !!initialData?.id;
@@ -9,14 +41,18 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
   const initialName = isCreatingFromTemplate ? `Cópia de ${initialData.name}` : initialData?.name || '';
   const initialCategories = initialData?.categories?.map(cat => ({
       name: cat.name,
-      // Garante que a propriedade seja sempre 'criteria'
-      criteria: cat.criteria || cat.skills || [{ name: '' }] 
-  })) || [{ name: '', criteria: [{ name: '' }] }];
+      criteria: (cat.criteria || cat.skills || [{ name: '' }]).map(c => ({
+        name: c.name || '',
+        weightType: c.weightType || 'normal',
+        tag: c.tag || ''
+      }))
+  })) || [{ name: '', criteria: [{ name: '', weightType: 'normal', tag: '' }] }];
 
   const [name, setName] = useState(initialName);
   const [categories, setCategories] = useState(initialCategories);
   const [selectedJobId, setSelectedJobId] = useState(initialData?.jobId || '');
   const [syncNow, setSyncNow] = useState(false);
+  const [tagModal, setTagModal] = useState(null); // { catIndex, critIndex, criterionName, currentTag }
 
   const handleCategoryChange = (index, value) => {
     const newCategories = [...categories];
@@ -30,10 +66,32 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
     setCategories(newCategories);
   };
 
-  const addCategory = () => setCategories([...categories, { name: '', criteria: [{ name: '' }] }]);
+  const handleWeightTypeChange = (catIndex, critIndex, newType) => {
+    if (newType === 'essential') {
+      const crit = categories[catIndex].criteria[critIndex];
+      setTagModal({ catIndex, critIndex, criterionName: crit.name || 'Critério sem nome', currentTag: crit.tag || '' });
+    } else {
+      const newCategories = [...categories];
+      newCategories[catIndex].criteria[critIndex].weightType = newType;
+      newCategories[catIndex].criteria[critIndex].tag = '';
+      setCategories(newCategories);
+    }
+  };
+
+  const handleTagConfirm = (tag) => {
+    if (tagModal) {
+      const newCategories = [...categories];
+      newCategories[tagModal.catIndex].criteria[tagModal.critIndex].weightType = 'essential';
+      newCategories[tagModal.catIndex].criteria[tagModal.critIndex].tag = tag;
+      setCategories(newCategories);
+      setTagModal(null);
+    }
+  };
+
+  const addCategory = () => setCategories([...categories, { name: '', criteria: [{ name: '', weightType: 'normal', tag: '' }] }]);
   const addCriterion = (catIndex) => {
     const newCategories = [...categories];
-    newCategories[catIndex].criteria.push({ name: '' });
+    newCategories[catIndex].criteria.push({ name: '', weightType: 'normal', tag: '' });
     setCategories(newCategories);
   };
 
@@ -49,7 +107,13 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
         atsIntegration: initialData?.atsIntegration || 'internal',
         categories: categories.map(cat => ({
             name: cat.name,
-            criteria: cat.criteria.filter(crit => crit.name.trim() !== '')
+            criteria: cat.criteria
+              .filter(crit => crit.name.trim() !== '')
+              .map(crit => ({
+                name: crit.name,
+                weightType: crit.weightType || 'normal',
+                tag: crit.tag || ''
+              }))
         }))
     };
     onSave(payload);
@@ -106,7 +170,33 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
               <input type="text" placeholder="Nome da Categoria (ex: Fit Cultural)" value={cat.name} onChange={(e) => handleCategoryChange(catIndex, e.target.value)} className={styles.categoryInput} />
               <div className={styles.criteriaContainer}>
                 {cat.criteria.map((crit, critIndex) => (
-                  <input key={critIndex} type="text" placeholder="Critério a ser avaliado" value={crit.name} onChange={(e) => handleCriterionChange(catIndex, critIndex, e.target.value)} className={styles.criterionInput} />
+                  <div key={critIndex} className={styles.criterionRow}>
+                    <input type="text" placeholder="Critério a ser avaliado" value={crit.name} onChange={(e) => handleCriterionChange(catIndex, critIndex, e.target.value)} className={styles.criterionInput} />
+                    <div className={styles.weightSelector}>
+                      {WEIGHT_TYPES.map(wt => (
+                        <button
+                          key={wt.value}
+                          className={`${styles.weightButton} ${crit.weightType === wt.value ? styles.weightActive : ''}`}
+                          onClick={() => handleWeightTypeChange(catIndex, critIndex, wt.value)}
+                          title={
+                            wt.value === 'normal' ? 'Peso normal na avaliação' :
+                            wt.value === 'priority' ? 'Dobra o valor da nota neste critério' :
+                            'Se o candidato não atender, é marcado com borda vermelha para revisão'
+                          }
+                          style={crit.weightType === wt.value ? { borderColor: wt.color, color: wt.color } : {}}
+                        >
+                          {wt.value === 'priority' && <BsStarFill style={{ fontSize: '10px' }} />}
+                          {wt.value === 'essential' && <BsExclamationTriangleFill style={{ fontSize: '10px' }} />}
+                          {wt.label}
+                        </button>
+                      ))}
+                    </div>
+                    {crit.weightType === 'essential' && crit.tag && (
+                      <div className={styles.tagBadge} title="TAG imprescindível">
+                        <BsExclamationTriangleFill /> {crit.tag}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               <button onClick={() => addCriterion(catIndex)} className={styles.addCriterionButton}>+ Adicionar Critério</button>
@@ -120,6 +210,15 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
         <button onClick={onCancel} className={styles.cancelButton}>Cancelar</button>
         <button onClick={handleSave} className={styles.saveButton}>Salvar Modelo</button>
       </footer>
+
+      {tagModal && (
+        <TagModal
+          criterionName={tagModal.criterionName}
+          initialTag={tagModal.currentTag}
+          onConfirm={handleTagConfirm}
+          onCancel={() => setTagModal(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styles from './JobScorecardView.module.css';
 import Header from '../../components/Header/Header';
-import { BsChevronRight } from 'react-icons/bs';
+import { BsChevronRight, BsPencilSquare, BsPlusCircle } from 'react-icons/bs';
 import * as api from '../../services/api.service';
 
-const JobScorecardView = ({ job, onBack }) => {
+const JobScorecardView = ({ job, onBack, onEditScorecard, onCreateScorecard }) => {
   const [scorecardData, setScorecardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -17,12 +17,13 @@ const JobScorecardView = ({ job, onBack }) => {
         .finally(() => setIsLoading(false));
     }
   }, [job?.id]);
+
   if (isLoading) {
     return (
       <div className={styles.container}>
         <Header
           title="Scorecard"
-          subtitle={`Carregando...`}
+          subtitle="Carregando..."
           onBack={onBack}
         />
         <div className={styles.loadingState}>
@@ -48,10 +49,19 @@ const JobScorecardView = ({ job, onBack }) => {
 
       {hasScorecard && (
         <div className={styles.metaBar}>
-          <span className={`${styles.sourceBadge} ${source === 'INHIRE' ? styles.sourceCloud : styles.sourceLocal}`}>
-            {source === 'INHIRE' ? 'InHire' : 'Local'}
-          </span>
-          <span className={styles.metaInfo}>{categories.length} {categories.length === 1 ? 'categoria' : 'categorias'}</span>
+          <div className={styles.metaLeft}>
+            <span className={`${styles.sourceBadge} ${source === 'INHIRE' ? styles.sourceCloud : styles.sourceLocal}`}>
+              {source === 'INHIRE' ? 'InHire' : 'Local'}
+            </span>
+            <span className={styles.metaInfo}>{categories.length} {categories.length === 1 ? 'categoria' : 'categorias'}</span>
+          </div>
+          <button
+            className={styles.editButton}
+            onClick={() => onEditScorecard && onEditScorecard(sc)}
+            title="Editar este scorecard"
+          >
+            <BsPencilSquare /> Editar
+          </button>
         </div>
       )}
 
@@ -68,6 +78,14 @@ const JobScorecardView = ({ job, onBack }) => {
                       <li key={critIdx} className={styles.criterionItem}>
                         <BsChevronRight className={styles.criterionIcon} />
                         <span>{crit.name}</span>
+                        {crit.weightType === 'priority' && (
+                          <span className={styles.priorityBadge} title="Nota deste critério vale o dobro">2x</span>
+                        )}
+                        {crit.weightType === 'essential' && (
+                          <span className={styles.essentialBadge} title={`Imprescindível: ${crit.tag || ''}`}>
+                            {crit.tag || 'Imprescindível'}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -82,7 +100,12 @@ const JobScorecardView = ({ job, onBack }) => {
         ) : (
           <div className={styles.emptyState}>
             <p>{scorecardData?.message || 'Nenhum scorecard vinculado a esta vaga.'}</p>
-            <p className={styles.emptyHint}>Você pode criar um scorecard na aba de Scorecards e vincular a esta vaga.</p>
+            <p className={styles.emptyHint}>Crie um scorecard para esta vaga com os critérios de avaliação.</p>
+            {onCreateScorecard && (
+              <button className={styles.createButton} onClick={() => onCreateScorecard(job)}>
+                <BsPlusCircle /> Criar Scorecard
+              </button>
+            )}
           </div>
         )}
       </main>

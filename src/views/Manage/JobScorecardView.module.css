@@ -14,11 +14,17 @@
 .metaBar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 12px 24px;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   flex-shrink: 0;
+}
+
+.metaLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .sourceBadge {
@@ -42,6 +48,47 @@
 .metaInfo {
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.editButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.editButton:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--glow-color);
+  color: var(--accent-primary);
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 20px;
+  border: 1px solid var(--accent-primary);
+  background-color: transparent;
+  color: var(--accent-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.createButton:hover {
+  background-color: var(--glow-color);
 }
 
 .content {
@@ -105,6 +152,26 @@
 .criterionIcon {
   font-size: 10px;
   color: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.priorityBadge {
+  padding: 1px 6px;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.essentialBadge {
+  padding: 1px 6px;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
