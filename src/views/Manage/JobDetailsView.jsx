@@ -1,9 +1,7 @@
-// COLE ESTE CÓDIGO NO ARQUIVO: src/views/Manage/JobDetailsView.jsx
-
 import React, { useMemo, useState } from 'react';
 import styles from './JobDetailsView.module.css';
 import Header from '../../components/Header/Header';
-import { BsSearch } from 'react-icons/bs'; // Importa o ícone de busca
+import { BsSearch, BsClipboardCheck, BsPencilSquare, BsXLg, BsChevronRight } from 'react-icons/bs';
 
 const TABS = [
   { key: 'active', label: 'Ativos' },
@@ -16,8 +14,8 @@ const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
     return (
       <div className={styles.scorecardPanel}>
         <div className={styles.scorecardHeader}>
-          <h4>📋 Scorecard</h4>
-          <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> Scorecard</h4>
+          <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
         </div>
         <p className={styles.scorecardLoading}>Carregando scorecard...</p>
       </div>
@@ -28,8 +26,8 @@ const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
     return (
       <div className={styles.scorecardPanel}>
         <div className={styles.scorecardHeader}>
-          <h4>📋 Scorecard</h4>
-          <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> Scorecard</h4>
+          <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
         </div>
         <p className={styles.scorecardEmpty}>{scorecardData?.message || 'Nenhum scorecard vinculado a esta vaga.'}</p>
       </div>
@@ -38,20 +36,18 @@ const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
 
   const sc = scorecardData.scorecard;
   const source = scorecardData.source;
-
-  // Normaliza categorias: local usa 'categories', InHire usa 'skillCategories'
   const categories = sc.categories || sc.skillCategories || [];
 
   return (
     <div className={styles.scorecardPanel}>
       <div className={styles.scorecardHeader}>
-        <div>
-          <h4>📋 {sc.name || 'Scorecard'}</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> {sc.name || 'Scorecard'}</h4>
           <span className={`${styles.scorecardSourceBadge} ${source === 'INHIRE' ? styles.sourceCloud : styles.sourceLocal}`}>
             {source === 'INHIRE' ? 'InHire' : 'Local'}
           </span>
         </div>
-        <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+        <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
       </div>
       <div className={styles.scorecardBody}>
         {categories.length > 0 ? categories.map((cat, catIdx) => {
@@ -62,6 +58,7 @@ const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
               <ul className={styles.criteriaList}>
                 {criteria.map((crit, critIdx) => (
                   <li key={critIdx} className={styles.criterionItem}>
+                    <BsChevronRight style={{ fontSize: '10px', opacity: 0.5 }} />
                     {crit.name}
                   </li>
                 ))}
@@ -79,7 +76,7 @@ const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
 const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages, onEditJob, onViewScorecard }) => {
   const [activeTab, setActiveTab] = useState('active');
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState(''); // <-- Estado para a busca
+  const [searchTerm, setSearchTerm] = useState('');
   const [showScorecard, setShowScorecard] = useState(false);
   const [scorecardData, setScorecardData] = useState(null);
   const [isScorecardLoading, setIsScorecardLoading] = useState(false);
@@ -91,9 +88,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
   const filteredAndSortedCandidates = useMemo(() => {
     return candidatesInTab
       .filter(c => {
-        // Filtro por etapa
         const stageMatch = selectedStageFilter === 'all' || c.application.stageId === selectedStageFilter;
-        // Filtro por termo de busca (case-insensitive)
         const searchMatch = searchTerm === '' || c.name.toLowerCase().includes(searchTerm.toLowerCase());
         return stageMatch && searchMatch;
       })
@@ -120,7 +115,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
     }
   };
 
-
   return (
     <div className={styles.container}>
       <Header
@@ -135,7 +129,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
           onClick={handleToggleScorecard}
           title="Ver o scorecard vinculado a esta vaga"
         >
-          📋 Scorecard
+          <BsClipboardCheck /> Scorecard
         </button>
         {onEditJob && (
           <button
@@ -143,7 +137,7 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
             onClick={() => onEditJob()}
             title="Editar os dados desta vaga"
           >
-            ✏️ Editar Vaga
+            <BsPencilSquare /> Editar Vaga
           </button>
         )}
       </div>
@@ -157,7 +151,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
       )}
 
       <div className={styles.filtersContainer}>
-        {/* Adiciona o campo de busca aqui */}
         <div className={styles.searchBar}>
           <BsSearch className={styles.searchIcon} />
           <input
@@ -209,7 +202,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
                   <div className={styles.nameAndHeadline}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span className={styles.candidateName}>{candidate.name}</span>
-                      {/* BADGE DE FONTE (LOCAL/CLOUD) */}
                       <span
                         className={`${styles.sourceBadge} ${candidate.externalId || candidate.syncStatus === 'SYNCED' ? styles.sourceCloud : styles.sourceLocal}`}
                         title={candidate.externalId ? "Sincronizado com InHire" : "Apenas Local"}
@@ -246,7 +238,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
           <p className={styles.emptyState}>Nenhum candidato encontrado para os filtros selecionados.</p>
         )}
       </main>
-
     </div>
   );
 };

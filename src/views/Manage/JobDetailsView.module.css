@@ -410,10 +410,13 @@
 }
 
 .criterionItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   color: var(--text-secondary);
-  padding: 4px 8px;
-  border-left: 2px solid var(--accent-secondary);
+  padding: 5px 8px;
+  border-radius: 4px;
   transition: all 0.2s ease;
 }
 
