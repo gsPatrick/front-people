@@ -60,6 +60,7 @@ const JobsDashboardView = ({
       {!isSelectionMode && (
         <div className={styles.filtersBar}>
           <div className={styles.statusFilters}>
+            {JOB_STATUSES.map(status => (
               <button
                 key={status.value}
                 className={`${styles.filterButton} ${activeStatusFilter === status.value ? styles.active : ''}`}
@@ -73,6 +74,7 @@ const JobsDashboardView = ({
               >
                 {status.label}
               </button>
+            ))}
           </div>
           <div className={styles.actionButtons}>
             <button

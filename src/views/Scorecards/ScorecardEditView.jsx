@@ -45,7 +45,7 @@ const ScorecardEditView = ({ onSave, onCancel, initialData, jobs }) => {
         id: isEditing ? initialData.id : undefined,
         name,
         jobId: selectedJobId,
-        syncStatus: syncNow ? 'PENDING' : (initialData?.syncStatus || 'LOCAL'),
+        syncStatus: syncNow ? 'PENDING' : (initialData?.syncStatus || 'PENDING'),
         atsIntegration: initialData?.atsIntegration || 'internal',
         categories: categories.map(cat => ({
             name: cat.name,

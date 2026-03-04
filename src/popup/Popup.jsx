@@ -379,7 +379,7 @@ const Popup = () => {
     if (authState.user.role === 'admin') return <AdminDashboardView onLogout={handleLogout} />;
 
     let contentToRender;
-    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue'];
+    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue', 'edit_job'];
     const useLayout = viewsWithSidebar.includes(view.name);
 
     switch (view.name) {
