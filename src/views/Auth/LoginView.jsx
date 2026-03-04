@@ -68,7 +68,7 @@ const LoginView = ({ onLogin, error, isLoading }) => {
       </form>
 
       <footer className={styles.loginFooter}>
-        v1.0.0 da Ana Issidoro
+        v1.2.0 da Ana Issidoro
       </footer>
     </div>
   );
