@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import styles from './JobDetailsView.module.css';
 import Header from '../../components/Header/Header';
-import { BsSearch, BsClipboardCheck, BsPencilSquare, BsXLg, BsChevronRight } from 'react-icons/bs';
+import { BsSearch, BsClipboardCheck, BsPencilSquare } from 'react-icons/bs';
 
 const TABS = [
   { key: 'active', label: 'Ativos' },
@@ -9,77 +9,10 @@ const TABS = [
   { key: 'rejected', label: 'Reprovados' }
 ];
 
-const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
-  if (isLoading) {
-    return (
-      <div className={styles.scorecardPanel}>
-        <div className={styles.scorecardHeader}>
-          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> Scorecard</h4>
-          <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
-        </div>
-        <p className={styles.scorecardLoading}>Carregando scorecard...</p>
-      </div>
-    );
-  }
-
-  if (!scorecardData || !scorecardData.scorecard) {
-    return (
-      <div className={styles.scorecardPanel}>
-        <div className={styles.scorecardHeader}>
-          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> Scorecard</h4>
-          <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
-        </div>
-        <p className={styles.scorecardEmpty}>{scorecardData?.message || 'Nenhum scorecard vinculado a esta vaga.'}</p>
-      </div>
-    );
-  }
-
-  const sc = scorecardData.scorecard;
-  const source = scorecardData.source;
-  const categories = sc.categories || sc.skillCategories || [];
-
-  return (
-    <div className={styles.scorecardPanel}>
-      <div className={styles.scorecardHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h4><BsClipboardCheck style={{ marginRight: '6px', verticalAlign: '-2px' }} /> {sc.name || 'Scorecard'}</h4>
-          <span className={`${styles.scorecardSourceBadge} ${source === 'INHIRE' ? styles.sourceCloud : styles.sourceLocal}`}>
-            {source === 'INHIRE' ? 'InHire' : 'Local'}
-          </span>
-        </div>
-        <button className={styles.closePanelButton} onClick={onClose}><BsXLg /></button>
-      </div>
-      <div className={styles.scorecardBody}>
-        {categories.length > 0 ? categories.map((cat, catIdx) => {
-          const criteria = cat.criteria || cat.skills || [];
-          return (
-            <div key={catIdx} className={styles.scorecardCategory}>
-              <h5 className={styles.categoryName}>{cat.name}</h5>
-              <ul className={styles.criteriaList}>
-                {criteria.map((crit, critIdx) => (
-                  <li key={critIdx} className={styles.criterionItem}>
-                    <BsChevronRight style={{ fontSize: '10px', opacity: 0.5 }} />
-                    {crit.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        }) : (
-          <p className={styles.scorecardEmpty}>Nenhuma categoria definida.</p>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages, onEditJob, onViewScorecard }) => {
   const [activeTab, setActiveTab] = useState('active');
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showScorecard, setShowScorecard] = useState(false);
-  const [scorecardData, setScorecardData] = useState(null);
-  const [isScorecardLoading, setIsScorecardLoading] = useState(false);
 
   const candidatesInTab = useMemo(() => {
     return candidates.filter(c => (c.application.status || '').toLowerCase() === activeTab);
@@ -95,26 +28,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
       .sort((a, b) => new Date(b.application.createdAt) - new Date(a.application.createdAt));
   }, [candidatesInTab, selectedStageFilter, searchTerm]);
 
-  const handleToggleScorecard = async () => {
-    if (showScorecard) {
-      setShowScorecard(false);
-      return;
-    }
-    setShowScorecard(true);
-    setIsScorecardLoading(true);
-    try {
-      if (onViewScorecard) {
-        const data = await onViewScorecard(job);
-        setScorecardData(data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar scorecard:', err);
-      setScorecardData({ scorecard: null, message: 'Erro ao carregar scorecard.' });
-    } finally {
-      setIsScorecardLoading(false);
-    }
-  };
-
   return (
     <div className={styles.container}>
       <Header
@@ -125,8 +38,8 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
 
       <div className={styles.jobActionBar}>
         <button
-          className={`${styles.actionBarButton} ${showScorecard ? styles.activeAction : ''}`}
-          onClick={handleToggleScorecard}
+          className={styles.actionBarButton}
+          onClick={() => onViewScorecard && onViewScorecard(job)}
           title="Ver o scorecard vinculado a esta vaga"
         >
           <BsClipboardCheck /> Scorecard
@@ -141,14 +54,6 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
           </button>
         )}
       </div>
-
-      {showScorecard && (
-        <ScorecardPanel 
-          scorecardData={scorecardData}
-          isLoading={isScorecardLoading}
-          onClose={() => setShowScorecard(false)}
-        />
-      )}
 
       <div className={styles.filtersContainer}>
         <div className={styles.searchBar}>

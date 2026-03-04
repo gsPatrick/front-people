@@ -23,6 +23,7 @@ import Layout from '../components/Layout/Layout';
 import JobsDashboardView from '../views/Manage/JobsDashboardView';
 import TalentsDashboardView from '../views/Manage/TalentsDashboardView';
 import JobDetailsView from '../views/Manage/JobDetailsView';
+import JobScorecardView from '../views/Manage/JobScorecardView';
 import CandidateDetailView from '../views/Manage/CandidateDetailView';
 import EditCandidateView from '../views/Manage/EditCandidateView';
 import TalentProfileView from '../views/Manage/TalentProfileView';
@@ -379,7 +380,7 @@ const Popup = () => {
     if (authState.user.role === 'admin') return <AdminDashboardView onLogout={handleLogout} />;
 
     let contentToRender;
-    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue', 'edit_job'];
+    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue', 'edit_job', 'job_scorecard'];
     const useLayout = viewsWithSidebar.includes(view.name);
 
     switch (view.name) {
@@ -406,7 +407,8 @@ const Popup = () => {
             }}
         />; break;
         case 'dashboard_talents': contentToRender = <TalentsDashboardView talentsData={talentsData} onSelectTalent={workflow.handleSelectTalentForDetails} handleTalentsPageChange={handleTalentsPageChange} filters={filters} onFilterChange={setFilters} isPagingLoading={isPagingLoading} />; break;
-        case 'job_details': contentToRender = <JobDetailsView job={workflow.currentJob} candidates={workflow.currentCandidates} onBack={goBack} onUpdateApplicationStatus={workflow.handleUpdateApplicationStatus} onSelectCandidateForDetails={workflow.handleSelectCandidateForDetails} availableStages={workflow.currentJobStages} onEditJob={() => workflow.handleEditJob(workflow.currentJob)} onViewScorecard={async (job) => { const data = await api.fetchScorecardForJob(job.id); return data; }} />; break;
+        case 'job_details': contentToRender = <JobDetailsView job={workflow.currentJob} candidates={workflow.currentCandidates} onBack={goBack} onUpdateApplicationStatus={workflow.handleUpdateApplicationStatus} onSelectCandidateForDetails={workflow.handleSelectCandidateForDetails} availableStages={workflow.currentJobStages} onEditJob={() => workflow.handleEditJob(workflow.currentJob)} onViewScorecard={(job) => navigateTo('job_scorecard', { job })} />; break;
+        case 'job_scorecard': contentToRender = <JobScorecardView job={view.state?.job || workflow.currentJob} onBack={goBack} />; break;
         case 'candidate_details': contentToRender = <CandidateDetailView candidate={workflow.currentTalent} job={workflow.currentJob} onBack={goBack} onUpdateStage={workflow.handleUpdateApplicationStatus} stages={workflow.currentJobStages} onGoToEdit={() => navigateTo('edit_candidate')} applicationCustomFields={workflow.applicationCustomFields} interviewKits={workflow.currentInterviewKits} initialState={view.state} scorecardSummary={scorecard.scorecardData?.content} scorecardHooks={scorecard} onUpdateRequest={workflow.handleRequestProfileUpdate} onSaveScorecardAsTemplate={handleSaveScorecardAsTemplate}
             onBatchAnalyse={(url, scorecardId) => {
                 // Navega para a fila passando o contexto da vaga atual para o auto-save funcionar
