@@ -469,10 +469,10 @@ const BatchQueueView = ({
                                                         <strong style={{ color: 'var(--text-primary)', display: 'block', fontSize: '15px', lineHeight: '1.4' }}>{crit.name}</strong>
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                        <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>Peso: {crit.weightLabel || 'Médio'}</span>
-                                                        {crit.weightType === 'priority' && <span style={{ background: '#F59E0B20', color: '#F59E0B', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsStarFill size={10} /> 2x</span>}
-                                                        {crit.weightType === 'essential' && <span style={{ background: '#EF444420', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsExclamationTriangleFill size={10} /> {crit.tag || 'Imprescindível'}</span>}
-                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: _GetScoreColor(crit.score) }}>Nota: {crit.score || '-'}</span>
+                                                        {(!crit.weightType || crit.weightType === 'normal') && <span style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>Normal</span>}
+                                                        {crit.weightType === 'priority' && <span style={{ background: '#F59E0B20', color: '#F59E0B', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsStarFill size={10} /> Prioridade (vale 2x)</span>}
+                                                        {crit.weightType === 'essential' && <span style={{ background: '#EF444420', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsExclamationTriangleFill size={10} /> Imprescindível (Reprova)</span>}
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: _GetScoreColor(crit.score) }}>Nota: {crit.score !== undefined && crit.score !== null ? crit.score : '-'}</span>
                                                     </div>
                                                 </div>
 
