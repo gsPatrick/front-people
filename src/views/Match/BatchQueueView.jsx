@@ -412,8 +412,8 @@ const BatchQueueView = ({
                                 <h3 style={{ fontSize: '18px', fontWeight: '700' }}>{selectedProfile.name}</h3>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{selectedProfile.headline}</p>
                             </div>
-                            <div className={styles.scoreBadge}>
-                                {selectedProfile.averageScore?.toFixed(1) || '-'}
+                            <div className={styles.scoreBadge} style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                                {selectedProfile.matchScore !== undefined ? `${Math.round(selectedProfile.matchScore)}%` : (selectedProfile.averageScore ? (selectedProfile.averageScore * 20).toFixed(0) + '%' : '-')}
                             </div>
                         </div>
 
@@ -456,23 +456,27 @@ const BatchQueueView = ({
                         <div className={styles.categoriesReview}>
                             {selectedProfile.categories?.map((cat, idx) => (
                                 <div key={idx} className={styles.sectionCard}>
-                                    <div className={styles.catRow} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+                                    <div className={styles.catRow} style={{ marginBottom: '20px' }}>
                                         <span className={styles.catName} style={{ fontWeight: '700', fontSize: '18px', color: 'var(--text-primary)' }}>{cat.name}</span>
-                                        <StarRating score={cat.averageScore} />
-                                    </div>
-                                    <div style={{ marginBottom: '24px' }}>
-                                        <span className={styles.qLabel}>Análise da Categoria</span>
-                                        <p className={styles.detailItem} style={{ fontStyle: 'italic', fontSize: '15px' }}>{cat.justification}</p>
                                     </div>
 
                                     <div className={styles.catCriteriaList} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         {(cat.criteria || []).map((crit, cidx) => (
                                             <div key={cidx} className={styles.miniCrit} style={{ padding: '16px', background: 'var(--bg-primary)', borderRadius: '12px', color: '#cbd5e1', border: '1px solid var(--border-color)' }}>
-                                                <span className={styles.qLabel}>Pergunta / Critério</span>
-                                                <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '12px', fontSize: '15px', lineHeight: '1.4' }}>{crit.name}</strong>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                                    <div>
+                                                        <span className={styles.qLabel} style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Pergunta / Critério</span>
+                                                        <strong style={{ color: 'var(--text-primary)', display: 'block', fontSize: '15px', lineHeight: '1.4' }}>{crit.name}</strong>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        {crit.weightType === 'priority' && <span style={{ background: '#F59E0B20', color: '#F59E0B', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsStarFill size={10} /> 2x</span>}
+                                                        {crit.weightType === 'essential' && <span style={{ background: '#EF444420', color: '#EF4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><BsExclamationTriangleFill size={10} /> {crit.tag || 'Imprescindível'}</span>}
+                                                        <span style={{ fontWeight: 'bold', fontSize: '16px', color: _GetScoreColor(crit.score) }}>Nota: {crit.score || '-'}</span>
+                                                    </div>
+                                                </div>
 
-                                                <span className={styles.qLabel}>Resposta / Análise</span>
-                                                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{crit.justification}</p>
+                                                <span className={styles.qLabel} style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Resposta / Análise</span>
+                                                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>{crit.justification || 'Análise não providenciada.'}</p>
                                             </div>
                                         ))}
                                     </div>
