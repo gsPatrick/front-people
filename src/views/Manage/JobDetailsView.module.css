@@ -281,3 +281,167 @@
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--glow-color);
 }
+
+/* Barra de Ações da Vaga */
+.jobActionBar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.actionBarButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.actionBarButton:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--glow-color);
+  color: var(--accent-primary);
+}
+
+.actionBarButton.activeAction {
+  border-color: var(--accent-primary);
+  background-color: var(--glow-color);
+  color: var(--accent-primary);
+}
+
+/* Painel de Scorecard Inline */
+.scorecardPanel {
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  animation: slideDown 0.3s ease-out;
+  max-height: 350px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-tertiary) var(--bg-primary);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 350px; }
+}
+
+.scorecardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px 8px;
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-secondary);
+  z-index: 1;
+}
+
+.scorecardHeader h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scorecardSourceBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.closePanelButton {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.closePanelButton:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.scorecardBody {
+  padding: 8px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scorecardCategory {
+  background-color: var(--bg-tertiary);
+  border-radius: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+}
+
+.categoryName {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.criteriaList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.criterionItem {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-left: 2px solid var(--accent-secondary);
+  transition: all 0.2s ease;
+}
+
+.criterionItem:hover {
+  background-color: var(--glow-color);
+  color: var(--text-primary);
+}
+
+.scorecardLoading {
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
+}
+
+.scorecardEmpty {
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 14px;
+}
+
+.sourceCloud {
+  background-color: rgba(34, 211, 238, 0.1);
+  color: #22D3EE;
+}
+
+.sourceLocal {
+  background-color: rgba(168, 85, 247, 0.1);
+  color: #A855F7;
+}

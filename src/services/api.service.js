@@ -412,6 +412,15 @@ export const fetchKitsForJob = async (jobId) => {
   }
 };
 
+export const fetchScorecardForJob = async (jobId) => {
+  try {
+    const response = await apiClient.get(`/jobs/${jobId}/scorecard`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const createScorecardAndKit = async (data) => {
   try {
     const response = await apiClient.post('/create-scorecard-and-kit', data);

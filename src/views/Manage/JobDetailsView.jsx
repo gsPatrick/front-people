@@ -11,10 +11,78 @@ const TABS = [
   { key: 'rejected', label: 'Reprovados' }
 ];
 
-const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages }) => {
+const ScorecardPanel = ({ scorecardData, isLoading, onClose }) => {
+  if (isLoading) {
+    return (
+      <div className={styles.scorecardPanel}>
+        <div className={styles.scorecardHeader}>
+          <h4>📋 Scorecard</h4>
+          <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+        </div>
+        <p className={styles.scorecardLoading}>Carregando scorecard...</p>
+      </div>
+    );
+  }
+
+  if (!scorecardData || !scorecardData.scorecard) {
+    return (
+      <div className={styles.scorecardPanel}>
+        <div className={styles.scorecardHeader}>
+          <h4>📋 Scorecard</h4>
+          <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+        </div>
+        <p className={styles.scorecardEmpty}>{scorecardData?.message || 'Nenhum scorecard vinculado a esta vaga.'}</p>
+      </div>
+    );
+  }
+
+  const sc = scorecardData.scorecard;
+  const source = scorecardData.source;
+
+  // Normaliza categorias: local usa 'categories', InHire usa 'skillCategories'
+  const categories = sc.categories || sc.skillCategories || [];
+
+  return (
+    <div className={styles.scorecardPanel}>
+      <div className={styles.scorecardHeader}>
+        <div>
+          <h4>📋 {sc.name || 'Scorecard'}</h4>
+          <span className={`${styles.scorecardSourceBadge} ${source === 'INHIRE' ? styles.sourceCloud : styles.sourceLocal}`}>
+            {source === 'INHIRE' ? 'InHire' : 'Local'}
+          </span>
+        </div>
+        <button className={styles.closePanelButton} onClick={onClose}>✕</button>
+      </div>
+      <div className={styles.scorecardBody}>
+        {categories.length > 0 ? categories.map((cat, catIdx) => {
+          const criteria = cat.criteria || cat.skills || [];
+          return (
+            <div key={catIdx} className={styles.scorecardCategory}>
+              <h5 className={styles.categoryName}>{cat.name}</h5>
+              <ul className={styles.criteriaList}>
+                {criteria.map((crit, critIdx) => (
+                  <li key={critIdx} className={styles.criterionItem}>
+                    {crit.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        }) : (
+          <p className={styles.scorecardEmpty}>Nenhuma categoria definida.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, onSelectCandidateForDetails, availableStages, onEditJob, onViewScorecard }) => {
   const [activeTab, setActiveTab] = useState('active');
   const [selectedStageFilter, setSelectedStageFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState(''); // <-- Estado para a busca
+  const [showScorecard, setShowScorecard] = useState(false);
+  const [scorecardData, setScorecardData] = useState(null);
+  const [isScorecardLoading, setIsScorecardLoading] = useState(false);
 
   const candidatesInTab = useMemo(() => {
     return candidates.filter(c => (c.application.status || '').toLowerCase() === activeTab);
@@ -32,14 +100,61 @@ const JobDetailsView = ({ job, candidates, onBack, onUpdateApplicationStatus, on
       .sort((a, b) => new Date(b.application.createdAt) - new Date(a.application.createdAt));
   }, [candidatesInTab, selectedStageFilter, searchTerm]);
 
+  const handleToggleScorecard = async () => {
+    if (showScorecard) {
+      setShowScorecard(false);
+      return;
+    }
+    setShowScorecard(true);
+    setIsScorecardLoading(true);
+    try {
+      if (onViewScorecard) {
+        const data = await onViewScorecard(job);
+        setScorecardData(data);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar scorecard:', err);
+      setScorecardData({ scorecard: null, message: 'Erro ao carregar scorecard.' });
+    } finally {
+      setIsScorecardLoading(false);
+    }
+  };
+
 
   return (
     <div className={styles.container}>
       <Header
-        title={job.name}
+        title={job.name || job.title}
         subtitle={`${candidates.length} Candidato(s) no total`}
         onBack={onBack}
       />
+
+      <div className={styles.jobActionBar}>
+        <button
+          className={`${styles.actionBarButton} ${showScorecard ? styles.activeAction : ''}`}
+          onClick={handleToggleScorecard}
+          title="Ver o scorecard vinculado a esta vaga"
+        >
+          📋 Scorecard
+        </button>
+        {onEditJob && (
+          <button
+            className={styles.actionBarButton}
+            onClick={() => onEditJob()}
+            title="Editar os dados desta vaga"
+          >
+            ✏️ Editar Vaga
+          </button>
+        )}
+      </div>
+
+      {showScorecard && (
+        <ScorecardPanel 
+          scorecardData={scorecardData}
+          isLoading={isScorecardLoading}
+          onClose={() => setShowScorecard(false)}
+        />
+      )}
 
       <div className={styles.filtersContainer}>
         {/* Adiciona o campo de busca aqui */}
