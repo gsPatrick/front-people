@@ -84,7 +84,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           </button>
 
           <div className={styles.versionInfo}>
-            v1.2.0 da Ana Issidoro
+            v1.2.2 da Ana Issidoro
           </div>
         </div>
       </aside>

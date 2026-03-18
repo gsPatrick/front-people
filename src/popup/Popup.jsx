@@ -481,7 +481,7 @@ const Popup = () => {
 
         // ... lines skipped ...
 
-        case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => {
+        case 'batch_queue': contentToRender = <BatchQueueView scorecard={scorecardTemplates.find(sc => sc.id === view.state?.scorecardId)} queueState={batchQueue.queueState} onStartQueue={() => batchQueue.startQueue(view.state?.scorecardId, view.state?.jobId)} onStopQueue={batchQueue.stopQueue} onAcceptProfile={(result) => {
             // Salva no contexto (sempre bom ter)
             workflow.setProfileContext({
                 exists: false,
@@ -580,7 +580,11 @@ const Popup = () => {
                     job,
                     workflow.profileContext.matchData // New Argument
                 );
-                navigateTo('batch_queue', { scorecardId: view.state?.scorecardId });
+                navigateTo('batch_queue', { 
+                    scorecardId: view.state?.scorecardId,
+                    jobId: job.id,
+                    job: job 
+                });
             }} 
             onBack={() => navigateTo('batch_queue', { scorecardId: view.state?.scorecardId })} 
             handleJobsPageChange={handleJobsPageChange} 

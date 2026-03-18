@@ -498,9 +498,12 @@ export const evaluateScorecardWithAI = async (talentId, jobDetails, scorecard, w
   }
 };
 
-export const analyzeProfileWithAI = async (scorecardId, profileData) => {
+export const analyzeProfileWithAI = async (scorecardId, profileData, jobId = null) => {
   try {
-    const response = await apiClient.post(`/match/${scorecardId}`, profileData);
+    const payload = { ...profileData };
+    if (jobId) payload.jobId = jobId;
+    
+    const response = await apiClient.post(`/match/${scorecardId}`, payload);
     return response.data;
   } catch (error) {
     handleError(error);

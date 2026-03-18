@@ -60,11 +60,13 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromMatch, onRecons
             case 'REJECTED':
                 return { bg: 'rgba(239, 68, 68, 0.15)', color: '#f87171', text: 'Rejeitado' };
             case 'ACTIVE':
+            case 'Applied':
+            case 'Inscrito':
                 return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', text: 'Ativo' };
             case 'NEW':
                 return { bg: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', text: 'Novo' };
             default:
-                return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', text: 'Ativo' };
+                return { bg: 'rgba(16, 185, 129, 0.15)', color: '#34d399', text: status || 'Ativo' };
         }
     };
 
@@ -163,7 +165,8 @@ const CandidateListView = ({ onSelectCandidate, onBack, onAddFromMatch, onRecons
                     </div>
                 ) : (
                     filteredTalents.map(talent => {
-                        const status = talent.lastStatus || talent.status;
+                        // Prioriza o status global de REJEITADO se houver
+                        const status = talent.status === 'REJECTED' ? 'REJECTED' : (talent.lastStatus || talent.status);
                         const statusInfo = getStatusStyle(status);
                         const matchScore = talent.matchScore || 0;
                         return (

@@ -51,7 +51,7 @@ export const useBatchQueue = () => {
     }, []);
 
     // Processa uma única aba com suporte a RETRIES ILIMITADOS
-    const processTab = useCallback(async (tab, scorecardId, attempt = 1) => {
+    const processTab = useCallback(async (tab, scorecardId, attempt = 1, jobId = null) => {
         console.log(`[BATCH] Processando ${tab.username} - Tentativa ${attempt}`);
 
         return new Promise((resolve) => { (async () => {
@@ -149,7 +149,7 @@ export const useBatchQueue = () => {
 
                 // 6. Match com IA (Análise de Perfil)
                 const profileData = extractionResult.data;
-                const matchResult = scorecardId ? await api.analyzeProfileWithAI(scorecardId, profileData) : null;
+                const matchResult = scorecardId ? await api.analyzeProfileWithAI(scorecardId, profileData, jobId) : null;
 
                 // Mapeamento de Adaptador para UI
                 const overallScore0to5 = matchResult?.overallScore ? (matchResult.overallScore / 20) : 0;
@@ -202,7 +202,7 @@ export const useBatchQueue = () => {
     };
 
     // Inicia o processamento da fila com RETRIES
-    const startQueue = useCallback(async (scorecardId, explicitTabs = null) => {
+    const startQueue = useCallback(async (scorecardId, jobId = null, explicitTabs = null) => {
         if (isRunningRef.current) return;
 
         isRunningRef.current = true;
@@ -233,7 +233,7 @@ export const useBatchQueue = () => {
             // LOOP DE RETRY: Tenta infinitamente (ou até limite muito alto) como pedido
             while (!success && !abortRef.current) {
                 setQueueState(prev => ({ ...prev, currentAttempt: attempt }));
-                const result = await processTab(currentItem, scorecardId, attempt);
+                const result = await processTab(currentItem, scorecardId, attempt, jobId);
 
                 // Rastreia o tabId que foi aberto/utilizado
                 if (result.tabId) openedTabIds.add(result.tabId);
