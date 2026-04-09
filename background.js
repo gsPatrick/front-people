@@ -1,20 +1,12 @@
 // ===================================================================
-//              ARQUIVO COMPLETO: src/background.js
+//              ARQUIVO COMPLETO: background.js
 // ===================================================================
 
-// Log inicial para garantir que o script começou a ser executado
+// Log inicial
 console.log('[BACKGROUND] 🚀 Service Worker iniciando...');
 
-// --- Bloco de Importação com Tratamento de Erro ---
-try {
-    var { extractProfileFromPdf } = await import('./services/api.service.js');
-    console.log('[BACKGROUND] ✅ Módulo api.service.js importado com sucesso.');
-} catch (e) {
-    console.error('❌ ERRO CRÍTICO: Não foi possível importar o api.service.js. Verifique o caminho.', e);
-    // Se a importação falhar, o resto do script não funcionará.
-    // Lançar um erro aqui para deixar claro.
-    throw new Error("Falha na importação do módulo da API.");
-}
+// --- Imports ---
+import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.service.js';
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
@@ -24,7 +16,7 @@ const log = {
     error: (...args) => console.error(`%c${PREFIX} ❌`, 'color: darkred; font-weight: bold;', ...args)
 };
 
-// --- Lógica de Comportamento da Ação (Seu código original) ---
+// --- Configurações Iniciais ---
 const DEFAULT_SETTINGS = {
     isSidePanelModeEnabled: true,
     isLinkedInPopupEnabled: true,
@@ -59,13 +51,10 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    log.info('Navegador iniciado, atualizando comportamento da ação.');
     updateActionBehavior();
 });
 
-
-// --- Lógica de Interceptação e Processamento de PDF ---
-
+// --- utilitários ---
 function base64ToBlob(base64Data) {
     const [header, data] = base64Data.split(',');
     const mime = header.match(/:(.*?);/)[1];
@@ -78,64 +67,159 @@ function base64ToBlob(base64Data) {
     return new Blob([byteArray], { type: mime });
 }
 
-// 1. OUVINTE DE MENSAGENS
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "processLinkedInPdf") {
-        log.info("Mensagem 'processLinkedInPdf' recebida do content script.");
+// --- Gerenciador de Fila em Lote (Persistent State) ---
+let batchState = {
+    isRunning: false,
+    tabs: [],
+    currentIndex: 0,
+    results: [],
+    scorecardId: null,
+    jobId: null
+};
 
+// Carrega estado inicial do storage
+chrome.storage.local.get('batch_state', (data) => {
+    if (data.batch_state) {
+        batchState = { ...batchState, ...data.batch_state };
+        batchState.isRunning = false; // Resetar isRunning por segurança em caso de crash
+        saveBatchState();
+    }
+});
+
+function saveBatchState() {
+    chrome.storage.local.set({ batch_state: batchState });
+    chrome.runtime.sendMessage({ type: 'BATCH_STATE_CHANGED', state: batchState }).catch(() => {});
+    
+    if (batchState.isRunning) {
+        broadcastToWidgets({ 
+            type: 'BATCH_WIDGET_UPDATE', 
+            current: batchState.results.length, 
+            total: batchState.tabs.length 
+        });
+    } else if (batchState.results.length === 0) {
+        broadcastToWidgets({ type: 'BATCH_WIDGET_HIDE' });
+    }
+}
+
+async function broadcastToWidgets(message) {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+    }
+}
+
+async function runBatchLoop() {
+    if (!batchState.isRunning) return;
+
+    while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
+        const tabData = batchState.tabs[batchState.currentIndex];
+        log.info(`[BATCH] Processando: ${tabData.username}`);
+
+        let currentTabId = null;
         try {
-            const pdfBlob = base64ToBlob(message.data);
-            log.success("PDF convertido de Base64 para Blob.", { size: pdfBlob.size, type: pdfBlob.type });
+            const newTab = await chrome.tabs.create({ url: tabData.url, active: false });
+            currentTabId = newTab.id;
+            await new Promise(r => setTimeout(r, 8000));
 
-            log.info("===> INICIANDO CHAMADA PARA A API <===");
-            
-            extractProfileFromPdf(pdfBlob)
-                .then(extractedData => {
-                    log.success("✅ SUCESSO! API retornou dados:", extractedData);
-                    sendResponse({ success: true, data: extractedData });
-                    chrome.notifications.create({
-                        type: 'basic', iconUrl: 'logo.png', title: 'Sucesso!',
-                        message: 'O perfil do LinkedIn foi extraído com sucesso.'
-                    });
-                })
-                .catch(error => {
-                    console.group("%c❌ FALHA NA CHAMADA DA API ❌", "color: red; font-size: 1.2em; font-weight: bold;");
-                    log.error("Ocorreu um erro ao chamar 'extractProfileFromPdf'.");
-                    log.error("Mensagem do Erro:", error.message);
-                    log.error("Status HTTP (se disponível):", error.status);
-                    log.error("Objeto de Erro Completo:", error);
-                    console.groupEnd();
-                    sendResponse({ success: false, error: error.message });
-                    chrome.notifications.create({
-                        type: 'basic', iconUrl: 'logo.png', title: 'Erro na Extração',
-                        message: `Não foi possível processar o perfil. Erro: ${error.message}`
-                    });
+            await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
+            await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
+
+            await chrome.scripting.executeScript({
+                target: { tabId: currentTabId },
+                func: function () {
+                    const clickPdf = async () => {
+                        let moreButton = document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
+                            document.querySelector('button[data-view-name="profile-overflow-button"]');
+                        if (moreButton) {
+                            moreButton.click();
+                            await new Promise(r => setTimeout(r, 1000));
+                            const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
+                            const pdfItem = items.find(i => /pdf/i.test(i.innerText));
+                            if (pdfItem) pdfItem.click();
+                        }
+                    };
+                    clickPdf();
+                }
+            });
+
+            const extractionResult = await new Promise((resolve) => {
+                const listener = (msg) => {
+                    if (msg.type === 'PDF_EXTRACTION_SUCCESS') {
+                        chrome.runtime.onMessage.removeListener(listener);
+                        resolve({ success: true, data: msg.payload });
+                    } else if (msg.type === 'PDF_EXTRACTION_FAILURE') {
+                        chrome.runtime.onMessage.removeListener(listener);
+                        resolve({ success: false, error: msg.payload?.message });
+                    }
+                };
+                chrome.runtime.onMessage.addListener(listener);
+                setTimeout(() => {
+                    chrome.runtime.onMessage.removeListener(listener);
+                    resolve({ success: false, error: 'Timeout de extração' });
+                }, 60000);
+            });
+
+            if (extractionResult.success) {
+                const matchResult = await analyzeProfileWithAI(batchState.scorecardId, extractionResult.data, batchState.jobId);
+                batchState.results.push({
+                    username: tabData.username,
+                    name: extractionResult.data.perfil?.nome || tabData.username,
+                    matchResult,
+                    matchScore: matchResult?.matchScore || 0,
+                    success: true
                 });
-
+            } else {
+                batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });
+            }
         } catch (err) {
-            log.error("Erro CRÍTICO ao decodificar o PDF (Base64 -> Blob).", err);
-            sendResponse({ success: false, error: "Erro interno ao decodificar o PDF." });
+            batchState.results.push({ username: tabData.username, error: err.message, success: false });
+        } finally {
+            if (currentTabId) chrome.tabs.remove(currentTabId).catch(() => {});
         }
-        return true; // Essencial para respostas assíncronas
-    }
-});
-log.info('Ouvinte de mensagens (onMessage) configurado.');
 
-// 2. OUVINTE DE DOWNLOADS
+        batchState.currentIndex++;
+        saveBatchState();
+        if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
+            await new Promise(r => setTimeout(r, 12000));
+        }
+    }
+
+    batchState.isRunning = false;
+    saveBatchState();
+    log.success("[BATCH] Finalizado.");
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento de perfis concluído.' });
+}
+
+// OUVINTE DE MENSAGENS
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "START_BATCH") {
+        batchState = { isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
+        saveBatchState();
+        runBatchLoop();
+        sendResponse({ success: true });
+    } else if (message.action === "STOP_BATCH") {
+        batchState.isRunning = false;
+        saveBatchState();
+        sendResponse({ success: true });
+    } else if (message.action === "GET_BATCH_STATE") {
+        sendResponse({ state: batchState });
+    } else if (message.action === "RESET_BATCH") {
+        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null };
+        saveBatchState();
+        sendResponse({ success: true });
+    } else if (message.action === "processLinkedInPdf") {
+        const pdfBlob = base64ToBlob(message.data);
+        extractProfileFromPdf(pdfBlob).then(data => sendResponse({success:true, data})).catch(e => sendResponse({success:false, error:e.message}));
+        return true;
+    }
+    return true;
+});
+
+// OUVINTE DE DOWNLOADS
 chrome.downloads.onCreated.addListener(async (downloadItem) => {
-    log.info(`Novo download detectado: ${downloadItem.filename}`);
-    const isLinkedInProfilePdf = downloadItem.url.includes('linkedin.com') && 
-                                 downloadItem.filename.toLowerCase().endsWith('.pdf');
-
+    const isLinkedInProfilePdf = downloadItem.url.includes('linkedin.com') && downloadItem.filename.toLowerCase().endsWith('.pdf');
     if (isLinkedInProfilePdf) {
-        log.success("Download de PDF do LinkedIn identificado. Cancelando...");
-        try {
-            await chrome.downloads.cancel(downloadItem.id);
-            await chrome.downloads.erase({ id: downloadItem.id });
-            log.success(`Download [ID: ${downloadItem.id}] apagado com sucesso.`);
-        } catch (err) {
-            log.error(`Falha ao cancelar/apagar o download [ID: ${downloadItem.id}].`, err.message);
-        }
+        await chrome.downloads.cancel(downloadItem.id).catch(() => {});
+        await chrome.downloads.erase({ id: downloadItem.id }).catch(() => {});
     }
 });
-log.info('Ouvinte de downloads (onCreated) configurado.');
