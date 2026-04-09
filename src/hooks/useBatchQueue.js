@@ -67,36 +67,15 @@ export const useBatchQueue = () => {
     }, []);
 
     const sourceProfilesFromSearch = useCallback(async (searchUrl, scorecardId, targetCount = 50, jobId = null) => {
-        setQueueState(prev => ({ ...prev, isSourcing: true }));
-        try {
-            // Sourcing ainda acontece no contexto do popup por causa da interação com a aba de busca
-            // mas poderia ser movido também. Por enquanto, mantemos aqui para simplicidade de navegação.
-            let collectedUrls = new Set();
-            const existingTabs = await new Promise(r => chrome.tabs.query({ url: searchUrl }, r));
-            let searchTab = existingTabs[0] || await chrome.tabs.create({ url: searchUrl, active: true });
-            
-            while (collectedUrls.size < targetCount) {
-                await new Promise(r => setTimeout(r, 6000));
-                await chrome.scripting.executeScript({ target: { tabId: searchTab.id }, files: ['scripts/linkedin_search_scraper.js'] });
-                const response = await chrome.tabs.sendMessage(searchTab.id, { action: "scrape_search_results", goToNext: true });
-                if (response?.success) {
-                    response.urls.forEach(url => collectedUrls.add(url));
-                    if (!response.hasNextPage) break;
-                } else break;
-            }
-
-            const newItems = Array.from(collectedUrls).slice(0, targetCount).map(url => {
-                const match = url.match(/linkedin\.com\/in\/([^/?]+)/);
-                return { id: null, url, username: match ? match[1] : 'unknown', status: 'pending' };
-            });
-
-            setQueueState(prev => ({ ...prev, isSourcing: false, tabs: [...prev.tabs, ...newItems] }));
-            if (newItems.length > 0) startQueue(scorecardId, jobId, newItems);
-        } catch (e) {
-            console.error("Erro no sourcing:", e);
-            setQueueState(prev => ({ ...prev, isSourcing: false }));
-        }
-    }, [startQueue]);
+        // Envia para o background fazer o sourcing fantasma
+        chrome.runtime.sendMessage({
+            action: "START_SOURCING",
+            searchUrl,
+            scorecardId,
+            targetCount,
+            jobId
+        });
+    }, []);
 
     const startProcessFromSingleUrl = useCallback(async (profileUrl, scorecardId, jobId = null) => {
         const match = profileUrl?.match(/linkedin\.com\/in\/([^/?]+)/);

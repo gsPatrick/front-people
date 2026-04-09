@@ -37,7 +37,6 @@ async function updateActionBehavior() {
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
       await chrome.action.setPopup({ popup: 'index.html' });
     }
-    log.info('Comportamento da ação atualizado.');
   } catch (error) {
     log.error("Erro ao atualizar o comportamento da ação:", error);
   }
@@ -71,6 +70,9 @@ function base64ToBlob(base64Data) {
 // --- Gerenciador de Fila em Lote (Persistent State) ---
 let batchState = {
     isRunning: false,
+    isSourcing: false,
+    sourcingCount: 0,
+    sourcingTarget: 0,
     tabs: [],
     currentIndex: 0,
     results: [],
@@ -84,7 +86,8 @@ chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
         batchState.isRunning = false; 
-        batchState.workerWindowId = null; // Garantir que comece limpo
+        batchState.isSourcing = false;
+        batchState.workerWindowId = null;
         saveBatchState();
     }
 });
@@ -93,11 +96,13 @@ function saveBatchState() {
     chrome.storage.local.set({ batch_state: batchState });
     chrome.runtime.sendMessage({ type: 'BATCH_STATE_CHANGED', state: batchState }).catch(() => {});
     
-    if (batchState.isRunning) {
+    // Broadcast para todas as abas (para o widget/pill)
+    if (batchState.isRunning || batchState.isSourcing) {
         broadcastToWidgets({ 
             type: 'BATCH_WIDGET_UPDATE', 
-            current: batchState.results.length, 
-            total: batchState.tabs.length 
+            current: batchState.isSourcing ? batchState.sourcingCount : batchState.results.length, 
+            total: batchState.isSourcing ? batchState.sourcingTarget : batchState.tabs.length,
+            mode: batchState.isSourcing ? 'SOURCING' : 'EXTRACTING'
         });
     } else if (batchState.results.length === 0) {
         broadcastToWidgets({ type: 'BATCH_WIDGET_HIDE' });
@@ -105,55 +110,127 @@ function saveBatchState() {
 }
 
 async function broadcastToWidgets(message) {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-        chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+        }
+    } catch (e) {}
+}
+
+async function ensureWorkerWindow() {
+    if (batchState.workerWindowId) {
+        try {
+            await chrome.windows.get(batchState.workerWindowId);
+            return batchState.workerWindowId;
+        } catch (e) {
+            batchState.workerWindowId = null;
+        }
+    }
+    log.info("[BATCH] Criando Janela Worker...");
+    const workerWindow = await chrome.windows.create({
+        url: 'about:blank',
+        type: 'popup',
+        state: 'minimized',
+        focused: false
+    });
+    batchState.workerWindowId = workerWindow.id;
+    saveBatchState();
+    return workerWindow.id;
+}
+
+// --- LOOP DE BUSCA (SOURCING) ---
+async function runSourcingLoop(searchUrl, targetCount) {
+    if (batchState.isSourcing) return;
+    batchState.isSourcing = true;
+    batchState.sourcingCount = 0;
+    batchState.sourcingTarget = targetCount;
+    batchState.tabs = [];
+    saveBatchState();
+
+    let windowId = await ensureWorkerWindow();
+    let collectedUrls = new Set();
+    let searchTabId = null;
+
+    try {
+        const searchTab = await chrome.tabs.create({ windowId, url: searchUrl, active: true });
+        searchTabId = searchTab.id;
+
+        while (collectedUrls.size < targetCount && batchState.isSourcing) {
+            log.info(`[SOURCING] Capturando... (${collectedUrls.size}/${targetCount})`);
+            await new Promise(r => setTimeout(r, 6000));
+            
+            await chrome.scripting.executeScript({ target: { tabId: searchTabId }, files: ['scripts/linkedin_search_scraper.js'] });
+            
+            const response = await chrome.tabs.sendMessage(searchTabId, { action: "scrape_search_results", goToNext: true });
+            if (response?.success) {
+                response.urls.forEach(url => {
+                    if (collectedUrls.size < targetCount) collectedUrls.add(url);
+                });
+                batchState.sourcingCount = collectedUrls.size;
+                saveBatchState();
+                
+                if (!response.hasNextPage || collectedUrls.size >= targetCount) break;
+            } else {
+                log.error("[SOURCING] Scraper falhou ou não retornou dados.");
+                break;
+            }
+        }
+
+        const finalTabs = Array.from(collectedUrls).map(url => {
+            const match = url.match(/linkedin\.com\/in\/([^/?]+)/);
+            return { id: null, url, username: match ? match[1] : 'unknown', status: 'pending' };
+        });
+
+        batchState.tabs = finalTabs;
+        batchState.isSourcing = false;
+        saveBatchState();
+
+        if (finalTabs.length > 0) {
+            log.success(`[SOURCING] Concluído! ${finalTabs.length} perfis encontrados. Iniciando extração...`);
+            runBatchLoop();
+        } else {
+            log.warn("[SOURCING] Nenhum perfil encontrado.");
+            if (batchState.workerWindowId) chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            batchState.workerWindowId = null;
+            saveBatchState();
+        }
+
+    } catch (e) {
+        log.error("[SOURCING] Erro crítico:", e);
+        batchState.isSourcing = false;
+        saveBatchState();
+    } finally {
+        if (searchTabId) chrome.tabs.remove(searchTabId).catch(() => {});
     }
 }
 
+// --- LOOP DE EXTRAÇÃO ---
 async function runBatchLoop() {
-    if (!batchState.isRunning) return;
+    if (batchState.isRunning) return;
+    batchState.isRunning = true;
+    saveBatchState();
 
-    // 1. Cria a Janela de Trabalho (Worker Window) - Minimizada e fora do caminho
-    try {
-        log.info("[BATCH] Criando Janela Worker (FANTASMA)...");
-        const workerWindow = await chrome.windows.create({
-            url: 'about:blank',
-            type: 'popup',
-            state: 'minimized',
-            focused: false
-        });
-        batchState.workerWindowId = workerWindow.id;
-        saveBatchState();
-    } catch (e) {
-        log.error("Falha ao criar janela worker:", e);
-        batchState.isRunning = false;
-        saveBatchState();
-        return;
-    }
+    let windowId = await ensureWorkerWindow();
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] >>> PROCESSO FANTASMA: ${tabData.username}`);
+        log.info(`[BATCH] Processando: ${tabData.username}`);
 
         let currentTabId = null;
         try {
-            // Cria aba DENTRO da janela Worker (não na janela principal do usuário)
             const newTab = await chrome.tabs.create({ 
-                windowId: batchState.workerWindowId,
+                windowId: windowId,
                 url: tabData.url, 
-                active: true // Active dentro da janela minimizada
+                active: true 
             });
             currentTabId = newTab.id;
             
-            log.info(`[BATCH] Aguardando carregamento (Aba: ${currentTabId} em Janela: ${batchState.workerWindowId})`);
             await new Promise(r => setTimeout(r, 8000));
 
-            // Injeta scripts de extração
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
-            // Dispara clique no PDF
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
@@ -162,7 +239,7 @@ async function runBatchLoop() {
                             document.querySelector('button[data-view-name="profile-overflow-button"]');
                         if (moreButton) {
                             moreButton.click();
-                            await new Promise(r => setTimeout(r, 900));
+                            await new Promise(r => setTimeout(r, 1000));
                             const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
                             const pdfItem = items.find(i => /pdf/i.test(i.innerText));
                             if (pdfItem) pdfItem.click();
@@ -216,9 +293,7 @@ async function runBatchLoop() {
         }
     }
 
-    // FINALIZAÇÃO: Fecha a janela worker
     if (batchState.workerWindowId) {
-        log.info("[BATCH] Fechando Janela Worker.");
         chrome.windows.remove(batchState.workerWindowId).catch(() => {});
         batchState.workerWindowId = null;
     }
@@ -226,22 +301,31 @@ async function runBatchLoop() {
     batchState.isRunning = false;
     saveBatchState();
     log.success("[BATCH] Fila finalizada.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento concluído com sucesso.' });
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento fantasma concluído.' });
 }
 
 // OUVINTE DE MENSAGENS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "START_BATCH") {
-        if (batchState.isRunning) {
-            sendResponse({ success: false, error: "Fila já em execução." });
+        if (batchState.isRunning || batchState.isSourcing) {
+            sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
-        batchState = { isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
+        batchState = { ...batchState, isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
         runBatchLoop();
         sendResponse({ success: true });
+    } else if (message.action === "START_SOURCING") {
+        if (batchState.isRunning || batchState.isSourcing) {
+            sendResponse({ success: false, error: "Já em execução." });
+            return true;
+        }
+        batchState = { ...batchState, scorecardId: message.scorecardId, jobId: message.jobId, results: [], currentIndex: 0 };
+        runSourcingLoop(message.searchUrl, message.targetCount);
+        sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
         batchState.isRunning = false;
+        batchState.isSourcing = false;
         if (batchState.workerWindowId) {
             chrome.windows.remove(batchState.workerWindowId).catch(() => {});
             batchState.workerWindowId = null;
@@ -251,7 +335,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "GET_BATCH_STATE") {
         sendResponse({ state: batchState });
     } else if (message.action === "RESET_BATCH") {
-        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
+        batchState = { isRunning: false, isSourcing: false, sourcingCount: 0, sourcingTarget: 0, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {

@@ -3,12 +3,12 @@
 
 (function() {
     const WIDGET_ID = '__anna_batch_progress_widget__';
-    console.log("[ANNA-WIDGET] Initializing widget script on this tab...");
+    console.log("[ANNA-WIDGET] Script carregado nesta aba.");
 
     function createWidget() {
         if (document.getElementById(WIDGET_ID)) return;
 
-        console.log("[ANNA-WIDGET] Creating widget UI elements...");
+        console.log("[ANNA-WIDGET] Criando UI do widget...");
         const widget = document.createElement('div');
         widget.id = WIDGET_ID;
         widget.classList.add('hidden'); 
@@ -106,7 +106,7 @@
 
         widget.innerHTML = `
             <div class="anna-widget-header">
-                <span class="anna-widget-title"><span class="anna-widget-pulse"></span>Anna Captura Ativa</span>
+                <span class="anna-widget-title" id="${WIDGET_ID}_title"><span class="anna-widget-pulse"></span>Buscando Perfis...</span>
                 <span class="anna-widget-counter" id="${WIDGET_ID}_text">0/0</span>
             </div>
             <div class="anna-widget-progress-container">
@@ -115,17 +115,19 @@
         `;
 
         document.body.appendChild(widget);
-        console.log("[ANNA-WIDGET] Widget created.");
     }
 
-    function updateWidget(current, total) {
-        console.log(`[ANNA-WIDGET] Updating: ${current}/${total}`);
+    function updateWidget(current, total, mode = 'EXTRACTING') {
         createWidget();
         const widget = document.getElementById(WIDGET_ID);
+        const title = document.getElementById(WIDGET_ID + '_title');
         const text = document.getElementById(WIDGET_ID + '_text');
         const bar = document.getElementById(WIDGET_ID + '_bar');
         
         if (widget) widget.classList.remove('hidden');
+        if (title) {
+            title.innerHTML = `<span class="anna-widget-pulse"></span>${mode === 'SOURCING' ? 'Buscando Perfis...' : 'Analisando...'}`;
+        }
         if (text) text.textContent = `${current}/${total}`;
         if (bar) {
             const percentage = Math.min(100, (current / total) * 100);
@@ -134,7 +136,6 @@
     }
 
     function removeWidget() {
-        console.log("[ANNA-WIDGET] Removing widget...");
         const widget = document.getElementById(WIDGET_ID);
         if (widget) {
             widget.classList.add('hidden');
@@ -145,20 +146,22 @@
     // Listener para mensagens do background
     chrome.runtime.onMessage.addListener((message) => {
         if (message.type === 'BATCH_WIDGET_UPDATE') {
-            updateWidget(message.current, message.total);
+            updateWidget(message.current, message.total, message.mode);
         } else if (message.type === 'BATCH_WIDGET_HIDE') {
             removeWidget();
         }
     });
 
-    // Escuta mudanças no storage (fallback de sincronização em tempo real)
+    // Escuta mudanças no storage (Fallback agressivo para atualizações em todas as abas)
     chrome.storage.onChanged.addListener((changes) => {
         if (changes.batch_state) {
             const state = changes.batch_state.newValue;
-            console.log("[ANNA-WIDGET] Storage change detected:", state);
-            if (state?.isRunning) {
-                updateWidget(state.results.length, state.tabs.length);
-            } else if (state && state.results.length === 0) {
+            if (state?.isRunning || state?.isSourcing) {
+                const current = state.isSourcing ? state.sourcingCount : state.results.length;
+                const total = state.isSourcing ? state.sourcingTarget : state.tabs.length;
+                const mode = state.isSourcing ? 'SOURCING' : 'EXTRACTING';
+                updateWidget(current, total, mode);
+            } else if (state && state.results.length === 0 && !state.isSourcing) {
                 removeWidget();
             }
         }
@@ -166,11 +169,12 @@
 
     // AUTO-INITIALIZATION
     chrome.storage.local.get('batch_state', (data) => {
-        console.log("[ANNA-WIDGET] Initial state from storage:", data?.batch_state);
-        if (data?.batch_state?.isRunning) {
-            const current = data.batch_state.results.length;
-            const total = data.batch_state.tabs.length;
-            updateWidget(current, total);
+        const state = data?.batch_state;
+        if (state?.isRunning || state?.isSourcing) {
+            const current = state.isSourcing ? state.sourcingCount : state.results.length;
+            const total = state.isSourcing ? state.sourcingTarget : state.tabs.length;
+            const mode = state.isSourcing ? 'SOURCING' : 'EXTRACTING';
+            updateWidget(current, total, mode);
         }
     });
 })();
