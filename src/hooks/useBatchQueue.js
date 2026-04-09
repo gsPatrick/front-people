@@ -317,7 +317,7 @@ export const useBatchQueue = () => {
     const acceptProfile = useCallback((result) => result, []);
     const rejectProfile = useCallback((result) => result, []);
 
-    const sourceProfilesFromSearch = useCallback(async (searchUrl, scorecardId, targetCount = 50) => {
+    const sourceProfilesFromSearch = useCallback(async (searchUrl, scorecardId, targetCount = 50, jobId = null) => {
         setQueueState(prev => ({ ...prev, isSourcing: true }));
         let searchTab = null;
         let collectedUrls = new Set();
@@ -348,15 +348,15 @@ export const useBatchQueue = () => {
             return { id: null, url, username: match ? match[1] : 'unknown', status: 'pending' };
         });
         setQueueState(prev => ({ ...prev, isSourcing: false, tabs: [...prev.tabs, ...newItems] }));
-        if (newItems.length > 0) startQueue(scorecardId, null, newItems);
+        if (newItems.length > 0) startQueue(scorecardId, jobId, newItems);
         return newItems.length;
     }, [startQueue]);
 
-    const startProcessFromSingleUrl = useCallback(async (profileUrl, scorecardId) => {
+    const startProcessFromSingleUrl = useCallback(async (profileUrl, scorecardId, jobId = null) => {
         const match = profileUrl?.match(/linkedin\.com\/in\/([^/?]+)/);
         const singleItem = { id: null, url: profileUrl, username: match ? match[1] : 'unknown', status: 'pending' };
         setQueueState(prev => ({ ...prev, tabs: [singleItem], isRunning: true, currentIndex: 0, results: [] }));
-        startQueue(scorecardId, null, [singleItem]);
+        startQueue(scorecardId, jobId, [singleItem]);
     }, [startQueue]);
 
     return useMemo(() => ({ queueState, detectLinkedInTabs, startQueue, stopQueue, resetQueue, acceptProfile, rejectProfile, sourceProfilesFromSearch, startProcessFromSingleUrl }), [queueState, detectLinkedInTabs, startQueue, stopQueue, resetQueue, acceptProfile, rejectProfile, sourceProfilesFromSearch, startProcessFromSingleUrl]);

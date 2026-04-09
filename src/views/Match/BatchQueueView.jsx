@@ -160,18 +160,19 @@ const BatchQueueView = ({
 
     // NOVO: Disparo automático se vier via "Analisar com IA" ou "Captura Individual"
     useEffect(() => {
-        const effectiveScorecardId = scorecard?.id || navigationState?.scorecardId;
+        const effectiveScorecardId = navigationState?.scorecardId || scorecard?.id;
+        const effectiveJobId = navigationState?.jobId || null;
 
         if (navigationState?.autoStartUrl && results.length === 0 && !isSourcing && !isRunning) {
             console.log("[BatchQueueView] Auto-start detectado para:", navigationState.autoStartUrl);
-            onAutoSource(navigationState.autoStartUrl, effectiveScorecardId, 1);
+            onAutoSource(navigationState.autoStartUrl, effectiveScorecardId, 1, effectiveJobId);
         }
 
         if (navigationState?.autoStartDirectUrl && results.length === 0 && !isSourcing && !isRunning && onStartDirect) {
             console.log("[BatchQueueView] Auto-start DIRETO detectado para:", navigationState.autoStartDirectUrl);
-            onStartDirect(navigationState.autoStartDirectUrl, effectiveScorecardId);
+            onStartDirect(navigationState.autoStartDirectUrl, effectiveScorecardId, effectiveJobId);
         }
-    }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, navigationState?.scorecardId, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
+    }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, navigationState?.scorecardId, navigationState?.jobId, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
 
     // NOVO: Abrir busca automaticamente ao entrar se não houver abas detectadas
     useEffect(() => {
@@ -272,7 +273,9 @@ const BatchQueueView = ({
         }
 
         try {
-            await onAutoSource(finalSearchUrl, scorecard?.id, count);
+            const effectiveScorecardId = navigationState?.scorecardId || scorecard?.id;
+            const effectiveJobId = navigationState?.jobId || null;
+            await onAutoSource(finalSearchUrl, effectiveScorecardId, count, effectiveJobId);
         } catch (error) {
             setModalConfig({
                 isOpen: true,
