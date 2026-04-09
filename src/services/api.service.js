@@ -506,6 +506,7 @@ export const analyzeProfileWithAI = async (scorecardId, profileData, jobId = nul
     const response = await apiClient.post(`/match/${scorecardId}`, payload);
     return response.data;
   } catch (error) {
+    console.error(`[API] Erro em analyzeProfileWithAI (Scorecard: ${scorecardId}):`, error);
     handleError(error);
   }
 };

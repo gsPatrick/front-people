@@ -160,16 +160,18 @@ const BatchQueueView = ({
 
     // NOVO: Disparo automático se vier via "Analisar com IA" ou "Captura Individual"
     useEffect(() => {
+        const effectiveScorecardId = scorecard?.id || navigationState?.scorecardId;
+
         if (navigationState?.autoStartUrl && results.length === 0 && !isSourcing && !isRunning) {
             console.log("[BatchQueueView] Auto-start detectado para:", navigationState.autoStartUrl);
-            onAutoSource(navigationState.autoStartUrl, scorecard?.id, 1);
+            onAutoSource(navigationState.autoStartUrl, effectiveScorecardId, 1);
         }
 
         if (navigationState?.autoStartDirectUrl && results.length === 0 && !isSourcing && !isRunning && onStartDirect) {
             console.log("[BatchQueueView] Auto-start DIRETO detectado para:", navigationState.autoStartDirectUrl);
-            onStartDirect(navigationState.autoStartDirectUrl, scorecard?.id);
+            onStartDirect(navigationState.autoStartDirectUrl, effectiveScorecardId);
         }
-    }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
+    }, [navigationState?.autoStartUrl, navigationState?.autoStartDirectUrl, scorecard?.id, navigationState?.scorecardId, results.length, isSourcing, isRunning, onAutoSource, onStartDirect]);
 
     // NOVO: Abrir busca automaticamente ao entrar se não houver abas detectadas
     useEffect(() => {
