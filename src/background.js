@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.5';
+const VERSION = '1.2.6';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -258,27 +258,27 @@ async function runBatchLoop() {
     batchState.isRunning = true;
     saveBatchState();
 
-    let windowId = await ensureWorkerWindow();
-    log.info(`[BATCH] Iniciando loop com WindowID: ${windowId}`);
-
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Processando: ${tabData.username}`);
+        log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
 
         let currentTabId = null;
+        let profileWindowId = null;
         try {
-            // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil
-            if (windowId) {
-                await chrome.windows.update(parseInt(windowId), { state: 'minimized', focused: false }).catch(() => {});
-            }
-
-            log.info(`[BATCH] Abrindo aba na janela ${windowId}: ${tabData.url}`);
-            const newTab = await chrome.tabs.create({ 
-                windowId: parseInt(windowId),
+            log.info(`[BATCH] Criando Janela Atômica Fantasma para: ${tabData.username}`);
+            const profileWindow = await chrome.windows.create({ 
                 url: tabData.url, 
-                active: false 
+                type: 'popup',
+                state: 'minimized',
+                focused: false
             });
-            currentTabId = newTab.id;
+            
+            profileWindowId = profileWindow.id;
+            const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
+            currentTabId = tab.id;
+            
+            // Garantia extra de minimização
+            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             
             await new Promise(r => setTimeout(r, 8000));
 
@@ -335,27 +335,22 @@ async function runBatchLoop() {
         } catch (err) {
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
-            if (currentTabId) {
-                await chrome.tabs.remove(currentTabId).catch(() => {});
+            if (profileWindowId) {
+                await chrome.windows.remove(profileWindowId).catch(() => {});
             }
         }
 
         batchState.currentIndex++;
         saveBatchState();
         if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            await new Promise(r => setTimeout(r, 12000));
+            await new Promise(r => setTimeout(r, 8000)); // Delay menor já que abre janela nova
         }
-    }
-
-    if (batchState.workerWindowId) {
-        chrome.windows.remove(batchState.workerWindowId).catch(() => {});
-        batchState.workerWindowId = null;
     }
 
     batchState.isRunning = false;
     saveBatchState();
-    log.success("[BATCH] Fila finalizada.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento fantasma concluído.' });
+    log.success("[BATCH] Fila Atômica finalizada.");
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento atômico concluído.' });
 }
 
 // OUVINTE DE MENSAGENS

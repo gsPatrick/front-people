@@ -1,6 +1,6 @@
 /* global chrome */
 // ===================================================================
-//              ARQUIVO COMPLETE: background.js (ROOT SYNC)
+//              ARQUIVO COMPLETE: background.js (ROOT SYNC - ATOMIC)
 // ===================================================================
 
 // Log inicial
@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './src/services/api.
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.5';
+const VERSION = '1.2.6';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -55,7 +55,6 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.local.set({ app_settings: DEFAULT_SETTINGS });
   }
   updateActionBehavior();
-  // Auto-injeta o widget em todas as abas abertas para garantir a pílula em todos os lugares
   injectWidgetIntoAllTabs();
 });
 
@@ -91,7 +90,6 @@ function base64ToBlob(base64Data) {
     return new Blob([byteArray], { type: mime });
 }
 
-// --- Gerenciador de Fila em Lote (Persistent State) ---
 let batchState = {
     isRunning: false,
     isSourcing: false,
@@ -105,7 +103,6 @@ let batchState = {
     workerWindowId: null 
 };
 
-// Carrega estado inicial do storage
 chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
@@ -143,36 +140,7 @@ async function broadcastToWidgets(message) {
     }
 }
 
-async function ensureWorkerWindow() {
-    if (batchState.workerWindowId) {
-        try {
-            await chrome.windows.get(batchState.workerWindowId);
-            return batchState.workerWindowId;
-        } catch {
-            batchState.workerWindowId = null;
-        }
-    }
-    log.info("[BATCH] Criando Janela Worker (Modo Fantasma Seguro)...");
-    const workerWindow = await chrome.windows.create({
-        url: 'about:blank',
-        type: 'popup',
-        state: 'minimized',
-        focused: false
-    });
-    
-    // Pequeno delay para estabilização
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // Garante minimização extra
-    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
-    
-    batchState.workerWindowId = workerWindow.id;
-    log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
-    saveBatchState();
-    return parseInt(workerWindow.id);
-}
-
-// --- LOOP DE BUSCA (SOURCING) ---
+// LOOP DE BUSCA (SOURCING) - Agora usa criação atômica atômica
 async function runSourcingLoop(searchUrl, targetCount) {
     if (batchState.isSourcing) return;
     batchState.isSourcing = true;
@@ -183,10 +151,10 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
     let collectedUrls = new Set();
     let searchTabId = null;
+    let searchWindowId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
-        // CRIAÇÃO COMPATÍVEL
+        log.info("[SOURCING] Criando Janela de Busca Atômica...");
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
@@ -194,8 +162,8 @@ async function runSourcingLoop(searchUrl, targetCount) {
             focused: false
         });
         
-        batchState.workerWindowId = workerWindow.id;
-        const [tab] = await chrome.tabs.query({ windowId: workerWindow.id });
+        searchWindowId = workerWindow.id;
+        const [tab] = await chrome.tabs.query({ windowId: searchWindowId });
         searchTabId = tab.id;
         saveBatchState();
 
@@ -224,46 +192,44 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
         if (finalTabs.length > 0) {
             runBatchLoop();
-        } else {
-            if (batchState.workerWindowId) chrome.windows.remove(batchState.workerWindowId).catch(() => {});
-            batchState.workerWindowId = null;
-            saveBatchState();
         }
-    } catch {
+    } catch (e) {
+        log.error("[SOURCING] Erro:", e);
         batchState.isSourcing = false;
         saveBatchState();
     } finally {
-        if (searchTabId) chrome.tabs.remove(searchTabId).catch(() => {});
+        if (searchWindowId) chrome.windows.remove(searchWindowId).catch(() => {});
     }
 }
 
+// LOOP DE EXTRAÇÃO - AGORA TOTALMENTE ATÔMICO (UMA JANELA POR PERFIL)
 async function runBatchLoop() {
     if (batchState.isRunning) return;
     batchState.isRunning = true;
     saveBatchState();
 
-    let windowId = await ensureWorkerWindow();
-    log.info(`[BATCH] Iniciando loop com WindowID: ${windowId}`);
-
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Processando: ${tabData.username}`);
+        log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
 
         let currentTabId = null;
+        let profileWindowId = null;
         try {
-            // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil
-            if (windowId) {
-                await chrome.windows.update(parseInt(windowId), { state: 'minimized', focused: false }).catch(() => {});
-            }
-
-            log.info(`[BATCH] Abrindo aba na janela ${windowId}: ${tabData.url}`);
-            const newTab = await chrome.tabs.create({ 
-                windowId: parseInt(windowId),
+            log.info(`[BATCH] Criando Janela Atômica Fantasma para: ${tabData.username}`);
+            const profileWindow = await chrome.windows.create({ 
                 url: tabData.url, 
-                active: false 
+                type: 'popup',
+                state: 'minimized',
+                focused: false
             });
-            currentTabId = newTab.id;
+            
+            profileWindowId = profileWindow.id;
+            const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
+            currentTabId = tab.id;
+            
+            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             await new Promise(r => setTimeout(r, 8000));
+
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
@@ -317,50 +283,36 @@ async function runBatchLoop() {
         } catch (err) {
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
-            if (currentTabId) await chrome.tabs.remove(currentTabId).catch(() => {});
+            if (profileWindowId) await chrome.windows.remove(profileWindowId).catch(() => {});
         }
 
         batchState.currentIndex++;
         saveBatchState();
         if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            await new Promise(r => setTimeout(r, 12000));
+            await new Promise(r => setTimeout(r, 8000));
         }
-    }
-
-    if (batchState.workerWindowId) {
-        chrome.windows.remove(batchState.workerWindowId).catch(() => {});
-        batchState.workerWindowId = null;
     }
 
     batchState.isRunning = false;
     saveBatchState();
+    log.success("[BATCH] Fila Atômica finalizada.");
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "START_BATCH") {
-        if (batchState.isRunning || batchState.isSourcing) {
-            sendResponse({ success: false, error: "Já em execução." });
-            return true;
-        }
+        if (batchState.isRunning || batchState.isSourcing) return;
         batchState = { ...batchState, isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "START_SOURCING") {
-        if (batchState.isRunning || batchState.isSourcing) {
-            sendResponse({ success: false, error: "Já em execução." });
-            return true;
-        }
+        if (batchState.isRunning || batchState.isSourcing) return;
         batchState = { ...batchState, scorecardId: message.scorecardId, jobId: message.jobId, results: [], currentIndex: 0 };
         runSourcingLoop(message.searchUrl, message.targetCount);
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
         batchState.isRunning = false;
         batchState.isSourcing = false;
-        if (batchState.workerWindowId) {
-            chrome.windows.remove(batchState.workerWindowId).catch(() => {});
-            batchState.workerWindowId = null;
-        }
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "GET_BATCH_STATE") {
@@ -370,8 +322,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
-        const pdfBlob = base64ToBlob(message.data);
-        extractProfileFromPdf(pdfBlob).then(data => sendResponse({success:true, data})).catch(e => sendResponse({success:false, error:e.message}));
+        base64ToBlob(message.data); 
         return true;
     }
     return true;
