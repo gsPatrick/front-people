@@ -115,7 +115,9 @@ async function broadcastToWidgets(message) {
         for (const tab of tabs) {
             chrome.tabs.sendMessage(tab.id, message).catch(() => {});
         }
-    } catch (e) {}
+    } catch (error) {
+        log.error("Erro no broadcast para widgets:", error);
+    }
 }
 
 async function ensureWorkerWindow() {
@@ -123,7 +125,7 @@ async function ensureWorkerWindow() {
         try {
             await chrome.windows.get(batchState.workerWindowId);
             return batchState.workerWindowId;
-        } catch (e) {
+        } catch {
             batchState.workerWindowId = null;
         }
     }

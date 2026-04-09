@@ -120,7 +120,7 @@ async function ensureWorkerWindow() {
         try {
             await chrome.windows.get(batchState.workerWindowId);
             return batchState.workerWindowId;
-        } catch (e) {
+        } catch {
             batchState.workerWindowId = null;
         }
     }
@@ -181,7 +181,7 @@ async function runSourcingLoop(searchUrl, targetCount) {
             batchState.workerWindowId = null;
             saveBatchState();
         }
-    } catch (e) {
+    } catch {
         batchState.isSourcing = false;
         saveBatchState();
     } finally {
