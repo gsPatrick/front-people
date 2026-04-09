@@ -151,20 +151,21 @@ export const useBatchQueue = () => {
                 const profileData = extractionResult.data;
                 const matchResult = scorecardId ? await api.analyzeProfileWithAI(scorecardId, profileData, jobId) : null;
 
-                // Mapeamento de Adaptador para UI
-                const overallScore0to5 = matchResult?.overallScore ? (matchResult.overallScore / 20) : 0;
-                const categories0to5 = [];
+                // Mapeamento de Adaptador para UI (Mantendo Escala Base-100)
+                const matchScore = matchResult?.matchScore || 0;
+                const categories = [];
                 const strengths = [];
                 const weaknesses = [];
 
                 if (matchResult?.categories) {
                     matchResult.categories.forEach(cat => {
-                        const score = cat.score ? (cat.score / 20) : 0;
-                        categories0to5.push({ ...cat, averageScore: score });
+                        // Backend agora retorna 0-100 para categorias também
+                        categories.push({ ...cat, averageScore: cat.score });
                         if (cat.criteria) {
                             cat.criteria.forEach(crit => {
-                                if (crit.score >= 4) strengths.push(crit.justification);
-                                else if (crit.score <= 2) weaknesses.push(crit.justification);
+                                // Thresholds ajustados para escala 0-100
+                                if (crit.score >= 80) strengths.push(crit.justification);
+                                else if (crit.score <= 40) weaknesses.push(crit.justification);
                             });
                         }
                     });
@@ -177,11 +178,12 @@ export const useBatchQueue = () => {
                     headline: profileData.perfil?.titulo || profileData.headline,
                     profileData,
                     matchResult,
-                    averageScore: overallScore0to5,
-                    categories: categories0to5,
+                    matchScore: matchScore, // Score oficial (0-100)
+                    averageScore: matchScore, // Legado (0-100 agora)
+                    categories: categories,
                     strengths: strengths.slice(0, 3),
                     weaknesses: weaknesses.slice(0, 3),
-                    tabId: tab.id, // Retorna o ID real para limpeza
+                    tabId: tab.id,
                     success: true
                 });
 
@@ -229,14 +231,15 @@ export const useBatchQueue = () => {
             let success = false;
             let attempt = 1;
             let finalResult = null;
+            const wasCreatedBySystem = !currentItem.id; // TRUE se o sistema vai criar a aba (id era null)
 
             // LOOP DE RETRY: Tenta infinitamente (ou até limite muito alto) como pedido
             while (!success && !abortRef.current) {
                 setQueueState(prev => ({ ...prev, currentAttempt: attempt }));
                 const result = await processTab(currentItem, scorecardId, attempt, jobId);
 
-                // Rastreia o tabId que foi aberto/utilizado
-                if (result.tabId) openedTabIds.add(result.tabId);
+                // Rastreia APENAS abas CRIADAS pelo sistema (não abas pré-existentes do usuário)
+                if (result.tabId && wasCreatedBySystem) openedTabIds.add(result.tabId);
 
                 if (result.success) {
                     success = true;
@@ -245,8 +248,8 @@ export const useBatchQueue = () => {
                 } else if (result.shouldRetry) {
                     console.log(`[BATCH] ⚠️ Falha em ${currentItem.username}. Tentando novamente em 15s... (Tentativa ${attempt})\nMotivo: ${result.error}`);
                     attempt++;
-                    // A cada 3 falhas, fecha a aba travada e deixa o próximo loop criar uma nova
-                    if (attempt % 3 === 0 && currentItem.id) {
+                    // A cada 3 falhas, fecha a aba travada (se foi criada pelo sistema) e deixa o próximo loop criar uma nova
+                    if (attempt % 3 === 0 && currentItem.id && wasCreatedBySystem) {
                         await safeCloseTab(currentItem.id);
                         openedTabIds.delete(currentItem.id);
                         currentItem.id = null;
@@ -265,11 +268,13 @@ export const useBatchQueue = () => {
                 }));
             }
 
-            // FECHA a aba do perfil que acabou de ser processado ANTES de abrir a próxima
-            const tabIdToClose = finalResult?.tabId || currentItem.id;
-            if (tabIdToClose) {
-                await safeCloseTab(tabIdToClose);
-                openedTabIds.delete(tabIdToClose);
+            // FECHA a aba do perfil APENAS se foi criada pelo sistema
+            if (wasCreatedBySystem) {
+                const tabIdToClose = finalResult?.tabId || currentItem.id;
+                if (tabIdToClose) {
+                    await safeCloseTab(tabIdToClose);
+                    openedTabIds.delete(tabIdToClose);
+                }
             }
 
             // Delay entre perfis
@@ -328,15 +333,14 @@ export const useBatchQueue = () => {
             }
         } catch (e) {
             console.error("Erro no sourcing:", e);
-        } finally {
-            if (searchTab?.id) chrome.tabs.remove(searchTab.id).catch(() => { });
         }
+        // NÃO fecha a aba da listagem (mantenha aberta para o usuário)
         const newItems = Array.from(collectedUrls).slice(0, targetCount).map(url => {
             const match = url.match(/linkedin\.com\/in\/([^/?]+)/);
             return { id: null, url, username: match ? match[1] : 'unknown', status: 'pending' };
         });
         setQueueState(prev => ({ ...prev, isSourcing: false, tabs: [...prev.tabs, ...newItems] }));
-        if (newItems.length > 0) startQueue(scorecardId, newItems);
+        if (newItems.length > 0) startQueue(scorecardId, null, newItems);
         return newItems.length;
     }, [startQueue]);
 
@@ -344,7 +348,7 @@ export const useBatchQueue = () => {
         const match = profileUrl?.match(/linkedin\.com\/in\/([^/?]+)/);
         const singleItem = { id: null, url: profileUrl, username: match ? match[1] : 'unknown', status: 'pending' };
         setQueueState(prev => ({ ...prev, tabs: [singleItem], isRunning: true, currentIndex: 0, results: [] }));
-        startQueue(scorecardId, [singleItem]);
+        startQueue(scorecardId, null, [singleItem]);
     }, [startQueue]);
 
     return useMemo(() => ({ queueState, detectLinkedInTabs, startQueue, stopQueue, resetQueue, acceptProfile, rejectProfile, sourceProfilesFromSearch, startProcessFromSingleUrl }), [queueState, detectLinkedInTabs, startQueue, stopQueue, resetQueue, acceptProfile, rejectProfile, sourceProfilesFromSearch, startProcessFromSingleUrl]);

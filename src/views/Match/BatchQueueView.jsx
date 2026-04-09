@@ -117,7 +117,7 @@ const BatchQueueView = ({
                 id: res.username || `done-${idx}`,
                 name: res.name || 'Perfil Analisado',
                 status: 'completed',
-                score: res.matchScore !== undefined ? res.matchScore : (res.averageScore ? res.averageScore * 20 : 0)
+                score: res.matchScore !== undefined ? res.matchScore : (res.averageScore || 0)
             });
         });
 
@@ -228,10 +228,11 @@ const BatchQueueView = ({
     };
 
     const _GetScoreColor = (score) => {
-        if (!score) return '#cbd5e1';
-        if (score >= 4) return '#22c55e';
-        if (score >= 3) return '#eab308';
-        return '#ef4444';
+        if (score === undefined || score === null) return '#cbd5e1';
+        // Base-100 Thresholds
+        if (score >= 70) return '#22c55e'; // Verde
+        if (score >= 40) return '#eab308'; // Amarelo
+        return '#ef4444'; // Vermelho
     };
 
     const handleStartSource = async () => {
@@ -413,7 +414,7 @@ const BatchQueueView = ({
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{selectedProfile.headline}</p>
                             </div>
                             <div className={styles.scoreBadge} style={{ fontSize: '18px', fontWeight: 'bold', width: '54px', height: '54px' }}>
-                                {selectedProfile.matchScore !== undefined ? `${Math.round(selectedProfile.matchScore)}%` : (selectedProfile.averageScore ? (selectedProfile.averageScore * 20).toFixed(0) + '%' : '-')}
+                                {selectedProfile.matchScore !== undefined ? `${Math.round(selectedProfile.matchScore)}%` : (selectedProfile.averageScore ? Math.round(selectedProfile.averageScore) + '%' : '-')}
                             </div>
                         </div>
 
@@ -525,7 +526,7 @@ const BatchQueueView = ({
                                 <>
                                     <div className={styles.scoreColumn}>
                                         <span className={styles.miniScore}>
-                                            {profile.matchScore !== undefined ? `${Math.round(profile.matchScore)}%` : (profile.averageScore ? `${Math.round(profile.averageScore * 20)}%` : '-')}
+                                            {profile.matchScore !== undefined ? `${Math.round(profile.matchScore)}%` : (profile.averageScore ? `${Math.round(profile.averageScore)}%` : '-')}
                                         </span>
                                     </div>
                                     <div className={styles.infoColumn}>
