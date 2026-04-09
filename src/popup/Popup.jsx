@@ -429,11 +429,23 @@ const Popup = () => {
             onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} 
             onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} 
             onStartMatch={(scorecardId, job) => {
-                // ETAPA 1.2: Abrir janela do LINKEDIN com SIDEPANEL automático
-                chrome.runtime.sendMessage({
-                    action: 'OPEN_SIDEBAR_WINDOW',
-                    scorecardId,
-                    jobId: job.id
+                // ETAPA 1.3: Orquestração DIRETA via gesto do usuário (Popup)
+                const searchUrl = "https://www.linkedin.com/search/results/people/";
+                
+                chrome.windows.create({ url: searchUrl, focused: true }, (newWindow) => {
+                    const windowId = newWindow.id;
+                    const sidePanelUrl = chrome.runtime.getURL(`index.html?view=batch_queue&scorecardId=${scorecardId}&jobId=${job.id}`);
+                    
+                    // Configura e Abre o painel lateral na nova janela
+                    chrome.sidePanel.setOptions({
+                        windowId: windowId,
+                        path: sidePanelUrl,
+                        enabled: true
+                    }, () => {
+                        chrome.sidePanel.open({ windowId: windowId }).catch((err) => {
+                            console.error("[POPUP] Erro ao abrir sidePanel na nova janela:", err);
+                        });
+                    });
                 });
             }} 
         />; break;

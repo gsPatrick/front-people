@@ -340,29 +340,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         batchState = { isRunning: false, isSourcing: false, sourcingCount: 0, sourcingTarget: 0, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
         saveBatchState();
         sendResponse({ success: true });
-    } else if (message.action === "OPEN_SIDEBAR_WINDOW") {
-        const { scorecardId, jobId, searchUrl } = message;
-        const defaultSearch = "https://www.linkedin.com/search/results/people/";
-        const targetUrl = searchUrl || defaultSearch;
-
-        chrome.windows.create({ url: targetUrl, focused: true }, (window) => {
-            const windowId = window.id;
-            
-            // Configura o painel lateral especificamente para esta nova janela
-            const sidePanelUrl = chrome.runtime.getURL(`index.html?view=batch_queue&scorecardId=${scorecardId}&jobId=${jobId}`);
-            
-            chrome.sidePanel.setOptions({
-                windowId: windowId,
-                path: sidePanelUrl,
-                enabled: true
-            }, () => {
-                // Abre o painel lateral automaticamente na nova janela
-                chrome.sidePanel.open({ windowId: windowId }).catch((err) => {
-                    log.error("Erro ao abrir sidePanel:", err);
-                });
-            });
-        });
-        sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
         const pdfBlob = base64ToBlob(message.data);
         extractProfileFromPdf(pdfBlob).then(data => sendResponse({success:true, data})).catch(e => sendResponse({success:false, error:e.message}));
