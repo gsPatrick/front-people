@@ -264,17 +264,11 @@ const BatchQueueView = ({
             ? currentTabUrl
             : 'https://www.linkedin.com/search/results/people/';
 
-        if (!currentTabUrl.includes('linkedin.com/search/results/people')) {
-            // Se não está na página de busca, apenas abre a aba e deixa o usuário filtrar
-            if (window.chrome && chrome.tabs) {
-                chrome.tabs.create({ url: finalSearchUrl, active: true });
-            }
-            return;
-        }
-
         try {
             const effectiveScorecardId = navigationState?.scorecardId || scorecard?.id;
             const effectiveJobId = navigationState?.jobId || null;
+            
+            console.log("[BatchQueueView] Iniciando Captura Fantasma...");
             await onAutoSource(finalSearchUrl, effectiveScorecardId, count, effectiveJobId);
         } catch (error) {
             setModalConfig({
@@ -340,7 +334,7 @@ const BatchQueueView = ({
                     <p className={styles.inputHelp}>Valor recomendado: até 50 perfis por vez.</p>
 
                     <button className={styles.primaryButton} onClick={handleStartSource}>
-                        {isOnSearchPage ? "Capturar Resultados" : "Abrir LinkedIn e Buscar"}
+                        Iniciar Captura de {sourceTargetCount} Perfis
                     </button>
 
                     <ValidationModal
