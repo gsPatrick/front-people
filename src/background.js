@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.6';
+const VERSION = '1.2.7';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -333,6 +333,7 @@ async function runBatchLoop() {
                 batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });
             }
         } catch (err) {
+            log.error(`[BATCH] Erro ao processar ${tabData.username}:`, err);
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
             if (profileWindowId) {

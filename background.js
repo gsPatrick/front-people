@@ -1,17 +1,17 @@
 /* global chrome */
 // ===================================================================
-//              ARQUIVO COMPLETE: background.js (ROOT SYNC - ATOMIC)
+//              ARQUIVO COMPLETE: src/background.js
 // ===================================================================
 
 // Log inicial
 console.log('[BACKGROUND] 🚀 Service Worker iniciando...');
 
 // --- Imports ---
-import { extractProfileFromPdf, analyzeProfileWithAI } from './src/services/api.service.js';
+import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.service.js';
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.6';
+const VERSION = '1.2.7';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -55,6 +55,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.local.set({ app_settings: DEFAULT_SETTINGS });
   }
   updateActionBehavior();
+  // Auto-injeta o widget em todas as abas abertas para garantir a pílula em todos os lugares
   injectWidgetIntoAllTabs();
 });
 
@@ -66,7 +67,7 @@ async function injectWidgetIntoAllTabs() {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 files: ['scripts/batch_progress_widget.js']
-            }).catch(() => {}); 
+            }).catch(() => {}); // Ignora erros em abas restritas (ex: chrome://)
         }
     } catch (err) {
         log.error("Erro na auto-injeção do widget:", err);
@@ -90,6 +91,7 @@ function base64ToBlob(base64Data) {
     return new Blob([byteArray], { type: mime });
 }
 
+// --- Gerenciador de Fila em Lote (Persistent State) ---
 let batchState = {
     isRunning: false,
     isSourcing: false,
@@ -103,6 +105,7 @@ let batchState = {
     workerWindowId: null 
 };
 
+// Carrega estado inicial do storage
 chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
@@ -117,6 +120,7 @@ function saveBatchState() {
     chrome.storage.local.set({ batch_state: batchState });
     chrome.runtime.sendMessage({ type: 'BATCH_STATE_CHANGED', state: batchState }).catch(() => {});
     
+    // Broadcast para todas as abas (para o widget/pill)
     if (batchState.isRunning || batchState.isSourcing) {
         broadcastToWidgets({ 
             type: 'BATCH_WIDGET_UPDATE', 
@@ -140,7 +144,35 @@ async function broadcastToWidgets(message) {
     }
 }
 
-// LOOP DE BUSCA (SOURCING) - Agora usa criação atômica atômica
+async function ensureWorkerWindow() {
+    if (batchState.workerWindowId) {
+        try {
+            await chrome.windows.get(batchState.workerWindowId);
+            return batchState.workerWindowId;
+        } catch {
+            batchState.workerWindowId = null;
+        }
+    }
+    log.info("[BATCH] Criando Janela Worker (Modo Fantasma Seguro)...");
+    const workerWindow = await chrome.windows.create({
+        url: 'about:blank',
+        type: 'popup',
+        state: 'minimized',
+        focused: false
+    });
+    
+    // Pequeno delay para estabilização
+    await new Promise(r => setTimeout(r, 2000));
+    
+    // Garante minimização extra
+    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+    
+    batchState.workerWindowId = workerWindow.id;
+    log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
+    saveBatchState();
+    return parseInt(workerWindow.id);
+}
+
 async function runSourcingLoop(searchUrl, targetCount) {
     if (batchState.isSourcing) return;
     batchState.isSourcing = true;
@@ -151,10 +183,10 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
     let collectedUrls = new Set();
     let searchTabId = null;
-    let searchWindowId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Atômica...");
+        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
+        // CRIAÇÃO COMPATÍVEL: Apenas estado Minimizado (sem coordenadas conflitantes)
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
@@ -162,14 +194,21 @@ async function runSourcingLoop(searchUrl, targetCount) {
             focused: false
         });
         
-        searchWindowId = workerWindow.id;
-        const [tab] = await chrome.tabs.query({ windowId: searchWindowId });
+        batchState.workerWindowId = workerWindow.id;
+        // chrome.windows.create com url cria abas que podem ser obtidas se populate:true
+        // mas em MV3, se passar url, a primeira aba é a url.
+        // Vamos pegar a aba ativa da janela recém-criada
+        const [tab] = await chrome.tabs.query({ windowId: workerWindow.id });
         searchTabId = tab.id;
+        
         saveBatchState();
 
         while (collectedUrls.size < targetCount && batchState.isSourcing) {
+            log.info(`[SOURCING] Capturando... (${collectedUrls.size}/${targetCount})`);
             await new Promise(r => setTimeout(r, 6000));
+            
             await chrome.scripting.executeScript({ target: { tabId: searchTabId }, files: ['scripts/linkedin_search_scraper.js'] });
+            
             const response = await chrome.tabs.sendMessage(searchTabId, { action: "scrape_search_results", goToNext: true });
             if (response?.success) {
                 response.urls.forEach(url => {
@@ -177,8 +216,12 @@ async function runSourcingLoop(searchUrl, targetCount) {
                 });
                 batchState.sourcingCount = collectedUrls.size;
                 saveBatchState();
+                
                 if (!response.hasNextPage || collectedUrls.size >= targetCount) break;
-            } else break;
+            } else {
+                log.error("[SOURCING] Scraper falhou ou não retornou dados.");
+                break;
+            }
         }
 
         const finalTabs = Array.from(collectedUrls).map(url => {
@@ -191,18 +234,25 @@ async function runSourcingLoop(searchUrl, targetCount) {
         saveBatchState();
 
         if (finalTabs.length > 0) {
+            log.success(`[SOURCING] Concluído! ${finalTabs.length} perfis encontrados. Iniciando extração...`);
             runBatchLoop();
+        } else {
+            log.warn("[SOURCING] Nenhum perfil encontrado.");
+            if (batchState.workerWindowId) chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            batchState.workerWindowId = null;
+            saveBatchState();
         }
+
     } catch (e) {
-        log.error("[SOURCING] Erro:", e);
+        log.error("[SOURCING] Erro crítico:", e);
         batchState.isSourcing = false;
         saveBatchState();
     } finally {
-        if (searchWindowId) chrome.windows.remove(searchWindowId).catch(() => {});
+        if (searchTabId) chrome.tabs.remove(searchTabId).catch(() => {});
     }
 }
 
-// LOOP DE EXTRAÇÃO - AGORA TOTALMENTE ATÔMICO (UMA JANELA POR PERFIL)
+// --- LOOP DE EXTRAÇÃO ---
 async function runBatchLoop() {
     if (batchState.isRunning) return;
     batchState.isRunning = true;
@@ -227,7 +277,9 @@ async function runBatchLoop() {
             const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
             currentTabId = tab.id;
             
+            // Garantia extra de minimização
             await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
+            
             await new Promise(r => setTimeout(r, 8000));
 
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
@@ -281,38 +333,53 @@ async function runBatchLoop() {
                 batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });
             }
         } catch (err) {
+            log.error(`[BATCH] Erro ao processar ${tabData.username}:`, err);
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
-            if (profileWindowId) await chrome.windows.remove(profileWindowId).catch(() => {});
+            if (profileWindowId) {
+                await chrome.windows.remove(profileWindowId).catch(() => {});
+            }
         }
 
         batchState.currentIndex++;
         saveBatchState();
         if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            await new Promise(r => setTimeout(r, 8000));
+            await new Promise(r => setTimeout(r, 8000)); // Delay menor já que abre janela nova
         }
     }
 
     batchState.isRunning = false;
     saveBatchState();
     log.success("[BATCH] Fila Atômica finalizada.");
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento atômico concluído.' });
 }
 
+// OUVINTE DE MENSAGENS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "START_BATCH") {
-        if (batchState.isRunning || batchState.isSourcing) return;
+        if (batchState.isRunning || batchState.isSourcing) {
+            sendResponse({ success: false, error: "Já em execução." });
+            return true;
+        }
         batchState = { ...batchState, isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "START_SOURCING") {
-        if (batchState.isRunning || batchState.isSourcing) return;
+        if (batchState.isRunning || batchState.isSourcing) {
+            sendResponse({ success: false, error: "Já em execução." });
+            return true;
+        }
         batchState = { ...batchState, scorecardId: message.scorecardId, jobId: message.jobId, results: [], currentIndex: 0 };
         runSourcingLoop(message.searchUrl, message.targetCount);
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
         batchState.isRunning = false;
         batchState.isSourcing = false;
+        if (batchState.workerWindowId) {
+            chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            batchState.workerWindowId = null;
+        }
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "GET_BATCH_STATE") {
@@ -322,12 +389,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
-        base64ToBlob(message.data); 
+        const pdfBlob = base64ToBlob(message.data);
+        extractProfileFromPdf(pdfBlob).then(data => sendResponse({success:true, data})).catch(e => sendResponse({success:false, error:e.message}));
         return true;
     }
     return true;
 });
 
+// OUVINTE DE DOWNLOADS
 chrome.downloads.onCreated.addListener(async (downloadItem) => {
     const isLinkedInProfilePdf = downloadItem.url.includes('linkedin.com') && downloadItem.filename.toLowerCase().endsWith('.pdf');
     if (isLinkedInProfilePdf) {
