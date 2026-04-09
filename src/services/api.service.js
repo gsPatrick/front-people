@@ -503,7 +503,20 @@ export const analyzeProfileWithAI = async (scorecardId, profileData, jobId = nul
     const payload = { ...profileData };
     if (jobId) payload.jobId = jobId;
     
-    const response = await apiClient.post(`/match/${scorecardId}`, payload);
+    const authData = await loadAuthData();
+    const headers = { 'Content-Type': 'application/json' };
+    if (authData?.token) {
+      headers['Authorization'] = `Bearer ${authData.token}`;
+    }
+
+    console.log(`[API] Iniciando análise para Scorecard: ${scorecardId}, Job: ${jobId || 'N/A'}`);
+    
+    // Usamos axios direto para consistência com o padrão que funciona na extração
+    const response = await axios.post(`${API_BASE_URL}/match/${scorecardId}`, payload, { 
+      headers,
+      timeout: 1800000 // 30 minutos
+    });
+    
     return response.data;
   } catch (error) {
     console.error(`[API] Erro em analyzeProfileWithAI (Scorecard: ${scorecardId}):`, error);

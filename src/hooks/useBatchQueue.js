@@ -150,13 +150,14 @@ export const useBatchQueue = () => {
                 // 6. Match com IA (Análise de Perfil)
                 const profileData = extractionResult.data;
                 console.log(`[BATCH] Enviando para análise. Scorecard: ${scorecardId || 'NULL'}, Job: ${jobId || 'NULL'}`);
+                console.log(`[BATCH] Payload do Perfil:`, profileData);
                 
                 if (!scorecardId) {
                     console.warn(`[BATCH] ScorecardId ausente para ${tab.username}. Pulando análise.`);
                 }
 
                 const matchResult = scorecardId ? await api.analyzeProfileWithAI(scorecardId, profileData, jobId) : null;
-                console.log(`[BATCH] Resultado da análise recebido para ${tab.username}:`, matchResult?.matchScore || 0);
+                console.log(`[BATCH] Resultado da análise recebido para ${tab.username}:`, matchResult);
 
                 // Mapeamento de Adaptador para UI (Mantendo Escala Base-100)
                 const matchScore = matchResult?.matchScore || 0;
