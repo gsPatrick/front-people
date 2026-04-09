@@ -48,7 +48,24 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.local.set({ app_settings: DEFAULT_SETTINGS });
   }
   updateActionBehavior();
+  // Auto-injeta o widget em todas as abas abertas para garantir a pílula em todos os lugares
+  injectWidgetIntoAllTabs();
 });
+
+async function injectWidgetIntoAllTabs() {
+    try {
+        const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+        log.info(`[WIDGET] Auto-injetando em ${tabs.length} abas...`);
+        for (const tab of tabs) {
+            chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['scripts/batch_progress_widget.js']
+            }).catch(() => {}); // Ignora erros em abas restritas (ex: chrome://)
+        }
+    } catch (err) {
+        log.error("Erro na auto-injeção do widget:", err);
+    }
+}
 
 chrome.runtime.onStartup.addListener(() => {
     updateActionBehavior();
@@ -139,6 +156,9 @@ async function ensureWorkerWindow() {
     
     // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
+    
+    // Garante minimização extra
+    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
     saveBatchState();
@@ -238,6 +258,11 @@ async function runBatchLoop() {
 
         let currentTabId = null;
         try {
+            // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil para evitar saltos visuais
+            if (windowId) {
+                await chrome.windows.update(windowId, { state: 'minimized', focused: false }).catch(() => {});
+            }
+
             const newTab = await chrome.tabs.create({ 
                 windowId: windowId,
                 url: tabData.url, 
