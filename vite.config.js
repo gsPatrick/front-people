@@ -23,10 +23,6 @@ export default defineConfig({
         {
           src: 'public/scripts/*',
           dest: 'scripts'
-        },
-        {
-          src: 'src/scripts',
-          dest: '.'
         }
       ]
     })

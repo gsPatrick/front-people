@@ -294,31 +294,12 @@ const Popup = () => {
                 if (authData?.token && authData?.user) {
                     setAuthState({ isLoading: false, isAuthenticated: true, user: authData.user, token: authData.token, error: null });
                     setSettings({ isPersistenceEnabled: false, isOpenInTabEnabled: true, isAIEnabled: true });
-                    
-                    const [jobs] = await Promise.all([
+                    await Promise.all([
                         fetchAndSetJobs(1, 'open'),
                         fetchAllScorecards(),
                         fetchJobFormMetadata()
                     ]);
-
-                    // TRATAMENTO DE DEEP LINKING
-                    const params = new URLSearchParams(window.location.search);
-                    const targetView = params.get('view');
-                    if (targetView === 'batch_queue') {
-                        const scId = params.get('scorecardId');
-                        const jId = params.get('jobId');
-                        const job = jobs?.jobs?.find(j => String(j.id) === jId) || { id: jId, name: 'Vaga Carregada' };
-                        
-                        console.log("[INIT] Deep link detectado: Indo para batch_queue...");
-                        navigateTo('batch_queue', {
-                            scorecardId: scId,
-                            jobId: jId,
-                            job: job,
-                            autoOpenSearch: true // Normalmente queremos buscar se abrimos por aqui
-                        });
-                    } else {
-                        navigateTo('dashboard_jobs');
-                    }
+                    navigateTo('dashboard_jobs');
                 } else { setAuthState({ isLoading: false, isAuthenticated: false, user: null, token: null, error: null }); }
             } catch (err) {
                 setGlobalError(`Erro ao iniciar: ${err.message}.`);
@@ -423,23 +404,7 @@ const Popup = () => {
         />; break;
         case 'dashboard_talents': contentToRender = <CandidateListView onSelectCandidate={(talent) => workflow.handleSelectTalentForDetails(talent)} onBack={() => navigateTo('dashboard_jobs')} onAddFromMatch={() => navigateTo('match_select_scorecard')} />; break;
         case 'job_details': contentToRender = <JobDetailsView job={workflow.currentJob} candidates={workflow.currentCandidates} onBack={goBack} onUpdateApplicationStatus={workflow.handleUpdateApplicationStatus} onSelectCandidateForDetails={workflow.handleSelectCandidateForDetails} availableStages={workflow.currentJobStages} onEditJob={() => workflow.handleEditJob(workflow.currentJob)} onViewScorecard={(job) => navigateTo('job_scorecard', { job })} />; break;
-        case 'job_scorecard': contentToRender = <JobScorecardView 
-            job={view.state?.job || workflow.currentJob} 
-            onBack={goBack} 
-            onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} 
-            onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} 
-            onStartMatch={(scorecardId, job) => {
-                // VOLTANDO PARA O FLUXO INTERNO: Navega para a fila dentro do SidePanel
-                batchQueue.detectLinkedInTabs().then((tabs) => {
-                    navigateTo('batch_queue', {
-                        scorecardId,
-                        jobId: job.id,
-                        job,
-                        autoOpenSearch: tabs.length === 0
-                    });
-                });
-            }} 
-        />; break;
+        case 'job_scorecard': contentToRender = <JobScorecardView job={view.state?.job || workflow.currentJob} onBack={goBack} onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} onStartMatch={(scorecardId, job) => batchQueue.detectLinkedInTabs().then((tabs) => navigateTo('batch_queue', { scorecardId, jobId: job.id, job, autoOpenSearch: tabs.length === 0 }))} />; break;
         case 'candidate_details': contentToRender = <CandidateDetailView candidate={workflow.currentTalent} job={workflow.currentJob} onBack={goBack} onUpdateStage={workflow.handleUpdateApplicationStatus} stages={workflow.currentJobStages} onGoToEdit={() => navigateTo('edit_candidate')} applicationCustomFields={workflow.applicationCustomFields} interviewKits={workflow.currentInterviewKits} initialState={view.state} scorecardSummary={scorecard.scorecardData?.content} scorecardHooks={scorecard} onUpdateRequest={workflow.handleRequestProfileUpdate} onSaveScorecardAsTemplate={handleSaveScorecardAsTemplate}
             onBatchAnalyse={(url, scorecardId) => {
                 // Navega para a fila passando o contexto da vaga atual para o auto-save funcionar

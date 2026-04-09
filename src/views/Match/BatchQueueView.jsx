@@ -259,7 +259,7 @@ const BatchQueueView = ({
             return;
         }
 
-        // Determina a URL de busca
+        // Determina a URL de busca (GHOST MODE: Sempre dispara o background)
         const finalSearchUrl = (currentTabUrl && currentTabUrl.includes('linkedin.com/search/results/people'))
             ? currentTabUrl
             : 'https://www.linkedin.com/search/results/people/';
@@ -268,7 +268,7 @@ const BatchQueueView = ({
             const effectiveScorecardId = navigationState?.scorecardId || scorecard?.id;
             const effectiveJobId = navigationState?.jobId || null;
             
-            console.log("[BatchQueueView] Iniciando Captura Fantasma...");
+            // DISPARO DIRETO DO GHOST SOURCING
             await onAutoSource(finalSearchUrl, effectiveScorecardId, count, effectiveJobId);
         } catch (error) {
             setModalConfig({
@@ -334,7 +334,7 @@ const BatchQueueView = ({
                     <p className={styles.inputHelp}>Valor recomendado: até 50 perfis por vez.</p>
 
                     <button className={styles.primaryButton} onClick={handleStartSource}>
-                        Iniciar Captura de {sourceTargetCount} Perfis
+                        {isOnSearchPage ? "Capturar Resultados" : "Abrir LinkedIn e Buscar"}
                     </button>
 
                     <ValidationModal
