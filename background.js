@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './src/services/api.
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.4';
+const VERSION = '1.2.5';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -167,8 +167,9 @@ async function ensureWorkerWindow() {
     await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
+    log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
     saveBatchState();
-    return workerWindow.id;
+    return parseInt(workerWindow.id);
 }
 
 // --- LOOP DE BUSCA (SOURCING) ---
@@ -242,22 +243,24 @@ async function runBatchLoop() {
     saveBatchState();
 
     let windowId = await ensureWorkerWindow();
+    log.info(`[BATCH] Iniciando loop com WindowID: ${windowId}`);
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Processando candidates: ${tabData.username}`);
+        log.info(`[BATCH] Processando: ${tabData.username}`);
 
         let currentTabId = null;
         try {
             // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil
             if (windowId) {
-                await chrome.windows.update(windowId, { state: 'minimized', focused: false }).catch(() => {});
+                await chrome.windows.update(parseInt(windowId), { state: 'minimized', focused: false }).catch(() => {});
             }
 
+            log.info(`[BATCH] Abrindo aba na janela ${windowId}: ${tabData.url}`);
             const newTab = await chrome.tabs.create({ 
-                windowId: windowId,
+                windowId: parseInt(windowId),
                 url: tabData.url, 
-                active: true 
+                active: false 
             });
             currentTabId = newTab.id;
             await new Promise(r => setTimeout(r, 8000));
