@@ -429,14 +429,11 @@ const Popup = () => {
             onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} 
             onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} 
             onStartMatch={(scorecardId, job) => {
-                // ETAPA 1: Abrir nova janela STANDALONE em vez de navegar localmente
-                const url = chrome.runtime.getURL(`index.html?view=batch_queue&scorecardId=${scorecardId}&jobId=${job.id}`);
-                chrome.windows.create({
-                    url: url,
-                    type: 'popup',
-                    width: 450,
-                    height: 700,
-                    focused: true
+                // ETAPA 1.2: Abrir janela do LINKEDIN com SIDEPANEL automático
+                chrome.runtime.sendMessage({
+                    action: 'OPEN_SIDEBAR_WINDOW',
+                    scorecardId,
+                    jobId: job.id
                 });
             }} 
         />; break;
