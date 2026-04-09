@@ -1,3 +1,4 @@
+/* global chrome */
 // ===================================================================
 //              ARQUIVO COMPLETO: src/background.js
 // ===================================================================
@@ -81,7 +82,7 @@ let batchState = {
 chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
-        batchState.isRunning = false; // Resetar isRunning por segurança
+        batchState.isRunning = false; // Resetar isRunning por segurança em caso de reinicialização
         saveBatchState();
     }
 });
@@ -90,6 +91,7 @@ function saveBatchState() {
     chrome.storage.local.set({ batch_state: batchState });
     chrome.runtime.sendMessage({ type: 'BATCH_STATE_CHANGED', state: batchState }).catch(() => {});
     
+    // Notifica widgets em todas as abas
     if (batchState.isRunning) {
         broadcastToWidgets({ 
             type: 'BATCH_WIDGET_UPDATE', 
@@ -111,6 +113,15 @@ async function broadcastToWidgets(message) {
 async function runBatchLoop() {
     if (!batchState.isRunning) return;
 
+    // Guarda a aba atual do usuário para restaurar o foco se o LinkedIn tentar roubar
+    const currentWindows = await chrome.windows.getAll({ populate: true });
+    let originalTabId = null;
+    const activeWindow = currentWindows.find(w => w.focused);
+    if (activeWindow) {
+        const activeTab = activeWindow.tabs.find(t => t.active);
+        if (activeTab) originalTabId = activeTab.id;
+    }
+
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
         log.info(`[BATCH] Processando: ${tabData.username}`);
@@ -118,9 +129,17 @@ async function runBatchLoop() {
         let currentTabId = null;
         try {
             // Cria aba suspensa (active: false)
-            const newTab = await chrome.tabs.create({ url: tabData.url, active: false });
+            const newTab = await chrome.tabs.create({ 
+                url: tabData.url, 
+                active: false 
+            });
             currentTabId = newTab.id;
             
+            // Reforça o foco na aba original para evitar "roubo" automático pelo navegador
+            if (originalTabId) {
+                chrome.tabs.update(originalTabId, { active: true }).catch(() => {});
+            }
+
             // Espera carregar (LinkedIn é pesado)
             await new Promise(r => setTimeout(r, 8000));
 
@@ -128,7 +147,7 @@ async function runBatchLoop() {
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
-            // Dispara clique no PDF (Autofocus moments are rare but this is background)
+            // Dispara clique no PDF
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
@@ -179,13 +198,15 @@ async function runBatchLoop() {
         } catch (err) {
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
-            if (currentTabId) chrome.tabs.remove(currentTabId).catch(() => {});
+            if (currentTabId) {
+                await chrome.tabs.remove(currentTabId).catch(() => {});
+                log.info(`[BATCH] Aba ${currentTabId} removida.`);
+            }
         }
 
         batchState.currentIndex++;
         saveBatchState();
         if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            // Delay humanizado entre perfis
             await new Promise(r => setTimeout(r, 12000));
         }
     }
@@ -193,14 +214,24 @@ async function runBatchLoop() {
     batchState.isRunning = false;
     saveBatchState();
     log.success("[BATCH] Finalizado.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento de perfis concluído.' });
+    chrome.notifications.create({ 
+        type: 'basic', 
+        iconUrl: 'logo.png', 
+        title: 'Batch Finalizado', 
+        message: `${batchState.results.length} perfis processados.` 
+    });
 }
 
 // OUVINTE DE MENSAGENS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "START_BATCH") {
+        if (batchState.isRunning) {
+            sendResponse({ success: false, error: "JÁ existe uma fila rodando." });
+            return true;
+        }
         batchState = { isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
+        broadcastToWidgets({ type: 'BATCH_WIDGET_UPDATE', current: 0, total: message.tabs.length });
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {

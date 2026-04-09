@@ -9,8 +9,8 @@
 
         const widget = document.createElement('div');
         widget.id = WIDGET_ID;
+        widget.classList.add('hidden'); // Começa escondido
         
-        // Estilo Premium: Glassmorphism, Sombras Suaves e Tipografia Moderna
         const style = document.createElement('style');
         style.textContent = `
             #${WIDGET_ID} {
@@ -18,7 +18,7 @@
                 bottom: 24px;
                 right: 24px;
                 z-index: 2147483647;
-                background: rgba(15, 23, 42, 0.8);
+                background: rgba(15, 23, 42, 0.85);
                 backdrop-filter: blur(12px) saturate(180%);
                 -webkit-backdrop-filter: blur(12px) saturate(180%);
                 color: #f8fafc;
@@ -28,9 +28,9 @@
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
                 border: 1px solid rgba(255, 255, 255, 0.1);
-                min-width: 220px;
+                min-width: 200px;
                 pointer-events: auto;
                 transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
                 user-select: none;
@@ -50,11 +50,13 @@
             }
 
             .anna-widget-title {
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 600;
                 color: #94a3b8;
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
+                display: flex;
+                align-items: center;
             }
 
             .anna-widget-counter {
@@ -74,7 +76,7 @@
 
             .anna-widget-progress-bar {
                 height: 100%;
-                background: linear-gradient(90deg, #38bdf8, #818cf8);
+                background: linear-gradient(90deg, #0ea5e9, #6366f1);
                 width: 0%;
                 border-radius: 999px;
                 transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,13 +88,13 @@
                 background: #38bdf8;
                 border-radius: 50%;
                 display: inline-block;
-                margin-right: 6px;
+                margin-right: 8px;
                 animation: anna-pulse 2s infinite;
             }
 
             @keyframes anna-pulse {
                 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
-                70% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0); }
+                70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
                 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
             }
         `;
@@ -100,7 +102,7 @@
 
         widget.innerHTML = `
             <div class="anna-widget-header">
-                <span class="anna-widget-title"><span class="anna-widget-pulse"></span>Processando Batch</span>
+                <span class="anna-widget-title"><span class="anna-widget-pulse"></span>Capture Ativa</span>
                 <span class="anna-widget-counter" id="${WIDGET_ID}_text">0/0</span>
             </div>
             <div class="anna-widget-progress-container">
@@ -109,16 +111,15 @@
         `;
 
         document.body.appendChild(widget);
-        
-        // Pequeno delay para animação de entrada
-        setTimeout(() => widget.classList.remove('hidden'), 100);
     }
 
     function updateWidget(current, total) {
         createWidget();
+        const widget = document.getElementById(WIDGET_ID);
         const text = document.getElementById(WIDGET_ID + '_text');
         const bar = document.getElementById(WIDGET_ID + '_bar');
         
+        if (widget) widget.classList.remove('hidden');
         if (text) text.textContent = `${current}/${total}`;
         if (bar) {
             const percentage = Math.min(100, (current / total) * 100);
@@ -130,10 +131,7 @@
         const widget = document.getElementById(WIDGET_ID);
         if (widget) {
             widget.classList.add('hidden');
-            setTimeout(() => {
-                widget.remove();
-                // O style permanece mas não afeta nada sem o elemento
-            }, 500);
+            setTimeout(() => widget.remove(), 500);
         }
     }
 
@@ -146,5 +144,12 @@
         }
     });
 
-    // Ao carregar, verifica se já existe uma fila rodando (via storage se necessário, mas o background enviará o update)
+    // AUTO-INITIALIZATION: Verifica se já existe um batch rodando ao carregar a página
+    chrome.storage.local.get('batch_state', (data) => {
+        if (data?.batch_state?.isRunning) {
+            const current = data.batch_state.results.length;
+            const total = data.batch_state.tabs.length;
+            updateWidget(current, total);
+        }
+    });
 })();
