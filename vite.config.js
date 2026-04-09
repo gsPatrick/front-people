@@ -21,6 +21,10 @@ export default defineConfig({
           dest: 'assets'
         },
         {
+          src: 'public/scripts/*',
+          dest: 'scripts'
+        },
+        {
           src: 'src/scripts',
           dest: '.'
         }

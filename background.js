@@ -1,16 +1,23 @@
 /* global chrome */
 // ===================================================================
-//              ARQUIVO COMPLETE: background.js
+//              ARQUIVO COMPLETE: background.js (ROOT SYNC)
 // ===================================================================
 
 // Log inicial
 console.log('[BACKGROUND] 🚀 Service Worker iniciando...');
 
-// --- Imports ---
-import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.service.js';
+// --- Imports --- (Ajustados para o root se necessário, mas o Vite usa o de src)
+import { extractProfileFromPdf, analyzeProfileWithAI } from './src/services/api.service.js';
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
+const VERSION = '1.2.2';
+console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
+
+self.addEventListener('install', () => {
+    self.skipWaiting();
+});
+
 const log = {
     info: (...args) => console.log(`%c${PREFIX} ℹ️`, 'color: darkblue; font-weight: bold;', ...args),
     success: (...args) => console.log(`%c${PREFIX} ✅`, 'color: darkgreen; font-weight: bold;', ...args),
@@ -60,7 +67,7 @@ async function injectWidgetIntoAllTabs() {
             chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 files: ['scripts/batch_progress_widget.js']
-            }).catch(() => {}); // Ignora erros em abas restritas (ex: chrome://)
+            }).catch(() => {}); 
         }
     } catch (err) {
         log.error("Erro na auto-injeção do widget:", err);
@@ -126,9 +133,13 @@ function saveBatchState() {
 }
 
 async function broadcastToWidgets(message) {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-        chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            chrome.tabs.sendMessage(tab.id, message).catch(() => {});
+        }
+    } catch (error) {
+        log.error("Erro no broadcast para widgets:", error);
     }
 }
 
@@ -141,25 +152,29 @@ async function ensureWorkerWindow() {
             batchState.workerWindowId = null;
         }
     }
-    log.info("[BATCH] Criando Janela Worker (Modo Fantasma)...");
+    log.info("[BATCH] Criando Janela Worker (Ultra-Ghost Mode)...");
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        state: 'minimized',
+        left: -2000,
+        top: -2000,
+        width: 100,
+        height: 100,
         focused: false
     });
     
     // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
     
-    // Garante minimização extra
-    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+    // Força coordenadas off-screen novamente por segurança
+    await chrome.windows.update(workerWindow.id, { left: -2000, top: -2000, focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
     saveBatchState();
     return workerWindow.id;
 }
 
+// --- LOOP DE BUSCA (SOURCING) ---
 async function runSourcingLoop(searchUrl, targetCount) {
     if (batchState.isSourcing) return;
     batchState.isSourcing = true;
@@ -172,12 +187,15 @@ async function runSourcingLoop(searchUrl, targetCount) {
     let searchTabId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
-        // CRIAÇÃO ATÔMICA
+        log.info("[SOURCING] Criando Janela de Busca Ultra-Fantasma...");
+        // CRIAÇÃO ATÔMICA OFF-SCREEN
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
-            state: 'minimized',
+            left: -2000,
+            top: -2000,
+            width: 100,
+            height: 100,
             focused: false
         });
         
@@ -233,13 +251,13 @@ async function runBatchLoop() {
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Ghost working: ${tabData.username}`);
+        log.info(`[BATCH] Processando candidates: ${tabData.username}`);
 
         let currentTabId = null;
         try {
-            // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil para evitar saltos visuais
+            // RE-FORÇA ESTADO OFF-SCREEN antes de abrir cada perfil
             if (windowId) {
-                await chrome.windows.update(windowId, { state: 'minimized', focused: false }).catch(() => {});
+                await chrome.windows.update(windowId, { left: -2000, top: -2000, focused: false }).catch(() => {});
             }
 
             const newTab = await chrome.tabs.create({ 
@@ -319,8 +337,6 @@ async function runBatchLoop() {
 
     batchState.isRunning = false;
     saveBatchState();
-    log.success("[BATCH] Finalizado.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento fantasma concluído.' });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

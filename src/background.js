@@ -11,6 +11,13 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
+const VERSION = '1.2.2';
+console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
+
+self.addEventListener('install', () => {
+    self.skipWaiting();
+});
+
 const log = {
     info: (...args) => console.log(`%c${PREFIX} ℹ️`, 'color: darkblue; font-weight: bold;', ...args),
     success: (...args) => console.log(`%c${PREFIX} ✅`, 'color: darkgreen; font-weight: bold;', ...args),
@@ -146,19 +153,22 @@ async function ensureWorkerWindow() {
             batchState.workerWindowId = null;
         }
     }
-    log.info("[BATCH] Criando Janela Worker (Modo Fantasma)...");
+    log.info("[BATCH] Criando Janela Worker (Ultra-Ghost Mode)...");
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        state: 'minimized',
+        left: -2000,
+        top: -2000,
+        width: 100,
+        height: 100,
         focused: false
     });
     
     // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
     
-    // Garante minimização extra
-    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+    // Força coordenadas off-screen novamente por segurança
+    await chrome.windows.update(workerWindow.id, { left: -2000, top: -2000, focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
     saveBatchState();
@@ -177,12 +187,15 @@ async function runSourcingLoop(searchUrl, targetCount) {
     let searchTabId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
-        // CRIAÇÃO ATÔMICA
+        log.info("[SOURCING] Criando Janela de Busca Ultra-Fantasma...");
+        // CRIAÇÃO ATÔMICA OFF-SCREEN
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
-            state: 'minimized',
+            left: -2000,
+            top: -2000,
+            width: 100,
+            height: 100,
             focused: false
         });
         
@@ -258,9 +271,9 @@ async function runBatchLoop() {
 
         let currentTabId = null;
         try {
-            // RE-FORÇA MINIMIZAÇÃO antes de abrir cada perfil para evitar saltos visuais
+            // RE-FORÇA ESTADO OFF-SCREEN antes de abrir cada perfil
             if (windowId) {
-                await chrome.windows.update(windowId, { state: 'minimized', focused: false }).catch(() => {});
+                await chrome.windows.update(windowId, { left: -2000, top: -2000, focused: false }).catch(() => {});
             }
 
             const newTab = await chrome.tabs.create({ 

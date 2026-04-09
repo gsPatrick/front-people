@@ -3,7 +3,8 @@
 
 (function() {
     const WIDGET_ID = '__anna_batch_progress_widget__';
-    console.log("[ANNA-WIDGET] Script carregado nesta aba.");
+    const VERSION = '1.2.2';
+    console.log(`[ANNA-WIDGET] Script carregado nesta aba. VERSION: ${VERSION}`);
 
     function createWidget() {
         if (document.getElementById(WIDGET_ID)) return true;
