@@ -148,13 +148,23 @@ async function runSourcingLoop(searchUrl, targetCount) {
     batchState.tabs = [];
     saveBatchState();
 
-    let windowId = await ensureWorkerWindow();
     let collectedUrls = new Set();
     let searchTabId = null;
 
     try {
-        const searchTab = await chrome.tabs.create({ windowId, url: searchUrl, active: true });
-        searchTabId = searchTab.id;
+        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
+        // CRIAÇÃO ATÔMICA
+        const workerWindow = await chrome.windows.create({
+            url: searchUrl,
+            type: 'popup',
+            state: 'minimized',
+            focused: false
+        });
+        
+        batchState.workerWindowId = workerWindow.id;
+        const [tab] = await chrome.tabs.query({ windowId: workerWindow.id });
+        searchTabId = tab.id;
+        saveBatchState();
 
         while (collectedUrls.size < targetCount && batchState.isSourcing) {
             await new Promise(r => setTimeout(r, 6000));

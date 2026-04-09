@@ -137,7 +137,7 @@ async function ensureWorkerWindow() {
         focused: false
     });
     
-    // Pequeno delay para estabilização da janela no Chrome
+    // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
     
     batchState.workerWindowId = workerWindow.id;
@@ -145,7 +145,6 @@ async function ensureWorkerWindow() {
     return workerWindow.id;
 }
 
-// --- LOOP DE BUSCA (SOURCING) ---
 async function runSourcingLoop(searchUrl, targetCount) {
     if (batchState.isSourcing) return;
     batchState.isSourcing = true;
@@ -154,13 +153,27 @@ async function runSourcingLoop(searchUrl, targetCount) {
     batchState.tabs = [];
     saveBatchState();
 
-    let windowId = await ensureWorkerWindow();
     let collectedUrls = new Set();
     let searchTabId = null;
 
     try {
-        const searchTab = await chrome.tabs.create({ windowId, url: searchUrl, active: true });
-        searchTabId = searchTab.id;
+        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
+        // CRIAÇÃO ATÔMICA
+        const workerWindow = await chrome.windows.create({
+            url: searchUrl,
+            type: 'popup',
+            state: 'minimized',
+            focused: false
+        });
+        
+        batchState.workerWindowId = workerWindow.id;
+        // chrome.windows.create com url cria abas que podem ser obtidas se populate:true
+        // mas em MV3, se passar url, a primeira aba é a url.
+        // Vamos pegar a aba ativa da janela recém-criada
+        const [tab] = await chrome.tabs.query({ windowId: workerWindow.id });
+        searchTabId = tab.id;
+        
+        saveBatchState();
 
         while (collectedUrls.size < targetCount && batchState.isSourcing) {
             log.info(`[SOURCING] Capturando... (${collectedUrls.size}/${targetCount})`);
