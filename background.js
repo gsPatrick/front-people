@@ -1,6 +1,6 @@
 /* global chrome */
 // ===================================================================
-//              ARQUIVO COMPLETO: background.js
+//              ARQUIVO COMPLETE: background.js
 // ===================================================================
 
 // Log inicial
@@ -112,17 +112,15 @@ async function broadcastToWidgets(message) {
 async function runBatchLoop() {
     if (!batchState.isRunning) return;
 
-    const currentWindows = await chrome.windows.getAll({ populate: true });
     let originalTabId = null;
-    const activeWindow = currentWindows.find(w => w.focused);
-    if (activeWindow) {
-        const activeTab = activeWindow.tabs.find(t => t.active);
-        if (activeTab) originalTabId = activeTab.id;
-    }
+    try {
+        const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (activeTabs.length > 0) originalTabId = activeTabs[0].id;
+    } catch (e) { }
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Processando: ${tabData.username}`);
+        log.info(`[BATCH] Iniciando perfil: ${tabData.username}`);
 
         let currentTabId = null;
         try {
@@ -146,7 +144,7 @@ async function runBatchLoop() {
                             document.querySelector('button[data-view-name="profile-overflow-button"]');
                         if (moreButton) {
                             moreButton.click();
-                            await new Promise(r => setTimeout(r, 1000));
+                            await new Promise(r => setTimeout(r, 800));
                             const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
                             const pdfItem = items.find(i => /pdf/i.test(i.innerText));
                             if (pdfItem) pdfItem.click();
@@ -169,7 +167,7 @@ async function runBatchLoop() {
                 chrome.runtime.onMessage.addListener(listener);
                 setTimeout(() => {
                     chrome.runtime.onMessage.removeListener(listener);
-                    resolve({ success: false, error: 'Timeout de extração' });
+                    resolve({ success: false, error: 'Timeout' });
                 }, 60000);
             });
 
@@ -190,7 +188,6 @@ async function runBatchLoop() {
         } finally {
             if (currentTabId) {
                 await chrome.tabs.remove(currentTabId).catch(() => {});
-                log.info(`[BATCH] Aba ${currentTabId} removida.`);
             }
         }
 
@@ -204,18 +201,16 @@ async function runBatchLoop() {
     batchState.isRunning = false;
     saveBatchState();
     log.success("[BATCH] Finalizado.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: `${batchState.results.length} perfis processados.` });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "START_BATCH") {
         if (batchState.isRunning) {
-            sendResponse({ success: false, error: "JÁ existe uma fila rodando." });
+            sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
         batchState = { isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
-        broadcastToWidgets({ type: 'BATCH_WIDGET_UPDATE', current: 0, total: message.tabs.length });
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
