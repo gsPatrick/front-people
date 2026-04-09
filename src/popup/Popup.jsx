@@ -429,25 +429,14 @@ const Popup = () => {
             onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} 
             onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} 
             onStartMatch={(scorecardId, job) => {
-                // ETAPA 1.4: Correção final da API (usando tabId para setOptions)
-                const searchUrl = "https://www.linkedin.com/search/results/people/";
-                
-                chrome.windows.create({ url: searchUrl, focused: true, populate: true }, (newWindow) => {
-                    const windowId = newWindow.id;
-                    const tabId = (newWindow.tabs && newWindow.tabs.length > 0) ? newWindow.tabs[0].id : null;
-                    const sidePanelUrl = chrome.runtime.getURL(`index.html?view=batch_queue&scorecardId=${scorecardId}&jobId=${job.id}`);
-                    
-                    if (tabId) {
-                        chrome.sidePanel.setOptions({
-                            tabId: tabId,
-                            path: sidePanelUrl,
-                            enabled: true
-                        }, () => {
-                            chrome.sidePanel.open({ windowId: windowId }).catch((err) => {
-                                console.error("[POPUP] Erro ao abrir sidePanel na nova janela:", err);
-                            });
-                        });
-                    }
+                // VOLTANDO PARA O FLUXO INTERNO: Navega para a fila dentro do SidePanel
+                batchQueue.detectLinkedInTabs().then((tabs) => {
+                    navigateTo('batch_queue', {
+                        scorecardId,
+                        jobId: job.id,
+                        job,
+                        autoOpenSearch: tabs.length === 0
+                    });
                 });
             }} 
         />; break;
