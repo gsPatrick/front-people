@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.3';
+const VERSION = '1.2.4';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -157,10 +157,6 @@ async function ensureWorkerWindow() {
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        left: 0,
-        top: 0,
-        width: 400,
-        height: 400,
         state: 'minimized',
         focused: false
     });
@@ -189,14 +185,10 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
     try {
         log.info("[SOURCING] Criando Janela de Busca Fantasma...");
-        // CRIAÇÃO SEGURA: Coordenadas válidas + Estado Minimizado
+        // CRIAÇÃO COMPATÍVEL: Apenas estado Minimizado (sem coordenadas conflitantes)
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
-            left: 0,
-            top: 0,
-            width: 400,
-            height: 400,
             state: 'minimized',
             focused: false
         });
