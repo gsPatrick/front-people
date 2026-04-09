@@ -6,7 +6,8 @@
     console.log("[ANNA-WIDGET] Script carregado nesta aba.");
 
     function createWidget() {
-        if (document.getElementById(WIDGET_ID)) return;
+        if (document.getElementById(WIDGET_ID)) return true;
+        if (!document.body) return false;
 
         console.log("[ANNA-WIDGET] Criando UI do widget...");
         const widget = document.createElement('div');
@@ -106,7 +107,7 @@
 
         widget.innerHTML = `
             <div class="anna-widget-header">
-                <span class="anna-widget-title" id="${WIDGET_ID}_title"><span class="anna-widget-pulse"></span>Buscando Perfis...</span>
+                <span class="anna-widget-title" id="${WIDGET_ID}_title"><span class="anna-widget-pulse"></span>Iniciando...</span>
                 <span class="anna-widget-counter" id="${WIDGET_ID}_text">0/0</span>
             </div>
             <div class="anna-widget-progress-container">
@@ -115,10 +116,16 @@
         `;
 
         document.body.appendChild(widget);
+        return true;
     }
 
     function updateWidget(current, total, mode = 'EXTRACTING') {
-        createWidget();
+        if (!createWidget()) {
+            // Se o body não estava pronto, tenta novamente em 500ms
+            setTimeout(() => updateWidget(current, total, mode), 500);
+            return;
+        }
+
         const widget = document.getElementById(WIDGET_ID);
         const title = document.getElementById(WIDGET_ID + '_title');
         const text = document.getElementById(WIDGET_ID + '_text');
@@ -130,7 +137,7 @@
         }
         if (text) text.textContent = `${current}/${total}`;
         if (bar) {
-            const percentage = Math.min(100, (current / total) * 100);
+            const percentage = total > 0 ? Math.min(100, (current / total) * 100) : 0;
             bar.style.width = `${percentage}%`;
         }
     }
@@ -139,7 +146,7 @@
         const widget = document.getElementById(WIDGET_ID);
         if (widget) {
             widget.classList.add('hidden');
-            setTimeout(() => widget.remove(), 500);
+            setTimeout(() => { if (widget.parentElement) widget.remove(); }, 500);
         }
     }
 

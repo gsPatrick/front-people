@@ -124,12 +124,17 @@ async function ensureWorkerWindow() {
             batchState.workerWindowId = null;
         }
     }
+    log.info("[BATCH] Criando Janela Worker (Modo Fantasma)...");
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
         state: 'minimized',
         focused: false
     });
+    
+    // Pequeno delay para estabilização da janela no Chrome
+    await new Promise(r => setTimeout(r, 2000));
+    
     batchState.workerWindowId = workerWindow.id;
     saveBatchState();
     return workerWindow.id;
