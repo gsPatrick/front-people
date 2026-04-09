@@ -75,7 +75,8 @@ let batchState = {
     currentIndex: 0,
     results: [],
     scorecardId: null,
-    jobId: null
+    jobId: null,
+    workerWindowId: null
 };
 
 // Carrega estado inicial do storage
@@ -83,6 +84,7 @@ chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
         batchState.isRunning = false; 
+        batchState.workerWindowId = null;
         saveBatchState();
     }
 });
@@ -112,25 +114,35 @@ async function broadcastToWidgets(message) {
 async function runBatchLoop() {
     if (!batchState.isRunning) return;
 
-    let originalTabId = null;
     try {
-        const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (activeTabs.length > 0) originalTabId = activeTabs[0].id;
-    } catch (e) { }
+        const workerWindow = await chrome.windows.create({
+            url: 'about:blank',
+            type: 'popup',
+            state: 'minimized',
+            focused: false
+        });
+        batchState.workerWindowId = workerWindow.id;
+        saveBatchState();
+    } catch (e) {
+        log.error("Worker Window falhou:", e);
+        batchState.isRunning = false;
+        saveBatchState();
+        return;
+    }
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Iniciando perfil: ${tabData.username}`);
+        log.info(`[BATCH] Ghost working: ${tabData.username}`);
 
         let currentTabId = null;
         try {
-            const newTab = await chrome.tabs.create({ url: tabData.url, active: false });
+            const newTab = await chrome.tabs.create({ 
+                windowId: batchState.workerWindowId,
+                url: tabData.url, 
+                active: true 
+            });
             currentTabId = newTab.id;
             
-            if (originalTabId) {
-                chrome.tabs.update(originalTabId, { active: true }).catch(() => {});
-            }
-
             await new Promise(r => setTimeout(r, 8000));
 
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
@@ -144,7 +156,7 @@ async function runBatchLoop() {
                             document.querySelector('button[data-view-name="profile-overflow-button"]');
                         if (moreButton) {
                             moreButton.click();
-                            await new Promise(r => setTimeout(r, 800));
+                            await new Promise(r => setTimeout(r, 900));
                             const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
                             const pdfItem = items.find(i => /pdf/i.test(i.innerText));
                             if (pdfItem) pdfItem.click();
@@ -198,9 +210,15 @@ async function runBatchLoop() {
         }
     }
 
+    if (batchState.workerWindowId) {
+        chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+        batchState.workerWindowId = null;
+    }
+
     batchState.isRunning = false;
     saveBatchState();
     log.success("[BATCH] Finalizado.");
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento fantasma concluído.' });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -215,12 +233,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
         batchState.isRunning = false;
+        if (batchState.workerWindowId) {
+            chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            batchState.workerWindowId = null;
+        }
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "GET_BATCH_STATE") {
         sendResponse({ state: batchState });
     } else if (message.action === "RESET_BATCH") {
-        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null };
+        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {

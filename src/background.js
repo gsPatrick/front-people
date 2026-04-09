@@ -75,14 +75,16 @@ let batchState = {
     currentIndex: 0,
     results: [],
     scorecardId: null,
-    jobId: null
+    jobId: null,
+    workerWindowId: null 
 };
 
 // Carrega estado inicial do storage
 chrome.storage.local.get('batch_state', (data) => {
     if (data.batch_state) {
         batchState = { ...batchState, ...data.batch_state };
-        batchState.isRunning = false; // Resetar isRunning por segurança
+        batchState.isRunning = false; 
+        batchState.workerWindowId = null; // Garantir que comece limpo
         saveBatchState();
     }
 });
@@ -91,7 +93,6 @@ function saveBatchState() {
     chrome.storage.local.set({ batch_state: batchState });
     chrome.runtime.sendMessage({ type: 'BATCH_STATE_CHANGED', state: batchState }).catch(() => {});
     
-    // Notifica widgets em todas as abas
     if (batchState.isRunning) {
         broadcastToWidgets({ 
             type: 'BATCH_WIDGET_UPDATE', 
@@ -105,7 +106,6 @@ function saveBatchState() {
 
 async function broadcastToWidgets(message) {
     const tabs = await chrome.tabs.query({});
-    log.info(`Broadcasting update to ${tabs.length} tabs.`);
     for (const tab of tabs) {
         chrome.tabs.sendMessage(tab.id, message).catch(() => {});
     }
@@ -114,40 +114,46 @@ async function broadcastToWidgets(message) {
 async function runBatchLoop() {
     if (!batchState.isRunning) return;
 
-    // Guarda a aba atual e monitora para restaurar o foco agressivamente
-    let originalTabId = null;
+    // 1. Cria a Janela de Trabalho (Worker Window) - Minimizada e fora do caminho
     try {
-        const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (activeTabs.length > 0) originalTabId = activeTabs[0].id;
-        log.info(`[BATCH] Aba original detectada: ${originalTabId}`);
+        log.info("[BATCH] Criando Janela Worker (FANTASMA)...");
+        const workerWindow = await chrome.windows.create({
+            url: 'about:blank',
+            type: 'popup',
+            state: 'minimized',
+            focused: false
+        });
+        batchState.workerWindowId = workerWindow.id;
+        saveBatchState();
     } catch (e) {
-        log.error("Erro ao detectar aba original:", e);
+        log.error("Falha ao criar janela worker:", e);
+        batchState.isRunning = false;
+        saveBatchState();
+        return;
     }
 
     while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
         const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] >>> INICIANDO PERFIL: ${tabData.username} (${batchState.currentIndex + 1}/${batchState.tabs.length})`);
+        log.info(`[BATCH] >>> PROCESSO FANTASMA: ${tabData.username}`);
 
         let currentTabId = null;
         try {
-            log.info(`[BATCH] Criando aba em segundo plano para: ${tabData.url}`);
-            const newTab = await chrome.tabs.create({ url: tabData.url, active: false });
+            // Cria aba DENTRO da janela Worker (não na janela principal do usuário)
+            const newTab = await chrome.tabs.create({ 
+                windowId: batchState.workerWindowId,
+                url: tabData.url, 
+                active: true // Active dentro da janela minimizada
+            });
             currentTabId = newTab.id;
             
-            // Re-foca a aba original instantaneamente
-            if (originalTabId) {
-                await chrome.tabs.update(originalTabId, { active: true }).catch(() => {});
-                log.info(`[BATCH] Re-focado na aba original ${originalTabId}`);
-            }
-
-            log.info(`[BATCH] Aguardando 8s para carregamento do LinkedIn...`);
+            log.info(`[BATCH] Aguardando carregamento (Aba: ${currentTabId} em Janela: ${batchState.workerWindowId})`);
             await new Promise(r => setTimeout(r, 8000));
 
-            log.info(`[BATCH] Injetando scripts de extração na aba ${currentTabId}`);
+            // Injeta scripts de extração
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
-            log.info(`[BATCH] Disparando comando de clique para PDF...`);
+            // Dispara clique no PDF
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
@@ -156,7 +162,7 @@ async function runBatchLoop() {
                             document.querySelector('button[data-view-name="profile-overflow-button"]');
                         if (moreButton) {
                             moreButton.click();
-                            await new Promise(r => setTimeout(r, 800));
+                            await new Promise(r => setTimeout(r, 900));
                             const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
                             const pdfItem = items.find(i => /pdf/i.test(i.innerText));
                             if (pdfItem) pdfItem.click();
@@ -166,7 +172,6 @@ async function runBatchLoop() {
                 }
             });
 
-            log.info(`[BATCH] Aguardando resposta de extração (PDF_EXTRACTION_SUCCESS)...`);
             const extractionResult = await new Promise((resolve) => {
                 const listener = (msg) => {
                     if (msg.type === 'PDF_EXTRACTION_SUCCESS') {
@@ -185,7 +190,6 @@ async function runBatchLoop() {
             });
 
             if (extractionResult.success) {
-                log.success(`[BATCH] Extração concluída para ${tabData.username}. Iniciando análise IA.`);
                 const matchResult = await analyzeProfileWithAI(batchState.scorecardId, extractionResult.data, batchState.jobId);
                 batchState.results.push({
                     username: tabData.username,
@@ -194,17 +198,13 @@ async function runBatchLoop() {
                     matchScore: matchResult?.matchScore || 0,
                     success: true
                 });
-                log.success(`[BATCH] Análise IA concluída: Score ${matchResult?.matchScore}`);
             } else {
-                log.error(`[BATCH] Falha na extração para ${tabData.username}: ${extractionResult.error}`);
                 batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });
             }
         } catch (err) {
-            log.error(`[BATCH] Erro crítico para ${tabData.username}:`, err.message);
             batchState.results.push({ username: tabData.username, error: err.message, success: false });
         } finally {
             if (currentTabId) {
-                log.info(`[BATCH] Fechando aba ${currentTabId}`);
                 await chrome.tabs.remove(currentTabId).catch(() => {});
             }
         }
@@ -212,42 +212,46 @@ async function runBatchLoop() {
         batchState.currentIndex++;
         saveBatchState();
         if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            const delay = 12000;
-            log.info(`[BATCH] Aguardando ${delay/1000}s para próximo perfil...`);
-            await new Promise(r => setTimeout(r, delay));
+            await new Promise(r => setTimeout(r, 12000));
         }
+    }
+
+    // FINALIZAÇÃO: Fecha a janela worker
+    if (batchState.workerWindowId) {
+        log.info("[BATCH] Fechando Janela Worker.");
+        chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+        batchState.workerWindowId = null;
     }
 
     batchState.isRunning = false;
     saveBatchState();
-    log.success("[BATCH] Fila finalizada com sucesso.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento concluído.' });
+    log.success("[BATCH] Fila finalizada.");
+    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento concluído com sucesso.' });
 }
 
 // OUVINTE DE MENSAGENS
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    log.info(`[BACKGROUND] Mensagem recebida: ${message.action || message.type}`);
-
     if (message.action === "START_BATCH") {
         if (batchState.isRunning) {
-            log.warn("[BACKGROUND] Já existe um batch em execução. Ignorando START.");
             sendResponse({ success: false, error: "Fila já em execução." });
             return true;
         }
-        log.success("[BACKGROUND] Iniciando NOVO Batch.");
         batchState = { isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
         saveBatchState();
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
-        log.info("[BACKGROUND] Interrompendo Batch.");
         batchState.isRunning = false;
+        if (batchState.workerWindowId) {
+            chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            batchState.workerWindowId = null;
+        }
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "GET_BATCH_STATE") {
         sendResponse({ state: batchState });
     } else if (message.action === "RESET_BATCH") {
-        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null };
+        batchState = { isRunning: false, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
@@ -262,7 +266,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.downloads.onCreated.addListener(async (downloadItem) => {
     const isLinkedInProfilePdf = downloadItem.url.includes('linkedin.com') && downloadItem.filename.toLowerCase().endsWith('.pdf');
     if (isLinkedInProfilePdf) {
-        log.info("[DOWNLOAD] LinkedIn PDF detectado. Cancelando download real.");
         await chrome.downloads.cancel(downloadItem.id).catch(() => {});
         await chrome.downloads.erase({ id: downloadItem.id }).catch(() => {});
     }
