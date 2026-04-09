@@ -429,23 +429,25 @@ const Popup = () => {
             onEditScorecard={(sc) => navigateTo('scorecard_edit', { scorecard: sc })} 
             onCreateScorecard={(job) => navigateTo('scorecard_edit', { scorecard: { jobId: job.id } })} 
             onStartMatch={(scorecardId, job) => {
-                // ETAPA 1.3: Orquestração DIRETA via gesto do usuário (Popup)
+                // ETAPA 1.4: Correção final da API (usando tabId para setOptions)
                 const searchUrl = "https://www.linkedin.com/search/results/people/";
                 
-                chrome.windows.create({ url: searchUrl, focused: true }, (newWindow) => {
+                chrome.windows.create({ url: searchUrl, focused: true, populate: true }, (newWindow) => {
                     const windowId = newWindow.id;
+                    const tabId = (newWindow.tabs && newWindow.tabs.length > 0) ? newWindow.tabs[0].id : null;
                     const sidePanelUrl = chrome.runtime.getURL(`index.html?view=batch_queue&scorecardId=${scorecardId}&jobId=${job.id}`);
                     
-                    // Configura e Abre o painel lateral na nova janela
-                    chrome.sidePanel.setOptions({
-                        windowId: windowId,
-                        path: sidePanelUrl,
-                        enabled: true
-                    }, () => {
-                        chrome.sidePanel.open({ windowId: windowId }).catch((err) => {
-                            console.error("[POPUP] Erro ao abrir sidePanel na nova janela:", err);
+                    if (tabId) {
+                        chrome.sidePanel.setOptions({
+                            tabId: tabId,
+                            path: sidePanelUrl,
+                            enabled: true
+                        }, () => {
+                            chrome.sidePanel.open({ windowId: windowId }).catch((err) => {
+                                console.error("[POPUP] Erro ao abrir sidePanel na nova janela:", err);
+                            });
                         });
-                    });
+                    }
                 });
             }} 
         />; break;
