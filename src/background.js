@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.7';
+const VERSION = '1.5.8';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -496,7 +496,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.windows.getLastFocused({ populate: false }, (focusedWindow) => {
             batchState = { 
                 ...batchState, 
-                isRunning: true, 
+                // isRunning será setado pelo runBatchLoop para evitar deadlock
                 tabs: message.tabs, 
                 scorecardId: message.scorecardId, 
                 jobId: message.jobId, 
@@ -518,7 +518,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.windows.getLastFocused({ populate: false }, (focusedWindow) => {
             batchState = { 
                 ...batchState, 
-                isSourcing: true,
+                // isSourcing será setado pelo runSourcingLoop para evitar deadlock
                 scorecardId: message.scorecardId, 
                 jobId: message.jobId, 
                 results: [], 
