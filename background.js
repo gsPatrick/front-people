@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.4.2';
+const VERSION = '1.5.0';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -303,17 +303,14 @@ async function runBatchLoop() {
             const tabData = batchState.tabs[batchState.currentIndex];
             log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
 
-            // 1. Garante Janela de Extração (Cria ou Reutiliza)
-            let isNewWindow = false;
+            // 1. Garante Janela de Extração
             try {
                 if (profileWindowId) {
                     await chrome.windows.get(profileWindowId);
-                    log.info("[BATCH] Reutilizando janela existente.");
                 } else {
                     throw new Error("No window");
                 }
             } catch {
-                log.info("[BATCH] Criando nova janela de extração...");
                 const profileWindow = await chrome.windows.create({ 
                     url: 'about:blank', 
                     type: 'popup',
@@ -323,37 +320,48 @@ async function runBatchLoop() {
                     focused: false
                 });
                 profileWindowId = profileWindow.id;
-                const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
-                currentTabId = tab.id;
-                isNewWindow = true;
             }
 
-            // 2. Navegação
-            log.info(`[BATCH] Navegando para: ${tabData.url}`);
-            await chrome.tabs.update(currentTabId, { url: tabData.url });
+            // 2. Rotatividade de Aba (Fresh Tab Strategy)
+            const oldTabId = currentTabId;
+            log.info(`[BATCH] Criando aba fresca para: ${tabData.username}`);
+            const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
+            currentTabId = newTab.id;
             
-            // Aguarda o início do carregamento no fundo (maior tempo para estabilidade SPA)
-            await new Promise(r => setTimeout(r, 5000));
+            // Remove a aba anterior (se existir) para evitar acúmulo de processos
+            if (oldTabId) chrome.tabs.remove(oldTabId).catch(() => {});
             
-            // 3. Extração e Sync Visibility
+            // Aguarda o início do carregamento no fundo
+            await new Promise(r => setTimeout(r, 6000));
+            
+            // 3. Extração e Sync Visibility (Stealth-Pop)
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
-            // Acorda a janela exatamente antes de clicar no 'Mais' para evitar render throttling
+            // Acorda a janela para garantir renderização do conteúdo novo
             await wakeUpWindow(profileWindowId, 1000);
 
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
                     const clickPdf = async () => {
-                        let moreButton = document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
-                            document.querySelector('button[data-view-name="profile-overflow-button"]');
-                        if (moreButton) {
-                            moreButton.click();
-                            await new Promise(r => setTimeout(r, 1000));
-                            const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
-                            const pdfItem = items.find(i => /pdf/i.test(i.innerText));
-                            if (pdfItem) pdfItem.click();
+                        // Tenta encontrar e clicar no botão 3 vezes com intervalo de 1.5s
+                        for (let attempt = 1; attempt <= 3; attempt++) {
+                            console.log(`[CLICKER] Tentativa ${attempt} de encontrar botão 'Mais'...`);
+                            let moreButton = document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
+                                document.querySelector('button[data-view-name="profile-overflow-button"]');
+                            
+                            if (moreButton) {
+                                moreButton.click();
+                                await new Promise(r => setTimeout(r, 1200));
+                                const items = Array.from(document.querySelectorAll('.artdeco-dropdown__item, [role="menuitem"]'));
+                                const pdfItem = items.find(i => /pdf/i.test(i.innerText));
+                                if (pdfItem) {
+                                    pdfItem.click();
+                                    return; // Sucesso!
+                                }
+                            }
+                            await new Promise(r => setTimeout(r, 1500));
                         }
                     };
                     clickPdf();
