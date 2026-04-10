@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.3.2';
+const VERSION = '1.3.3';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -336,11 +336,33 @@ async function runBatchLoop() {
 
             if (extractionResult.success) {
                 const matchResult = await analyzeProfileWithAI(batchState.scorecardId, extractionResult.data, batchState.jobId);
+                
+                // Mapeamento de Adaptador para UI (Extrai pontos fortes e fracos)
+                const categories = [];
+                const strengths = [];
+                const weaknesses = [];
+
+                if (matchResult?.categories) {
+                    matchResult.categories.forEach(cat => {
+                        categories.push({ ...cat, averageScore: cat.score });
+                        if (cat.criteria) {
+                            cat.criteria.forEach(crit => {
+                                if (crit.score >= 80) strengths.push(crit.justification);
+                                else if (crit.score <= 40) weaknesses.push(crit.justification);
+                            });
+                        }
+                    });
+                }
+
                 batchState.results.push({
                     username: tabData.username,
                     name: extractionResult.data.perfil?.nome || tabData.username,
+                    headline: extractionResult.data.perfil?.titulo || tabData.username,
                     matchResult,
                     matchScore: matchResult?.matchScore || 0,
+                    categories,
+                    strengths: strengths.slice(0, 3),
+                    weaknesses: weaknesses.slice(0, 3),
                     success: true
                 });
             } else {
