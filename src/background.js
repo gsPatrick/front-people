@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.9';
+const VERSION = '1.6.0';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -161,51 +161,80 @@ async function broadcastToWidgets(message) {
     }
 }
 /**
- * "Acorda" a janela apenas se necessário, garantindo que o Chrome processe 
- * a renderização. Como agora usamos janelas Off-Screen (normal state), 
- * o wakeup é apenas um formalismo para manter o processo vivo.
+ * Cria uma janela fantasma: abre VISÍVEL para o Chrome renderizar,
+ * depois minimiza. Guarda o ID em batchState.workerWindowId.
  */
-async function wakeUpWindow(windowId, ms = 200) {
-    try {
-        if (!windowId) return;
-        // Simplesmente garante que a janela está ativa internamente
-        await chrome.windows.update(windowId, { focused: false });
-        await new Promise(r => setTimeout(r, ms));
-    } catch (e) {
-        log.warn(`[WAKEUP] Falha silenciosa ao tocar janela ${windowId}: ${e.message}`);
-    }
-}
-
-async function ensureWorkerWindow() {
-    if (batchState.workerWindowId) {
-        try {
-            await chrome.windows.get(batchState.workerWindowId);
-            return batchState.workerWindowId;
-        } catch {
-            batchState.workerWindowId = null;
-        }
-    }
-    log.info("[BATCH] Criando Janela Worker Off-Screen (Modo Fantasma Seguro)...");
-    const workerWindow = await chrome.windows.create({
-        url: 'about:blank',
+async function createGhostWindow(url) {
+    log.info("[GHOST] Criando janela fantasma VISÍVEL...");
+    
+    // Passo 1: Criar como NORMAL para o Chrome renderizar
+    const ghostWindow = await chrome.windows.create({
+        url: url,
         type: 'popup',
         state: 'normal',
-        top: -2000,
-        left: -2000,
         width: 1200,
         height: 800,
         focused: false
     });
     
-    // Delay mínimo para estabilização
-    await new Promise(r => setTimeout(r, 1000));
+    const windowId = parseInt(ghostWindow.id);
     
-    batchState.workerWindowId = workerWindow.id;
-    log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
+    // SEGURANÇA: Nunca usar a janela do usuário
+    if (windowId === parseInt(batchState.callerWindowId)) {
+        await chrome.windows.remove(windowId).catch(() => {});
+        throw new Error("SEGURANÇA: Chrome retornou a janela do usuário!");
+    }
+    
+    // Passo 2: Esperar o Chrome renderizar a página
+    await new Promise(r => setTimeout(r, 1500));
+    
+    // Passo 3: Minimizar (agora o motor de renderização já está ativo)
+    await chrome.windows.update(windowId, { state: 'minimized' }).catch(() => {});
+    log.info(`[GHOST] Janela ${windowId} criada e minimizada com sucesso.`);
+    
+    // Guardar no estado global
+    batchState.workerWindowId = windowId;
     saveBatchState();
-    return parseInt(workerWindow.id);
+    
+    return windowId;
 }
 
+/**
+ * Garante que a janela fantasma existe e está funcional.
+ * Se ela sumiu, recria usando o mesmo processo (visível → minimizar).
+ */
+async function ensureGhostWindow(urlForRecreation) {
+    if (batchState.workerWindowId) {
+        try {
+            await chrome.windows.get(parseInt(batchState.workerWindowId));
+            return parseInt(batchState.workerWindowId);
+        } catch {
+            log.warn("[GHOST] Janela fantasma perdida! Recriando...");
+            batchState.workerWindowId = null;
+        }
+    }
+    return await createGhostWindow(urlForRecreation || 'about:blank');
+}
+
+/**
+ * "Acorda" a janela fantasma: traz para normal, espera renderizar, minimiza de volta.
+ * Isso força o Chrome a processar a página mesmo que esteja em background.
+ */
+async function wakeUpWindow(windowId, ms = 800) {
+    try {
+        if (!windowId) return;
+        // Normal → espera → Minimiza
+        await chrome.windows.update(parseInt(windowId), { state: 'normal', focused: false });
+        await new Promise(r => setTimeout(r, ms));
+        await chrome.windows.update(parseInt(windowId), { state: 'minimized' }).catch(() => {});
+    } catch (e) {
+        log.warn(`[WAKEUP] Falha ao acordar janela ${windowId}: ${e.message}`);
+    }
+}
+
+// =============================================
+// SOURCING LOOP - Busca perfis no LinkedIn Search
+// =============================================
 async function runSourcingLoop(searchUrl, targetCount) {
     if (batchState.isSourcing) return;
     batchState.isSourcing = true;
@@ -215,45 +244,25 @@ async function runSourcingLoop(searchUrl, targetCount) {
     saveBatchState();
 
     let collectedUrls = new Set();
-    let searchTabId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Fantasma Isolada...");
-        // ESTRATÉGIA OFF-SCREEN: Janela 'normal' mas fora da área visível (-2000, -2000)
-        // Isso evita que o Chrome descarte a janela por inatividade/minimização.
-        const workerWindow = await chrome.windows.create({
-            url: searchUrl,
-            type: 'popup',
-            state: 'normal',
-            top: -2000,
-            left: -2000,
-            width: 1200,
-            height: 800,
-            focused: false
-        });
+        // Criar a janela fantasma UMA VEZ (visível → minimizada)
+        const ghostWindowId = await createGhostWindow(searchUrl);
         
-        const workerWindowId = parseInt(workerWindow.id);
+        // Pegar a aba de busca que foi criada dentro da janela fantasma
+        const [searchTab] = await chrome.tabs.query({ windowId: ghostWindowId });
+        const searchTabId = searchTab.id;
         
-        // SEGURANÇA: Se o Chrome retornou a janela do usuário por erro, paramos tudo
-        if (workerWindowId === batchState.callerWindowId) {
-            throw new Error("SEGURANÇA: Chrome tentou usar a janela do usuário para Sourcing!");
-        }
-
-        batchState.workerWindowId = workerWindowId;
-        
-        const [tab] = await chrome.tabs.query({ windowId: workerWindowId });
-        searchTabId = tab.id;
-        
-        saveBatchState();
+        log.info(`[SOURCING] Janela fantasma ${ghostWindowId} com aba de busca ${searchTabId}`);
 
         while (collectedUrls.size < targetCount && batchState.isSourcing) {
             log.info(`[SOURCING] Capturando... (${collectedUrls.size}/${targetCount})`);
             await new Promise(r => setTimeout(r, 6000));
             
-            await chrome.scripting.executeScript({ target: { tabId: searchTabId }, files: ['scripts/linkedin_search_scraper.js'] });
+            // Acorda a janela para garantir renderização
+            await wakeUpWindow(ghostWindowId, 600);
             
-            // Acorda a janela para garantir que o clique em 'Próxima' seja processado pelo navegador
-            await wakeUpWindow(batchState.workerWindowId, 600);
+            await chrome.scripting.executeScript({ target: { tabId: searchTabId }, files: ['scripts/linkedin_search_scraper.js'] });
             
             const response = await chrome.tabs.sendMessage(searchTabId, { action: "scrape_search_results", goToNext: true });
             if (response?.success) {
@@ -281,10 +290,13 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
         if (finalTabs.length > 0) {
             log.success(`[SOURCING] Concluído! ${finalTabs.length} perfis encontrados. Iniciando extração...`);
-            runBatchLoop();
+            // NÃO fecha a janela! O batch vai REUTILIZÁ-LA.
+            // Apenas remove a aba de busca DEPOIS de criar a primeira aba de perfil no batch.
+            runBatchLoop(searchTabId);
         } else {
             log.warn("[SOURCING] Nenhum perfil encontrado.");
-            if (batchState.workerWindowId) chrome.windows.remove(batchState.workerWindowId).catch(() => {});
+            // Só fecha se não encontrou nada
+            if (batchState.workerWindowId) chrome.windows.remove(parseInt(batchState.workerWindowId)).catch(() => {});
             batchState.workerWindowId = null;
             saveBatchState();
         }
@@ -292,116 +304,97 @@ async function runSourcingLoop(searchUrl, targetCount) {
     } catch (e) {
         log.error("[SOURCING] Erro crítico:", e);
         batchState.isSourcing = false;
+        if (batchState.workerWindowId) chrome.windows.remove(parseInt(batchState.workerWindowId)).catch(() => {});
+        batchState.workerWindowId = null;
         saveBatchState();
-    } finally {
-        if (searchTabId) chrome.tabs.remove(searchTabId).catch(() => {});
     }
+    // NÃO tem finally removendo a aba! O batch cuida disso.
 }
 
-// --- LOOP DE EXTRAÇÃO ---
-async function runBatchLoop() {
+// =============================================
+// BATCH LOOP - Extrai dados de cada perfil
+// =============================================
+async function runBatchLoop(searchTabIdToClose) {
     if (batchState.isRunning) return;
     batchState.isRunning = true;
     saveBatchState();
 
-    let profileWindowId = null;
     let currentTabId = null;
 
     try {
-        // 1. INICIALIZAÇÃO DA JANELA FANTASMA (Antes do Loop)
-        log.info("[BATCH] Iniciando janela fantasma isolada...");
         const firstProfile = batchState.tabs[batchState.currentIndex];
         if (!firstProfile) throw new Error("Fila vazia");
 
-        const ghostWindow = await chrome.windows.create({ 
-            url: firstProfile.url, 
-            type: 'popup',
-            state: 'normal',
-            top: -2000,
-            left: -2000,
-            width: 1200,
-            height: 800,
-            focused: false
-        });
+        // REUTILIZAR a janela fantasma que o sourcing já criou
+        // Se não existe (ex: batch direto sem sourcing), criar uma nova
+        const ghostWindowId = await ensureGhostWindow(firstProfile.url);
         
-        profileWindowId = parseInt(ghostWindow.id);
+        log.info(`[BATCH] Usando janela fantasma ${ghostWindowId}`);
 
-        if (profileWindowId === batchState.callerWindowId) {
-            throw new Error("SEGURANÇA: Tentativa de automação na janela principal detectada!");
+        // Criar a primeira aba de perfil DENTRO da janela fantasma existente
+        const firstTab = await chrome.tabs.create({ windowId: ghostWindowId, url: firstProfile.url });
+        currentTabId = firstTab.id;
+        
+        // Agora é seguro remover a aba de busca do sourcing (a janela não fica vazia)
+        if (searchTabIdToClose) {
+            await chrome.tabs.remove(searchTabIdToClose).catch(() => {});
+            log.info(`[BATCH] Aba de busca ${searchTabIdToClose} removida. Janela fantasma mantida.`);
         }
 
-        const [initialTab] = await chrome.tabs.query({ windowId: profileWindowId });
-        currentTabId = initialTab.id;
-        log.info(`[BATCH] Janela Fantasma ${profileWindowId} pronta com aba ${currentTabId}`);
+        log.info(`[BATCH] Janela Fantasma ${ghostWindowId} pronta com aba ${currentTabId}`);
 
         while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
             const tabData = batchState.tabs[batchState.currentIndex];
             log.info(`[BATCH] Processando (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
 
-            // 2. Garante que a janela ainda existe
-            try {
-                if (!profileWindowId) throw new Error("No ID");
-                await chrome.windows.get(profileWindowId);
-            } catch (e) {
-                log.warn("[BATCH] Janela fantasma perdida. Recriando Off-Screen...");
-                const newWindow = await chrome.windows.create({ 
-                    url: tabData.url, 
-                    type: 'popup',
-                    state: 'normal',
-                    top: -2000,
-                    left: -2000,
-                    width: 1200,
-                    height: 800,
-                    focused: false
-                });
-                profileWindowId = parseInt(newWindow.id);
-                const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
-                currentTabId = tab.id;
+            // Garante que a janela fantasma ainda existe
+            const windowId = await ensureGhostWindow(tabData.url);
+            
+            // Se a janela foi recriada, a aba também mudou
+            if (windowId !== ghostWindowId) {
+                const [newTab] = await chrome.tabs.query({ windowId: windowId });
+                currentTabId = newTab.id;
             }
 
-            // 3. Rotatividade de Aba (Híbrida)
-            // Se for o primeiro (index já processado na criação da janela), apenas aguardamos.
-            // Se for do segundo em diante, criamos aba nova.
+            // Rotação de aba: Se não é o primeiro perfil, navegar para o próximo
             const currentTab = await chrome.tabs.get(currentTabId).catch(() => null);
-            if (currentTab && currentTab.url.includes(tabData.username)) {
+            if (currentTab && currentTab.url && currentTab.url.includes(tabData.username)) {
                 log.info(`[BATCH] Aba já posicionada para: ${tabData.username}`);
-            } else {
-                log.info(`[BATCH] Rotacionando para nova aba: ${tabData.username}`);
+            } else if (batchState.currentIndex > 0 || !currentTab) {
+                log.info(`[BATCH] Rotacionando para: ${tabData.username}`);
                 const oldTabId = currentTabId;
                 
-                // SEGURANÇA MÁXIMA: Verifica se não estamos tentando usar a aba do usuário
-                if (batchState.callerTabId && profileWindowId === null) {
-                     log.error("[BATCH] Tentativa de automação na janela incorreta!");
-                     break;
-                }
-
-                const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
+                // Criar nova aba PRIMEIRO (a janela nunca fica vazia)
+                const newTab = await chrome.tabs.create({ windowId: windowId, url: tabData.url });
                 currentTabId = newTab.id;
                 
+                // SEGURANÇA: Verificar que não estamos na aba do usuário
                 if (currentTabId === batchState.callerTabId) {
-                    log.error("[BATCH] CRITICAL SEGURITY: Tentativa de usar a aba do usuário detectada!");
+                    log.error("[BATCH] SEGURANÇA: Tentativa de usar aba do usuário!");
                     chrome.tabs.remove(currentTabId).catch(() => {});
                     break;
                 }
 
+                // Agora remove a aba antiga (a janela já tem a nova)
                 if (oldTabId && oldTabId !== batchState.callerTabId) {
                     chrome.tabs.remove(oldTabId).catch(() => {});
                 }
             }
 
-            // 4. Fluxo de Extração Consciente (Sync)
+            // Fluxo de Extração
             await new Promise(r => setTimeout(r, 6000));
+            
+            // Acorda a janela para garantir renderização
+            await wakeUpWindow(windowId, 1000);
+            
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
-
-            await wakeUpWindow(profileWindowId, 1000);
             
             activeExtractionTabId = currentTabId; 
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
                     const clickPdf = async () => {
-                        // Tenta encontrar e clicar no botão 3 vezes com intervalo de 1.5s
                         for (let attempt = 1; attempt <= 3; attempt++) {
                             console.log(`[CLICKER] Tentativa ${attempt} de encontrar botão 'Mais'...`);
                             let moreButton = document.querySelector('button[aria-label*="More"], button[aria-label*="Mais"]') ||
@@ -414,7 +407,7 @@ async function runBatchLoop() {
                                 const pdfItem = items.find(i => /pdf/i.test(i.innerText));
                                 if (pdfItem) {
                                     pdfItem.click();
-                                    return; // Sucesso!
+                                    return;
                                 }
                             }
                             await new Promise(r => setTimeout(r, 1500));
@@ -471,7 +464,6 @@ async function runBatchLoop() {
             batchState.currentIndex++;
             saveBatchState();
             
-            // Delay de respiro entre perfis na mesma janela
             if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
                 await new Promise(r => setTimeout(r, 2000));
             }
@@ -479,9 +471,11 @@ async function runBatchLoop() {
     } catch (err) {
         log.error("[BATCH] Erro crítico no loop:", err);
     } finally {
-        if (profileWindowId) {
-            log.info("[BATCH] Fechando janela de extração.");
-            await chrome.windows.remove(profileWindowId).catch(() => {});
+        // Fechar a janela fantasma ao final
+        if (batchState.workerWindowId) {
+            log.info("[BATCH] Fechando janela fantasma.");
+            await chrome.windows.remove(parseInt(batchState.workerWindowId)).catch(() => {});
+            batchState.workerWindowId = null;
         }
         batchState.isRunning = false;
         saveBatchState();
