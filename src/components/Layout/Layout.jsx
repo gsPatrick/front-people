@@ -23,7 +23,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
     <div className={`${styles.layout} ${isSidebarCollapsed ? styles.collapsed : ''}`}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          {/* ANA ISSIDORO AVATAR AS LOGO - Top Position */}
+          {/* ANA ISSIDORO AVATAR AS LOGO - Top Position (BIG) */}
           <div
             className={`${styles.anaAvatarContainer} ${activeView === 'chat_ana' ? styles.anaActive : ''} ${styles.headerLogo}`}
             onMouseEnter={() => setIsAnaHovered(true)}
@@ -50,6 +50,7 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           <button
             onClick={onToggleSidebar}
             className={styles.toggleButton}
+            style={{ position: 'absolute', right: '10px', top: '10px', zIndex: 10 }}
             title={isSidebarCollapsed ? "Expandir menu" : "Recolher menu"}
           >
             {isSidebarCollapsed ? <BsLayoutSidebarInset /> : <BsLayoutSidebarInsetReverse />}
