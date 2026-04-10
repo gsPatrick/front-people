@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -319,13 +319,17 @@ async function runBatchLoop() {
             log.info(`[BATCH] Navegando para: ${tabData.url}`);
             await chrome.tabs.update(currentTabId, { url: tabData.url });
             
-            // Força visibilidade rápida para o LinkedIn renderizar os menus
+            // Aguarda o início do carregamento antes de 'acordar' a janela
+            // Se acordarmos imediatamente (página branca), a renderização do conteúdo real pode ser pausada ao minimizar
+            await new Promise(r => setTimeout(r, 3000));
+            
+            // Força visibilidade rápida para o LinkedIn renderizar os menus do NOVO perfil
             await chrome.windows.update(profileWindowId, { state: 'normal', focused: false }).catch(() => {});
             await new Promise(r => setTimeout(r, 600)); 
             await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             
-            // Aguarda carregamento do perfil no fundo
-            await new Promise(r => setTimeout(r, 8000));
+            // Aguarda a finalização da renderização no fundo
+            await new Promise(r => setTimeout(r, 5000));
 
             // 3. Extração
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
