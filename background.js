@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.3.4';
+const VERSION = '1.4.0';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -282,34 +282,52 @@ async function runBatchLoop() {
     batchState.isRunning = true;
     saveBatchState();
 
-    while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-        const tabData = batchState.tabs[batchState.currentIndex];
-        log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
+    let profileWindowId = null;
+    let currentTabId = null;
 
-        let currentTabId = null;
-        let profileWindowId = null;
-        try {
-            log.info(`[BATCH] Criando Janela Atômica Fantasma para: ${tabData.username}`);
-            const profileWindow = await chrome.windows.create({ 
-                url: tabData.url, 
-                type: 'popup',
-                state: 'normal',
-                width: 1200,
-                height: 800,
-                focused: false
-            });
+    try {
+        while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
+            const tabData = batchState.tabs[batchState.currentIndex];
+            log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
+
+            // 1. Garante Janela de Extração (Cria ou Reutiliza)
+            let isNewWindow = false;
+            try {
+                if (profileWindowId) {
+                    await chrome.windows.get(profileWindowId);
+                    log.info("[BATCH] Reutilizando janela existente.");
+                } else {
+                    throw new Error("No window");
+                }
+            } catch {
+                log.info("[BATCH] Criando nova janela de extração...");
+                const profileWindow = await chrome.windows.create({ 
+                    url: 'about:blank', 
+                    type: 'popup',
+                    state: 'normal',
+                    width: 1200,
+                    height: 800,
+                    focused: false
+                });
+                profileWindowId = profileWindow.id;
+                const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
+                currentTabId = tab.id;
+                isNewWindow = true;
+            }
+
+            // 2. Navegação e Stealth-Pop
+            log.info(`[BATCH] Navegando para: ${tabData.url}`);
+            await chrome.tabs.update(currentTabId, { url: tabData.url });
             
-            profileWindowId = profileWindow.id;
-            
-            // Stealth-Pop: Deixa visível (sem foco) por 500ms para o layout engine do LinkedIn 'acordar'
-            await new Promise(r => setTimeout(r, 500));
+            // Força visibilidade rápida para o LinkedIn renderizar os menus
+            await chrome.windows.update(profileWindowId, { state: 'normal', focused: false }).catch(() => {});
+            await new Promise(r => setTimeout(r, 600)); 
             await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             
-            const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
-            currentTabId = tab.id;
-            
-            await new Promise(r => setTimeout(r, 7500)); // Restante do tempo de carregamento no fundo
+            // Aguarda carregamento do perfil no fundo
+            await new Promise(r => setTimeout(r, 8000));
 
+            // 3. Extração
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
@@ -344,7 +362,6 @@ async function runBatchLoop() {
             if (extractionResult.success) {
                 const matchResult = await analyzeProfileWithAI(batchState.scorecardId, extractionResult.data, batchState.jobId);
                 
-                // Mapeamento de Adaptador para UI (Extrai pontos fortes e fracos)
                 const categories = [];
                 const strengths = [];
                 const weaknesses = [];
@@ -375,26 +392,27 @@ async function runBatchLoop() {
             } else {
                 batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });
             }
-        } catch (err) {
-            log.error(`[BATCH] Erro ao processar ${tabData.username}:`, err);
-            batchState.results.push({ username: tabData.username, error: err.message, success: false });
-        } finally {
-            if (profileWindowId) {
-                await chrome.windows.remove(profileWindowId).catch(() => {});
+
+            batchState.currentIndex++;
+            saveBatchState();
+            
+            // Delay de respiro entre perfis na mesma janela
+            if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
-
-        batchState.currentIndex++;
-        saveBatchState();
-        if (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
-            await new Promise(r => setTimeout(r, 8000)); // Delay menor já que abre janela nova
+    } catch (err) {
+        log.error("[BATCH] Erro crítico no loop:", err);
+    } finally {
+        if (profileWindowId) {
+            log.info("[BATCH] Fechando janela de extração.");
+            await chrome.windows.remove(profileWindowId).catch(() => {});
         }
+        batchState.isRunning = false;
+        saveBatchState();
+        log.success("[BATCH] Fila Atômica finalizada.");
+        chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento atômico concluído.' });
     }
-
-    batchState.isRunning = false;
-    saveBatchState();
-    log.success("[BATCH] Fila Atômica finalizada.");
-    chrome.notifications.create({ type: 'basic', iconUrl: 'logo.png', title: 'Batch Finalizado', message: 'Processamento atômico concluído.' });
 }
 
 // OUVINTE DE MENSAGENS
