@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.3.3';
+const VERSION = '1.3.4';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -207,11 +207,18 @@ async function runSourcingLoop(searchUrl, targetCount) {
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
-            state: 'minimized',
+            state: 'normal',
+            width: 1200,
+            height: 800,
             focused: false
         });
         
         batchState.workerWindowId = workerWindow.id;
+        
+        // Stealth-Pop: Desperta o layout engine da busca
+        await new Promise(r => setTimeout(r, 500));
+        await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+        
         // chrome.windows.create com url cria abas que podem ser obtidas se populate:true
         // mas em MV3, se passar url, a primeira aba é a url.
         // Vamos pegar a aba ativa da janela recém-criada
