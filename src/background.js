@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.9';
+const VERSION = '1.3.0';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -104,6 +104,20 @@ let batchState = {
     jobId: null,
     workerWindowId: null 
 };
+
+// Resolver global para sincronização entre o capturador de PDF e o controlador da fila
+let activeExtractionResolve = null;
+
+function notifyExtraction(result) {
+    if (activeExtractionResolve) {
+        log.info("[BATCH] Notificando loop sobre resultado da extração.");
+        const resolve = activeExtractionResolve;
+        activeExtractionResolve = null; // Limpa para evitar re-chamada
+        resolve(result);
+        return true;
+    }
+    return false;
+}
 
 // Carrega estado inicial do storage
 chrome.storage.local.get('batch_state', (data) => {
@@ -300,19 +314,12 @@ async function runBatchLoop() {
             });
 
             const extractionResult = await new Promise((resolve) => {
-                const listener = (msg) => {
-                    if (msg.type === 'PDF_EXTRACTION_SUCCESS') {
-                        chrome.runtime.onMessage.removeListener(listener);
-                        resolve({ success: true, data: msg.payload });
-                    } else if (msg.type === 'PDF_EXTRACTION_FAILURE') {
-                        chrome.runtime.onMessage.removeListener(listener);
-                        resolve({ success: false, error: msg.payload?.message });
-                    }
-                };
-                chrome.runtime.onMessage.addListener(listener);
+                activeExtractionResolve = resolve;
                 setTimeout(() => {
-                    chrome.runtime.onMessage.removeListener(listener);
-                    resolve({ success: false, error: 'Timeout' });
+                    if (activeExtractionResolve === resolve) {
+                        activeExtractionResolve = null;
+                        resolve({ success: false, error: 'Timeout' });
+                    }
                 }, 60000);
             });
 
@@ -388,13 +395,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const pdfBlob = base64ToBlob(message.data);
         extractProfileFromPdf(pdfBlob)
             .then(data => {
-                // Notifica o loop principal para seguir para análise IA
+                const result = { success: true, data };
+                // Notifica o loop interno DIRETAMENTE
+                notifyExtraction(result);
+                // Também manda mensagem externa para quem estiver ouvindo (ex: Sidepanel)
                 chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: data });
-                sendResponse({ success: true, data });
+                sendResponse(result);
             })
             .catch(e => {
+                const result = { success: false, error: e.message };
+                notifyExtraction(result);
                 chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: e.message } });
-                sendResponse({ success: false, error: e.message });
+                sendResponse(result);
             });
         return true;
     }
@@ -416,12 +428,18 @@ chrome.downloads.onCreated.addListener(async (downloadItem) => {
             
             log.info("[DOWNLOAD] Enviando PDF interceptado para extração...");
             const data = await extractProfileFromPdf(blob);
+            const result = { success: true, data };
             
-            // Notifica o loop principal (se ele estiver esperando)
+            // Notifica o loop principal via chamada direta
+            notifyExtraction(result);
+            
+            // Notifica Sidepanel
             chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: data });
             log.success("[DOWNLOAD] Extração concluída com sucesso via interceptação.");
         } catch (error) {
             log.error("[DOWNLOAD] Erro ao processar PDF interceptado:", error);
+            const result = { success: false, error: error.message };
+            notifyExtraction(result);
             chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: error.message } });
         }
     }
