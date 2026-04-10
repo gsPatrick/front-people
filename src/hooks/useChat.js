@@ -112,7 +112,16 @@ export const useChat = () => {
                         try {
                             const data = JSON.parse(line.slice(6));
 
-                            if (data.type === 'delta') {
+                            if (data.type === 'conversationId') {
+                                // Se for uma nova conversa, atualizar o activeConversation
+                                const convId = data.conversationId;
+                                setActiveConversation(prev => {
+                                    if (!prev || prev.id !== convId) {
+                                        return { id: convId };
+                                    }
+                                    return prev;
+                                });
+                            } else if (data.type === 'delta') {
                                 fullContent += data.content;
                                 setStreamingContent(fullContent);
                             } else if (data.type === 'done') {

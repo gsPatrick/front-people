@@ -47,19 +47,8 @@ const SettingsView = ({
             <h3 className={styles.sectionTitle}>🤖 Ana Issidoro AI</h3>
           </div>
           
-          <div className={styles.settingItem}>
-            <label className={styles.settingLabel}>Habilitar Assistente de IA</label>
-            <label className={styles.toggleSwitch}>
-              <input
-                type="checkbox"
-                checked={settings.isAIEnabled}
-                onChange={() => onSettingChange('isAIEnabled', !settings.isAIEnabled)}
-              />
-              <span className={styles.toggleSlider}></span>
-            </label>
-          </div>
           <p className={styles.settingDescription}>
-            Exibe o botal de Match IA nos currículos e permite o chat com a Ana.
+            Configurações e sugestões para a assistente Ana Issidoro.
           </p>
 
           <div className={styles.suggestionsContainer}>
