@@ -6,7 +6,6 @@ import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline, IoChatbubblesSharp } f
 
 // Adicionada a prop activeMatchScorecardName
 const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout }) => {
-  const [isAnaHovered, setIsAnaHovered] = useState(false);
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
@@ -26,24 +25,11 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           {/* ANA ISSIDORO AVATAR AS LOGO - Top Position (BIG) */}
           <div
             className={`${styles.anaAvatarContainer} ${activeView === 'chat_ana' ? styles.anaActive : ''} ${styles.headerLogo}`}
-            onMouseEnter={() => setIsAnaHovered(true)}
-            onMouseLeave={() => setIsAnaHovered(false)}
             onClick={() => onNavigate('chat_ana')}
             title="Falar com Ana Issidoro"
           >
             <div className={styles.anaAvatarWrapper}>
-              {isAnaHovered ? (
-                <video
-                  className={styles.anaAvatar}
-                  src="/assets/ana-avatar.mp4"
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                />
-              ) : (
-                <img src="/logo.png" alt="Logo" className={styles.logoImage} />
-              )}
+              <img src="/logo.png" alt="Logo" className={styles.logoImage} />
             </div>
           </div>
 

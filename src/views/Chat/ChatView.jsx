@@ -21,18 +21,12 @@ const renderMarkdown = (text) => {
         .replace(/\n/g, '<br/>');
 };
 
-const SUGGESTIONS = [
-    "📊 Quantas vagas temos abertas?",
-    "👥 Liste os últimos candidatos",
-    "🔍 Buscar candidatos com score alto",
-    "📋 Quais scorecards temos?"
-];
-
 const ChatView = ({ onBack }) => {
     const {
         conversations,
         activeConversation,
         messages,
+        suggestions, // Sugestões vindas da API
         isStreaming,
         streamingContent,
         sendMessage,
@@ -44,7 +38,6 @@ const ChatView = ({ onBack }) => {
     const [inputValue, setInputValue] = useState('');
     const [showHistory, setShowHistory] = useState(false);
     const messagesEndRef = useRef(null);
-    const inputRef = useRef(null);
     const textareaRef = useRef(null);
 
     // Auto-scroll para o final das mensagens
@@ -88,9 +81,7 @@ const ChatView = ({ onBack }) => {
 
     // Usar sugestão
     const handleSuggestion = (suggestion) => {
-        // Remove emoji do início
-        const cleanText = suggestion.replace(/^[\p{Emoji}\s]+/u, '').trim();
-        sendMessage(cleanText);
+        sendMessage(suggestion);
     };
 
     // Formatar data
@@ -112,14 +103,6 @@ const ChatView = ({ onBack }) => {
                 <button className={styles.backBtn} onClick={onBack} title="Voltar">
                     <BsArrowLeft />
                 </button>
-                <video
-                    className={styles.anaAvatarSmall}
-                    src="/assets/ana-avatar.mp4"
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
-                />
                 <div className={styles.headerInfo}>
                     <p className={styles.headerTitle}>Ana Issidoro</p>
                     <p className={styles.headerSubtitle}>
@@ -177,20 +160,22 @@ const ChatView = ({ onBack }) => {
                 {!hasMessages ? (
                     /* WELCOME SCREEN */
                     <div className={styles.welcomeScreen}>
-                        <video
-                            className={styles.welcomeAvatar}
-                            src="/assets/ana-avatar.mp4"
-                            muted
-                            loop
-                            autoPlay
-                            playsInline
-                        />
+                        <div className={styles.welcomeVideoWrapper}>
+                            <video
+                                className={styles.welcomeVideo}
+                                src="/assets/ana-avatar.mp4"
+                                muted
+                                loop
+                                autoPlay
+                                playsInline
+                            />
+                        </div>
                         <h2 className={styles.welcomeTitle}>Olá! Eu sou a Ana 👋</h2>
                         <p className={styles.welcomeSubtitle}>
                             Sou a CTO da People AI. Tenho acesso a todas as vagas, candidatos e dados do sistema. Como posso ajudar?
                         </p>
                         <div className={styles.suggestions}>
-                            {SUGGESTIONS.map((s, i) => (
+                            {suggestions.map((s, i) => (
                                 <button
                                     key={i}
                                     className={styles.suggestionChip}
@@ -210,14 +195,9 @@ const ChatView = ({ onBack }) => {
                                 className={`${styles.messageBubble} ${msg.role === 'user' ? styles.userBubble : styles.assistantBubble}`}
                             >
                                 {msg.role === 'assistant' ? (
-                                    <video
-                                        className={`${styles.messageAvatar} ${styles.assistantAvatar}`}
-                                        src="/assets/ana-avatar.mp4"
-                                        muted
-                                        loop
-                                        autoPlay
-                                        playsInline
-                                    />
+                                    <div className={styles.messageAvatarWrapper}>
+                                         <img src="/logo.png" alt="Ana" className={styles.messageAvatar} />
+                                    </div>
                                 ) : (
                                     <div className={`${styles.messageAvatar} ${styles.userAvatar}`}>
                                         U
@@ -236,14 +216,9 @@ const ChatView = ({ onBack }) => {
                         {/* STREAMING MESSAGE */}
                         {isStreaming && (
                             <div className={`${styles.messageBubble} ${styles.assistantBubble}`}>
-                                <video
-                                    className={`${styles.messageAvatar} ${styles.assistantAvatar}`}
-                                    src="/assets/ana-avatar.mp4"
-                                    muted
-                                    loop
-                                    autoPlay
-                                    playsInline
-                                />
+                                <div className={styles.messageAvatarWrapper}>
+                                     <img src="/logo.png" alt="Ana" className={styles.messageAvatar} />
+                                </div>
                                 <div className={`${styles.messageContent} ${styles.assistantContent}`}>
                                     {streamingContent ? (
                                         <div dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingContent) }} />

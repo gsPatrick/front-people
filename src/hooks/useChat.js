@@ -11,6 +11,12 @@ export const useChat = () => {
     const [conversations, setConversations] = useState([]);
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [suggestions, setSuggestions] = useState([
+        "📊 Quantas vagas temos abertas?",
+        "👥 Liste os últimos candidatos",
+        "🔍 Buscar candidatos com score alto",
+        "📋 Quais scorecards temos?"
+    ]);
     const [isLoading, setIsLoading] = useState(false);
     const [isStreaming, setIsStreaming] = useState(false);
     const [streamingContent, setStreamingContent] = useState('');
@@ -175,15 +181,60 @@ export const useChat = () => {
         }
     }, [activeConversation, newConversation]);
 
-    // Carregar conversas ao montar
+    // Carregar configurações (sugestões)
+    const loadSettings = useCallback(async () => {
+        try {
+            const authData = await loadAuthData();
+            const res = await fetch(`${API_BASE_URL}/chat/settings`, {
+                headers: {
+                    'Authorization': `Bearer ${authData?.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (data.success && data.settings?.suggestions) {
+                setSuggestions(data.settings.suggestions);
+            }
+        } catch (err) {
+            console.error('[CHAT] Erro ao carregar configurações:', err);
+        }
+    }, []);
+
+    // Atualizar configurações (sugestões)
+    const updateSuggestions = useCallback(async (newSuggestions) => {
+        try {
+            const authData = await loadAuthData();
+            const res = await fetch(`${API_BASE_URL}/chat/settings`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authData?.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ suggestions: newSuggestions })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSuggestions(data.settings.suggestions);
+                return { success: true };
+            }
+            return { success: false, error: data.error };
+        } catch (err) {
+            console.error('[CHAT] Erro ao atualizar configurações:', err);
+            return { success: false, error: err.message };
+        }
+    }, []);
+
+    // Carregar conversas e settings ao montar
     useEffect(() => {
         loadConversations();
-    }, [loadConversations]);
+        loadSettings();
+    }, [loadConversations, loadSettings]);
 
     return {
         conversations,
         activeConversation,
         messages,
+        suggestions, // Expondo sugestões dinâmicas
         isLoading,
         isStreaming,
         streamingContent,
@@ -191,6 +242,8 @@ export const useChat = () => {
         loadConversation,
         loadConversations,
         newConversation,
-        deleteConversation
+        deleteConversation,
+        loadSettings,
+        updateSuggestions
     };
 };
