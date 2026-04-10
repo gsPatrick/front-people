@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.4';
+const VERSION = '1.5.5';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -103,7 +103,8 @@ let batchState = {
     scorecardId: null,
     jobId: null,
     workerWindowId: null,
-    callerTabId: null // Aba que iniciou o processo (PROIBIDA de automação)
+    callerTabId: null,
+    callerWindowId: null // Janela que não pode ser tocada
 };
 
 // Resolver global para sincronização entre o capturador de PDF e o controlador da fila
@@ -225,16 +226,20 @@ async function runSourcingLoop(searchUrl, targetCount) {
             focused: false
         });
         
-        batchState.workerWindowId = workerWindow.id;
+        const workerWindowId = parseInt(workerWindow.id);
         
-        // Stealth-Pop: Desperta o layout engine da busca
+        // SEGURANÇA: Se o Chrome retornou a janela do usuário por erro, paramos tudo
+        if (workerWindowId === batchState.callerWindowId) {
+            throw new Error("SEGURANÇA: Chrome tentou usar a janela do usuário para Sourcing!");
+        }
+
+        batchState.workerWindowId = workerWindowId;
+        
+        // Stealth-Pop
         await new Promise(r => setTimeout(r, 500));
-        await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+        await chrome.windows.update(workerWindowId, { state: 'minimized', focused: false }).catch(() => {});
         
-        // chrome.windows.create com url cria abas que podem ser obtidas se populate:true
-        // mas em MV3, se passar url, a primeira aba é a url.
-        // Vamos pegar a aba ativa da janela recém-criada
-        const [tab] = await chrome.tabs.query({ windowId: workerWindow.id });
+        const [tab] = await chrome.tabs.query({ windowId: workerWindowId });
         searchTabId = tab.id;
         
         saveBatchState();
@@ -315,7 +320,12 @@ async function runBatchLoop() {
             focused: false
         });
         
-        profileWindowId = ghostWindow.id;
+        profileWindowId = parseInt(ghostWindow.id);
+
+        if (profileWindowId === batchState.callerWindowId) {
+            throw new Error("SEGURANÇA: Tentativa de automação na janela principal detectada!");
+        }
+
         const [initialTab] = await chrome.tabs.query({ windowId: profileWindowId });
         currentTabId = initialTab.id;
         log.info(`[BATCH] Janela Fantasma ${profileWindowId} pronta com aba ${currentTabId}`);
@@ -326,9 +336,10 @@ async function runBatchLoop() {
 
             // 2. Garante que a janela ainda existe
             try {
+                if (!profileWindowId) throw new Error("No ID");
                 await chrome.windows.get(profileWindowId);
             } catch (e) {
-                log.warn("[BATCH] Janela fantasma fechada precocemente. Recriando...");
+                log.warn("[BATCH] Janela fantasma perdida. Recriando...");
                 const newWindow = await chrome.windows.create({ 
                     url: tabData.url, 
                     type: 'popup',
@@ -337,7 +348,7 @@ async function runBatchLoop() {
                     height: 800,
                     focused: false
                 });
-                profileWindowId = newWindow.id;
+                profileWindowId = parseInt(newWindow.id);
                 const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
                 currentTabId = tab.id;
             }
@@ -488,9 +499,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             jobId: message.jobId, 
             currentIndex: 0, 
             results: [],
-            callerTabId: sender.tab ? sender.tab.id : null // Blacklist da aba do usuário
+            callerTabId: sender.tab ? sender.tab.id : null,
+            callerWindowId: sender.tab ? sender.tab.windowId : null 
         };
         saveBatchState();
+        log.info(`[SAFETY] Sacred Lockdown Ativo. Tab: ${batchState.callerTabId}, Window: ${batchState.callerWindowId}`);
         runBatchLoop();
         sendResponse({ success: true });
     } else if (message.action === "START_SOURCING") {
@@ -504,8 +517,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             jobId: message.jobId, 
             results: [], 
             currentIndex: 0,
-            callerTabId: sender.tab ? sender.tab.id : null // Blacklist da aba do usuário
+            callerTabId: sender.tab ? sender.tab.id : null,
+            callerWindowId: sender.tab ? sender.tab.windowId : null
         };
+        saveBatchState();
+        log.info(`[SAFETY] Sacred Lockdown Ativo. Tab: ${batchState.callerTabId}, Window: ${batchState.callerWindowId}`);
         runSourcingLoop(message.searchUrl, message.targetCount);
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
