@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.6.1';
+const VERSION = '1.6.2';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -291,8 +291,7 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
         if (finalTabs.length > 0) {
             log.success(`[SOURCING] Concluído! ${finalTabs.length} perfis encontrados. Iniciando extração...`);
-            // NÃO fecha a janela! O batch vai REUTILIZÁ-LA.
-            // Apenas remove a aba de busca DEPOIS de criar a primeira aba de perfil no batch.
+            // Passa a aba de busca para o batch REUTILIZAR (não remover!)
             runBatchLoop(searchTabId);
         } else {
             log.warn("[SOURCING] Nenhum perfil encontrado.");
@@ -314,32 +313,40 @@ async function runSourcingLoop(searchUrl, targetCount) {
 
 // =============================================
 // BATCH LOOP - Extrai dados de cada perfil
+// Usa UMA ÚNICA ABA e navega ela para cada perfil.
+// NUNCA remove a aba original da janela fantasma.
 // =============================================
-async function runBatchLoop(searchTabIdToClose) {
+async function runBatchLoop(ghostTabId) {
     if (batchState.isRunning) return;
     batchState.isRunning = true;
     saveBatchState();
 
-    let currentTabId = null;
+    let currentTabId = ghostTabId; // Reutiliza a aba que já existe na janela fantasma
 
     try {
         const firstProfile = batchState.tabs[batchState.currentIndex];
         if (!firstProfile) throw new Error("Fila vazia");
 
         // REUTILIZAR a janela fantasma que o sourcing já criou
-        // Se não existe (ex: batch direto sem sourcing), criar uma nova
         const ghostWindowId = await ensureGhostWindow(firstProfile.url);
         
         log.info(`[BATCH] Usando janela fantasma ${ghostWindowId}`);
 
-        // Criar a primeira aba de perfil DENTRO da janela fantasma existente
-        const firstTab = await chrome.tabs.create({ windowId: ghostWindowId, url: firstProfile.url });
-        currentTabId = firstTab.id;
-        
-        // Agora é seguro remover a aba de busca do sourcing (a janela não fica vazia)
-        if (searchTabIdToClose) {
-            await chrome.tabs.remove(searchTabIdToClose).catch(() => {});
-            log.info(`[BATCH] Aba de busca ${searchTabIdToClose} removida. Janela fantasma mantida.`);
+        // Se temos uma aba do sourcing, NAVEGAR ela para o primeiro perfil (não criar nova!)
+        if (currentTabId) {
+            await chrome.tabs.update(currentTabId, { url: firstProfile.url });
+            log.info(`[BATCH] Aba ${currentTabId} navegada para: ${firstProfile.username}`);
+        } else {
+            // Sem aba do sourcing (batch direto) - pegar a aba que já existe na janela
+            const [existingTab] = await chrome.tabs.query({ windowId: ghostWindowId });
+            if (existingTab) {
+                currentTabId = existingTab.id;
+                await chrome.tabs.update(currentTabId, { url: firstProfile.url });
+            } else {
+                // Último recurso: criar uma aba
+                const newTab = await chrome.tabs.create({ windowId: ghostWindowId, url: firstProfile.url });
+                currentTabId = newTab.id;
+            }
         }
 
         log.info(`[BATCH] Janela Fantasma ${ghostWindowId} pronta com aba ${currentTabId}`);
@@ -351,38 +358,19 @@ async function runBatchLoop(searchTabIdToClose) {
             // Garante que a janela fantasma ainda existe
             const windowId = await ensureGhostWindow(tabData.url);
             
-            // Se a janela foi recriada, a aba também mudou
+            // Se a janela foi recriada, pegar a aba que existe nela
             if (windowId !== ghostWindowId) {
                 const [newTab] = await chrome.tabs.query({ windowId: windowId });
                 currentTabId = newTab.id;
             }
 
-            // Rotação de aba: Se não é o primeiro perfil, navegar para o próximo
-            const currentTab = await chrome.tabs.get(currentTabId).catch(() => null);
-            if (currentTab && currentTab.url && currentTab.url.includes(tabData.username)) {
-                log.info(`[BATCH] Aba já posicionada para: ${tabData.username}`);
-            } else if (batchState.currentIndex > 0 || !currentTab) {
-                log.info(`[BATCH] Rotacionando para: ${tabData.username}`);
-                const oldTabId = currentTabId;
-                
-                // Criar nova aba PRIMEIRO (a janela nunca fica vazia)
-                const newTab = await chrome.tabs.create({ windowId: windowId, url: tabData.url });
-                currentTabId = newTab.id;
-                
-                // SEGURANÇA: Verificar que não estamos na aba do usuário
-                if (currentTabId === batchState.callerTabId) {
-                    log.error("[BATCH] SEGURANÇA: Tentativa de usar aba do usuário!");
-                    chrome.tabs.remove(currentTabId).catch(() => {});
-                    break;
-                }
-
-                // Agora remove a aba antiga (a janela já tem a nova)
-                if (oldTabId && oldTabId !== batchState.callerTabId) {
-                    chrome.tabs.remove(oldTabId).catch(() => {});
-                }
+            // Para o segundo perfil em diante, NAVEGAR a mesma aba (não criar nova!)
+            if (batchState.currentIndex > 0) {
+                log.info(`[BATCH] Navegando aba para: ${tabData.username}`);
+                await chrome.tabs.update(currentTabId, { url: tabData.url });
             }
 
-            // Fluxo de Extração
+            // Esperar a página carregar
             await new Promise(r => setTimeout(r, 6000));
             
             // Acorda a janela para garantir renderização
