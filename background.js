@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.3.0';
+const VERSION = '1.3.1';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -171,13 +171,15 @@ async function ensureWorkerWindow() {
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        state: 'normal',
-        width: 1200,
-        height: 800
+        state: 'minimized',
+        focused: false
     });
     
     // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
+    
+    // Garante minimização extra
+    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
     log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
@@ -281,14 +283,16 @@ async function runBatchLoop() {
             const profileWindow = await chrome.windows.create({ 
                 url: tabData.url, 
                 type: 'popup',
-                state: 'normal',
-                width: 1200,
-                height: 800
+                state: 'minimized',
+                focused: false
             });
             
             profileWindowId = profileWindow.id;
             const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
             currentTabId = tab.id;
+            
+            // Garantia extra de minimização
+            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             
             await new Promise(r => setTimeout(r, 8000));
 
