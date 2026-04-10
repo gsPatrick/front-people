@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './Layout.module.css';
 // Ícones atualizados com BsClipboardCheck e BsBullseye
 import { BsBriefcaseFill, BsLayoutSidebarInsetReverse, BsLayoutSidebarInset, BsBoxArrowUpRight, BsLinkedin, BsClipboardCheck, BsBullseye } from 'react-icons/bs';
-import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline } from 'react-icons/io5';
+import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline, IoChatbubblesSharp } from 'react-icons/io5';
 
 // Adicionada a prop activeMatchScorecardName
 const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout }) => {
+  const [isAnaHovered, setIsAnaHovered] = useState(false);
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
@@ -64,6 +65,36 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
+          {/* ANA ISSIDORO AVATAR - Click to chat */}
+          <div
+            className={`${styles.anaAvatarContainer} ${activeView === 'chat_ana' ? styles.anaActive : ''}`}
+            onMouseEnter={() => setIsAnaHovered(true)}
+            onMouseLeave={() => setIsAnaHovered(false)}
+            onClick={() => onNavigate('chat_ana')}
+            title="Falar com Ana Issidoro"
+          >
+            <div className={styles.anaAvatarWrapper}>
+              {isAnaHovered ? (
+                <video
+                  className={styles.anaAvatar}
+                  src="/assets/ana-avatar.mp4"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <div className={styles.anaAvatarStatic}>
+                  <IoChatbubblesSharp />
+                </div>
+              )}
+            </div>
+            <div className={styles.anaInfo}>
+              <span className={styles.anaName}>Ana Issidoro</span>
+              <span className={styles.anaRole}>CTO Assistant</span>
+            </div>
+          </div>
+
           {onOpenInTab && (
             <button
               className={styles.openInTabButton}
