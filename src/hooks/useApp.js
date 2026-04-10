@@ -59,11 +59,19 @@ export const useApp = (executeAsync, navigateTo) => {
 
     useEffect(() => {
         const autoValidateProfile = async (tab) => {
-            // SEGUNDANÇA: Se estivermos em Sourcing ou Batch, a Sidepanel NÃO DEVE validar perfis ativos
+            // SEGURANÇA: Se estivermos em Sourcing ou Batch, a Sidepanel NÃO DEVE validar perfis ativos
             // para evitar interferência nos eventos de tab do Chrome.
-            if (batchState.isRunning || batchState.isSourcing) {
-                return;
-            }
+            const isBusy = await new Promise(resolve => {
+                chrome.runtime.sendMessage({ action: "GET_BATCH_STATE" }, (response) => {
+                    if (response && response.state) {
+                        resolve(response.state.isRunning || response.state.isSourcing);
+                    } else {
+                        resolve(false);
+                    }
+                });
+            });
+
+            if (isBusy) return;
 
             if (!tab || !tab.url || tab.url === validatedProfileUrl) {
                 setCurrentProfileStatus(null);
