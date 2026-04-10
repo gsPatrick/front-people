@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.8';
+const VERSION = '1.5.9';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -160,14 +160,19 @@ async function broadcastToWidgets(message) {
         log.error("Erro no broadcast para widgets:", error);
     }
 }
-async function wakeUpWindow(windowId, ms = 800) {
-    if (!windowId) return;
+/**
+ * "Acorda" a janela apenas se necessário, garantindo que o Chrome processe 
+ * a renderização. Como agora usamos janelas Off-Screen (normal state), 
+ * o wakeup é apenas um formalismo para manter o processo vivo.
+ */
+async function wakeUpWindow(windowId, ms = 200) {
     try {
-        await chrome.windows.update(windowId, { state: 'normal', focused: false });
+        if (!windowId) return;
+        // Simplesmente garante que a janela está ativa internamente
+        await chrome.windows.update(windowId, { focused: false });
         await new Promise(r => setTimeout(r, ms));
-        await chrome.windows.update(windowId, { state: 'minimized', focused: false });
-    } catch (err) {
-        log.error("[WAKEUP] Falha ao acordar janela:", err);
+    } catch (e) {
+        log.warn(`[WAKEUP] Falha silenciosa ao tocar janela ${windowId}: ${e.message}`);
     }
 }
 
@@ -180,22 +185,20 @@ async function ensureWorkerWindow() {
             batchState.workerWindowId = null;
         }
     }
-    log.info("[BATCH] Criando Janela Worker (Modo Fantasma Seguro)...");
+    log.info("[BATCH] Criando Janela Worker Off-Screen (Modo Fantasma Seguro)...");
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
         state: 'normal',
+        top: -2000,
+        left: -2000,
         width: 1200,
         height: 800,
         focused: false
     });
     
-    // Stealth-Pop: Delay mínimo para o Chrome 'pintar' a janela e o LinkedIn carregar botões
-    await new Promise(r => setTimeout(r, 500));
-    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
-    
-    // Delay adicional para estabilização do robô
-    await new Promise(r => setTimeout(r, 1500));
+    // Delay mínimo para estabilização
+    await new Promise(r => setTimeout(r, 1000));
     
     batchState.workerWindowId = workerWindow.id;
     log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
@@ -215,12 +218,15 @@ async function runSourcingLoop(searchUrl, targetCount) {
     let searchTabId = null;
 
     try {
-        log.info("[SOURCING] Criando Janela de Busca Fantasma...");
-        // CRIAÇÃO COMPATÍVEL: Apenas estado Minimizado (sem coordenadas conflitantes)
+        log.info("[SOURCING] Criando Janela de Busca Fantasma Isolada...");
+        // ESTRATÉGIA OFF-SCREEN: Janela 'normal' mas fora da área visível (-2000, -2000)
+        // Isso evita que o Chrome descarte a janela por inatividade/minimização.
         const workerWindow = await chrome.windows.create({
             url: searchUrl,
             type: 'popup',
             state: 'normal',
+            top: -2000,
+            left: -2000,
             width: 1200,
             height: 800,
             focused: false
@@ -234,10 +240,6 @@ async function runSourcingLoop(searchUrl, targetCount) {
         }
 
         batchState.workerWindowId = workerWindowId;
-        
-        // Stealth-Pop
-        await new Promise(r => setTimeout(r, 500));
-        await chrome.windows.update(workerWindowId, { state: 'minimized', focused: false }).catch(() => {});
         
         const [tab] = await chrome.tabs.query({ windowId: workerWindowId });
         searchTabId = tab.id;
@@ -315,6 +317,8 @@ async function runBatchLoop() {
             url: firstProfile.url, 
             type: 'popup',
             state: 'normal',
+            top: -2000,
+            left: -2000,
             width: 1200,
             height: 800,
             focused: false
@@ -339,11 +343,13 @@ async function runBatchLoop() {
                 if (!profileWindowId) throw new Error("No ID");
                 await chrome.windows.get(profileWindowId);
             } catch (e) {
-                log.warn("[BATCH] Janela fantasma perdida. Recriando...");
+                log.warn("[BATCH] Janela fantasma perdida. Recriando Off-Screen...");
                 const newWindow = await chrome.windows.create({ 
                     url: tabData.url, 
                     type: 'popup',
                     state: 'normal',
+                    top: -2000,
+                    left: -2000,
                     width: 1200,
                     height: 800,
                     focused: false
