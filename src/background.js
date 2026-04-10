@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.0';
+const VERSION = '1.5.1';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -107,6 +107,7 @@ let batchState = {
 
 // Resolver global para sincronização entre o capturador de PDF e o controlador da fila
 let activeExtractionResolve = null;
+let activeExtractionTabId = null; // ID da aba que estamos esperando extrair
 
 function notifyExtraction(result) {
     if (activeExtractionResolve) {
@@ -341,6 +342,8 @@ async function runBatchLoop() {
             // Acorda a janela para garantir renderização do conteúdo novo
             await wakeUpWindow(profileWindowId, 1000);
 
+            activeExtractionTabId = currentTabId; // Marca qual aba deve enviar o PDF
+            
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
@@ -473,8 +476,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         extractProfileFromPdf(pdfBlob)
             .then(data => {
                 const result = { success: true, data };
-                // Notifica o loop interno DIRETAMENTE
-                notifyExtraction(result);
+                
+                // SEGURANÇA: Só notifica o loop interno se a mensagem veio da aba fantasma ativa
+                if (sender.tab && sender.tab.id === activeExtractionTabId) {
+                    notifyExtraction(result);
+                    activeExtractionTabId = null; 
+                } else {
+                    log.info("[RELAY] PDF recebido de aba manual, processando apenas para UI.");
+                }
+
                 // Também manda mensagem externa para quem estiver ouvindo (ex: Sidepanel)
                 chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: data });
                 sendResponse(result);
