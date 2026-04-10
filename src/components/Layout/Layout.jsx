@@ -23,9 +23,36 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
     <div className={`${styles.layout} ${isSidebarCollapsed ? styles.collapsed : ''}`}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.logoContainer}>
-            <img src="/logo.png" alt="Logo" className={styles.logoImage} />
+          {/* ANA ISSIDORO AVATAR AS LOGO - Top Position */}
+          <div
+            className={`${styles.anaAvatarContainer} ${activeView === 'chat_ana' ? styles.anaActive : ''} ${styles.headerLogo}`}
+            onMouseEnter={() => setIsAnaHovered(true)}
+            onMouseLeave={() => setIsAnaHovered(false)}
+            onClick={() => onNavigate('chat_ana')}
+            title="Falar com Ana Issidoro"
+          >
+            <div className={styles.anaAvatarWrapper}>
+              {isAnaHovered ? (
+                <video
+                  className={styles.anaAvatar}
+                  src="/assets/ana-avatar.mp4"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <img src="/logo.png" alt="Logo" className={styles.logoImage} />
+              )}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className={styles.anaInfo}>
+                <span className={styles.anaName}>Ana Issidoro</span>
+                <span className={styles.anaRole}>CTO Assistant</span>
+              </div>
+            )}
           </div>
+
           <button
             onClick={onToggleSidebar}
             className={styles.toggleButton}
@@ -65,36 +92,6 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          {/* ANA ISSIDORO AVATAR - Click to chat */}
-          <div
-            className={`${styles.anaAvatarContainer} ${activeView === 'chat_ana' ? styles.anaActive : ''}`}
-            onMouseEnter={() => setIsAnaHovered(true)}
-            onMouseLeave={() => setIsAnaHovered(false)}
-            onClick={() => onNavigate('chat_ana')}
-            title="Falar com Ana Issidoro"
-          >
-            <div className={styles.anaAvatarWrapper}>
-              {isAnaHovered ? (
-                <video
-                  className={styles.anaAvatar}
-                  src="/assets/ana-avatar.mp4"
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                />
-              ) : (
-                <div className={styles.anaAvatarStatic}>
-                  <IoChatbubblesSharp />
-                </div>
-              )}
-            </div>
-            <div className={styles.anaInfo}>
-              <span className={styles.anaName}>Ana Issidoro</span>
-              <span className={styles.anaRole}>CTO Assistant</span>
-            </div>
-          </div>
-
           {onOpenInTab && (
             <button
               className={styles.openInTabButton}

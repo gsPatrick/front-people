@@ -29,7 +29,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 48px;
   margin-bottom: 24px;
 }
 
@@ -38,22 +37,7 @@
 }
 
 .logoContainer {
-  transition: opacity 0.3s ease, width 0.3s ease;
-  overflow: hidden;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-}
-
-.logoImage {
-  width: 100px;
-  height: auto;
-  object-fit: contain;
-}
-
-.layout.collapsed .logoContainer {
-  opacity: 0;
-  width: 0;
+  display: none;
 }
 
 .toggleButton {
@@ -292,43 +276,57 @@
 .anaAvatarContainer {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  gap: 12px;
+  padding: 6px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(34, 211, 238, 0.04);
-  border: 1px solid rgba(34, 211, 238, 0.1);
+  border: 1px solid transparent;
 }
 
 .anaAvatarContainer:hover {
-  background: rgba(34, 211, 238, 0.1);
-  border-color: rgba(34, 211, 238, 0.3);
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
-  transform: translateY(-1px);
+  background: rgba(34, 211, 238, 0.05);
+  border-color: rgba(34, 211, 238, 0.1);
 }
 
 .anaAvatarContainer.anaActive {
-  background: rgba(34, 211, 238, 0.15);
-  border-color: rgba(34, 211, 238, 0.5);
-  box-shadow: 0 0 25px rgba(34, 211, 238, 0.2);
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.2);
+}
+
+.headerLogo {
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.layout.collapsed .headerLogo {
+  margin-bottom: 0;
 }
 
 .anaAvatarWrapper {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
   border: 2px solid rgba(34, 211, 238, 0.4);
   transition: all 0.3s ease;
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.15);
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .anaAvatarContainer:hover .anaAvatarWrapper {
   border-color: rgba(34, 211, 238, 0.8);
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+}
+
+.logoImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .anaAvatar {
