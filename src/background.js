@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.3';
+const VERSION = '1.5.4';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -102,7 +102,8 @@ let batchState = {
     results: [],
     scorecardId: null,
     jobId: null,
-    workerWindowId: null 
+    workerWindowId: null,
+    callerTabId: null // Aba que iniciou o processo (PROIBIDA de automação)
 };
 
 // Resolver global para sincronização entre o capturador de PDF e o controlador da fila
@@ -350,10 +351,25 @@ async function runBatchLoop() {
             } else {
                 log.info(`[BATCH] Rotacionando para nova aba: ${tabData.username}`);
                 const oldTabId = currentTabId;
-                // SEGURANÇA: Especificamos windowId SEMPRE para evitar cair na janela do usuário
+                
+                // SEGURANÇA MÁXIMA: Verifica se não estamos tentando usar a aba do usuário
+                if (batchState.callerTabId && profileWindowId === null) {
+                     log.error("[BATCH] Tentativa de automação na janela incorreta!");
+                     break;
+                }
+
                 const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
                 currentTabId = newTab.id;
-                if (oldTabId) chrome.tabs.remove(oldTabId).catch(() => {});
+                
+                if (currentTabId === batchState.callerTabId) {
+                    log.error("[BATCH] CRITICAL SEGURITY: Tentativa de usar a aba do usuário detectada!");
+                    chrome.tabs.remove(currentTabId).catch(() => {});
+                    break;
+                }
+
+                if (oldTabId && oldTabId !== batchState.callerTabId) {
+                    chrome.tabs.remove(oldTabId).catch(() => {});
+                }
             }
 
             // 4. Fluxo de Extração Consciente (Sync)
@@ -464,7 +480,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
-        batchState = { ...batchState, isRunning: true, tabs: message.tabs, scorecardId: message.scorecardId, jobId: message.jobId, currentIndex: 0, results: [] };
+        batchState = { 
+            ...batchState, 
+            isRunning: true, 
+            tabs: message.tabs, 
+            scorecardId: message.scorecardId, 
+            jobId: message.jobId, 
+            currentIndex: 0, 
+            results: [],
+            callerTabId: sender.tab ? sender.tab.id : null // Blacklist da aba do usuário
+        };
         saveBatchState();
         runBatchLoop();
         sendResponse({ success: true });
@@ -473,7 +498,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
-        batchState = { ...batchState, scorecardId: message.scorecardId, jobId: message.jobId, results: [], currentIndex: 0 };
+        batchState = { 
+            ...batchState, 
+            scorecardId: message.scorecardId, 
+            jobId: message.jobId, 
+            results: [], 
+            currentIndex: 0,
+            callerTabId: sender.tab ? sender.tab.id : null // Blacklist da aba do usuário
+        };
         runSourcingLoop(message.searchUrl, message.targetCount);
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
@@ -488,7 +520,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "GET_BATCH_STATE") {
         sendResponse({ state: batchState });
     } else if (message.action === "RESET_BATCH") {
-        batchState = { isRunning: false, isSourcing: false, sourcingCount: 0, sourcingTarget: 0, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null };
+        batchState = { isRunning: false, isSourcing: false, sourcingCount: 0, sourcingTarget: 0, tabs: [], currentIndex: 0, results: [], scorecardId: null, jobId: null, workerWindowId: null, callerTabId: null };
         saveBatchState();
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
