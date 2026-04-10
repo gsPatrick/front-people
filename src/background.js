@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.3.1';
+const VERSION = '1.3.2';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -171,15 +171,18 @@ async function ensureWorkerWindow() {
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        state: 'minimized',
+        state: 'normal',
+        width: 1200,
+        height: 800,
         focused: false
     });
     
-    // Pequeno delay para estabilização
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // Garante minimização extra
+    // Stealth-Pop: Delay mínimo para o Chrome 'pintar' a janela e o LinkedIn carregar botões
+    await new Promise(r => setTimeout(r, 500));
     await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
+    
+    // Delay adicional para estabilização do robô
+    await new Promise(r => setTimeout(r, 1500));
     
     batchState.workerWindowId = workerWindow.id;
     log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
@@ -283,18 +286,22 @@ async function runBatchLoop() {
             const profileWindow = await chrome.windows.create({ 
                 url: tabData.url, 
                 type: 'popup',
-                state: 'minimized',
+                state: 'normal',
+                width: 1200,
+                height: 800,
                 focused: false
             });
             
             profileWindowId = profileWindow.id;
+            
+            // Stealth-Pop: Deixa visível (sem foco) por 500ms para o layout engine do LinkedIn 'acordar'
+            await new Promise(r => setTimeout(r, 500));
+            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
+            
             const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
             currentTabId = tab.id;
             
-            // Garantia extra de minimização
-            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
-            
-            await new Promise(r => setTimeout(r, 8000));
+            await new Promise(r => setTimeout(r, 7500)); // Restante do tempo de carregamento no fundo
 
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
