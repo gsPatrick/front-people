@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.1';
+const VERSION = '1.5.2';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -309,9 +309,10 @@ async function runBatchLoop() {
                 if (profileWindowId) {
                     await chrome.windows.get(profileWindowId);
                 } else {
-                    throw new Error("No window");
+                    throw new Error("Initializing new window");
                 }
-            } catch {
+            } catch (e) {
+                log.info("[BATCH] Criando nova janela de extração base...");
                 const profileWindow = await chrome.windows.create({ 
                     url: 'about:blank', 
                     type: 'popup',
@@ -321,16 +322,27 @@ async function runBatchLoop() {
                     focused: false
                 });
                 profileWindowId = profileWindow.id;
+                
+                // Pega a aba inicial (about:blank) para ser a primeira currentTabId
+                const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
+                currentTabId = tab.id;
+                log.info(`[BATCH] Janela ${profileWindowId} criada com aba base ${currentTabId}`);
             }
 
-            // 2. Rotatividade de Aba (Fresh Tab Strategy)
-            const oldTabId = currentTabId;
-            log.info(`[BATCH] Criando aba fresca para: ${tabData.username}`);
-            const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
-            currentTabId = newTab.id;
-            
-            // Remove a aba anterior (se existir) para evitar acúmulo de processos
-            if (oldTabId) chrome.tabs.remove(oldTabId).catch(() => {});
+            // 2. Rotatividade de Aba (Híbrida)
+            // Se for a primeira vez e a aba for about:blank, apenas navegamos
+            // Se já tiver uma aba de perfil, criamos uma nova para garantir limpeza
+            const currentTab = await chrome.tabs.get(currentTabId).catch(() => null);
+            if (currentTab && (currentTab.url === 'about:blank' || currentTab.url === 'chrome://newtab/')) {
+                log.info(`[BATCH] Reutilizando aba base para: ${tabData.username}`);
+                await chrome.tabs.update(currentTabId, { url: tabData.url });
+            } else {
+                log.info(`[BATCH] Rotacionando aba para: ${tabData.username}`);
+                const oldTabId = currentTabId;
+                const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
+                currentTabId = newTab.id;
+                if (oldTabId) chrome.tabs.remove(oldTabId).catch(() => {});
+            }
             
             // Aguarda o início do carregamento no fundo
             await new Promise(r => setTimeout(r, 6000));
