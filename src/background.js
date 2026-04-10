@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.2.7';
+const VERSION = '1.2.9';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -386,7 +386,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
     } else if (message.action === "processLinkedInPdf") {
         const pdfBlob = base64ToBlob(message.data);
-        extractProfileFromPdf(pdfBlob).then(data => sendResponse({success:true, data})).catch(e => sendResponse({success:false, error:e.message}));
+        extractProfileFromPdf(pdfBlob)
+            .then(data => {
+                // Notifica o loop principal para seguir para análise IA
+                chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: data });
+                sendResponse({ success: true, data });
+            })
+            .catch(e => {
+                chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: e.message } });
+                sendResponse({ success: false, error: e.message });
+            });
         return true;
     }
     return true;
@@ -396,7 +405,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.downloads.onCreated.addListener(async (downloadItem) => {
     const isLinkedInProfilePdf = downloadItem.url.includes('linkedin.com') && downloadItem.filename.toLowerCase().endsWith('.pdf');
     if (isLinkedInProfilePdf) {
+        log.info("[DOWNLOAD] Interceptando PDF do LinkedIn:", downloadItem.filename);
         await chrome.downloads.cancel(downloadItem.id).catch(() => {});
         await chrome.downloads.erase({ id: downloadItem.id }).catch(() => {});
+
+        try {
+            // Busca o arquivo como blob
+            const response = await fetch(downloadItem.url);
+            const blob = await response.blob();
+            
+            log.info("[DOWNLOAD] Enviando PDF interceptado para extração...");
+            const data = await extractProfileFromPdf(blob);
+            
+            // Notifica o loop principal (se ele estiver esperando)
+            chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_SUCCESS', payload: data });
+            log.success("[DOWNLOAD] Extração concluída com sucesso via interceptação.");
+        } catch (error) {
+            log.error("[DOWNLOAD] Erro ao processar PDF interceptado:", error);
+            chrome.runtime.sendMessage({ type: 'PDF_EXTRACTION_FAILURE', payload: { message: error.message } });
+        }
     }
 });
