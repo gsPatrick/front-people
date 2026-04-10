@@ -9,7 +9,8 @@
     "tabs",
     "scripting",
     "activeTab",
-    "downloads"
+    "downloads",
+    "notifications"
   ],
   "side_panel": {
     "default_path": "index.html"

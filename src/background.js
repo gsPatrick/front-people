@@ -157,15 +157,13 @@ async function ensureWorkerWindow() {
     const workerWindow = await chrome.windows.create({
         url: 'about:blank',
         type: 'popup',
-        state: 'minimized',
-        focused: false
+        state: 'normal',
+        width: 1200,
+        height: 800
     });
     
     // Pequeno delay para estabilização
     await new Promise(r => setTimeout(r, 2000));
-    
-    // Garante minimização extra
-    await chrome.windows.update(workerWindow.id, { state: 'minimized', focused: false }).catch(() => {});
     
     batchState.workerWindowId = workerWindow.id;
     log.info(`[BATCH] Janela Worker IDs: Memory=${batchState.workerWindowId}`);
@@ -269,16 +267,14 @@ async function runBatchLoop() {
             const profileWindow = await chrome.windows.create({ 
                 url: tabData.url, 
                 type: 'popup',
-                state: 'minimized',
-                focused: false
+                state: 'normal',
+                width: 1200,
+                height: 800
             });
             
             profileWindowId = profileWindow.id;
             const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
             currentTabId = tab.id;
-            
-            // Garantia extra de minimização
-            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
             
             await new Promise(r => setTimeout(r, 8000));
 
