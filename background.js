@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.6.2';
+const VERSION = '1.6.3';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -162,13 +162,27 @@ async function broadcastToWidgets(message) {
     }
 }
 /**
- * Cria uma janela fantasma: abre VISÍVEL para o Chrome renderizar,
- * depois minimiza. Guarda o ID em batchState.workerWindowId.
+ * Empurra a janela do usuário para frente, escondendo a fantasma atrás.
+ */
+async function focusUserWindow() {
+    try {
+        if (batchState.callerWindowId) {
+            await chrome.windows.update(parseInt(batchState.callerWindowId), { focused: true });
+        }
+    } catch (e) {
+        // Se a janela do usuário não existe mais, não faz nada
+    }
+}
+
+/**
+ * Cria uma janela fantasma: abre como NORMAL sem foco,
+ * depois traz a janela do usuário para frente (fantasma fica atrás).
+ * Guarda o ID em batchState.workerWindowId.
  */
 async function createGhostWindow(url) {
-    log.info("[GHOST] Criando janela fantasma VISÍVEL...");
+    log.info("[GHOST] Criando janela fantasma...");
     
-    // Passo 1: Criar como NORMAL para o Chrome renderizar
+    // Criar como NORMAL, sem foco (abre atrás da janela ativa)
     const ghostWindow = await chrome.windows.create({
         url: url,
         type: 'popup',
@@ -186,12 +200,13 @@ async function createGhostWindow(url) {
         throw new Error("SEGURANÇA: Chrome retornou a janela do usuário!");
     }
     
-    // Passo 2: Esperar o Chrome renderizar a página
+    // Esperar renderização inicial
     await new Promise(r => setTimeout(r, 1500));
     
-    // Passo 3: Minimizar (agora o motor de renderização já está ativo)
-    await chrome.windows.update(windowId, { state: 'minimized' }).catch(() => {});
-    log.info(`[GHOST] Janela ${windowId} criada e minimizada com sucesso.`);
+    // Trazer a janela do usuário para frente (fantasma fica atrás, mas ATIVA)
+    await focusUserWindow();
+    
+    log.info(`[GHOST] Janela ${windowId} criada e escondida atrás da janela do usuário.`);
     
     // Guardar no estado global
     batchState.workerWindowId = windowId;
@@ -202,7 +217,7 @@ async function createGhostWindow(url) {
 
 /**
  * Garante que a janela fantasma existe e está funcional.
- * Se ela sumiu, recria usando o mesmo processo (visível → minimizar).
+ * Se ela sumiu, recria usando o mesmo processo.
  */
 async function ensureGhostWindow(urlForRecreation) {
     if (batchState.workerWindowId) {
@@ -218,18 +233,20 @@ async function ensureGhostWindow(urlForRecreation) {
 }
 
 /**
- * "Acorda" a janela fantasma: traz para normal, espera renderizar, minimiza de volta.
- * Isso força o Chrome a processar a página mesmo que esteja em background.
+ * "Acorda" a janela fantasma para garantir que o Chrome processe renderização e cliques.
+ * Como a janela está em estado 'normal' (não minimizada), ela já está ativa.
+ * Apenas garante que a janela do usuário continua na frente.
  */
 async function wakeUpWindow(windowId, ms = 800) {
     try {
         if (!windowId) return;
-        // Normal → espera → Minimiza
-        await chrome.windows.update(parseInt(windowId), { state: 'normal', focused: false });
+        // Garante que a janela existe e está ativa
+        await chrome.windows.get(parseInt(windowId));
         await new Promise(r => setTimeout(r, ms));
-        await chrome.windows.update(parseInt(windowId), { state: 'minimized' }).catch(() => {});
+        // Mantém a janela do usuário na frente
+        await focusUserWindow();
     } catch (e) {
-        log.warn(`[WAKEUP] Falha ao acordar janela ${windowId}: ${e.message}`);
+        log.warn(`[WAKEUP] Falha ao verificar janela ${windowId}: ${e.message}`);
     }
 }
 
