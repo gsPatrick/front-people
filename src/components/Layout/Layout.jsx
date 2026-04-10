@@ -45,12 +45,6 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
                 <img src="/logo.png" alt="Logo" className={styles.logoImage} />
               )}
             </div>
-            {!isSidebarCollapsed && (
-              <div className={styles.anaInfo}>
-                <span className={styles.anaName}>Ana Issidoro</span>
-                <span className={styles.anaRole}>CTO Assistant</span>
-              </div>
-            )}
           </div>
 
           <button

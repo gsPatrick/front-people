@@ -297,6 +297,9 @@
 .headerLogo {
   padding: 0;
   margin-bottom: 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .layout.collapsed .headerLogo {
