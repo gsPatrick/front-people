@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.4.1';
+const VERSION = '1.4.2';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -157,6 +157,16 @@ async function broadcastToWidgets(message) {
         log.error("Erro no broadcast para widgets:", error);
     }
 }
+async function wakeUpWindow(windowId, ms = 800) {
+    if (!windowId) return;
+    try {
+        await chrome.windows.update(windowId, { state: 'normal', focused: false });
+        await new Promise(r => setTimeout(r, ms));
+        await chrome.windows.update(windowId, { state: 'minimized', focused: false });
+    } catch (err) {
+        log.error("[WAKEUP] Falha ao acordar janela:", err);
+    }
+}
 
 async function ensureWorkerWindow() {
     if (batchState.workerWindowId) {
@@ -232,6 +242,9 @@ async function runSourcingLoop(searchUrl, targetCount) {
             await new Promise(r => setTimeout(r, 6000));
             
             await chrome.scripting.executeScript({ target: { tabId: searchTabId }, files: ['scripts/linkedin_search_scraper.js'] });
+            
+            // Acorda a janela para garantir que o clique em 'Próxima' seja processado pelo navegador
+            await wakeUpWindow(batchState.workerWindowId, 600);
             
             const response = await chrome.tabs.sendMessage(searchTabId, { action: "scrape_search_results", goToNext: true });
             if (response?.success) {
@@ -315,25 +328,19 @@ async function runBatchLoop() {
                 isNewWindow = true;
             }
 
-            // 2. Navegação e Stealth-Pop
+            // 2. Navegação
             log.info(`[BATCH] Navegando para: ${tabData.url}`);
             await chrome.tabs.update(currentTabId, { url: tabData.url });
             
-            // Aguarda o início do carregamento antes de 'acordar' a janela
-            // Se acordarmos imediatamente (página branca), a renderização do conteúdo real pode ser pausada ao minimizar
-            await new Promise(r => setTimeout(r, 3000));
-            
-            // Força visibilidade rápida para o LinkedIn renderizar os menus do NOVO perfil
-            await chrome.windows.update(profileWindowId, { state: 'normal', focused: false }).catch(() => {});
-            await new Promise(r => setTimeout(r, 600)); 
-            await chrome.windows.update(profileWindowId, { state: 'minimized', focused: false }).catch(() => {});
-            
-            // Aguarda a finalização da renderização no fundo
+            // Aguarda o início do carregamento no fundo (maior tempo para estabilidade SPA)
             await new Promise(r => setTimeout(r, 5000));
-
-            // 3. Extração
+            
+            // 3. Extração e Sync Visibility
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
+
+            // Acorda a janela exatamente antes de clicar no 'Mais' para evitar render throttling
+            await wakeUpWindow(profileWindowId, 1000);
 
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
