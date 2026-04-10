@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.2';
+const VERSION = '1.5.3';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -300,62 +300,70 @@ async function runBatchLoop() {
     let currentTabId = null;
 
     try {
+        // 1. INICIALIZAÇÃO DA JANELA FANTASMA (Antes do Loop)
+        log.info("[BATCH] Iniciando janela fantasma isolada...");
+        const firstProfile = batchState.tabs[batchState.currentIndex];
+        if (!firstProfile) throw new Error("Fila vazia");
+
+        const ghostWindow = await chrome.windows.create({ 
+            url: firstProfile.url, 
+            type: 'popup',
+            state: 'normal',
+            width: 1200,
+            height: 800,
+            focused: false
+        });
+        
+        profileWindowId = ghostWindow.id;
+        const [initialTab] = await chrome.tabs.query({ windowId: profileWindowId });
+        currentTabId = initialTab.id;
+        log.info(`[BATCH] Janela Fantasma ${profileWindowId} pronta com aba ${currentTabId}`);
+
         while (batchState.currentIndex < batchState.tabs.length && batchState.isRunning) {
             const tabData = batchState.tabs[batchState.currentIndex];
-            log.info(`[BATCH] Processando Atômico (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
+            log.info(`[BATCH] Processando (${batchState.currentIndex + 1}/${batchState.tabs.length}): ${tabData.username}`);
 
-            // 1. Garante Janela de Extração
+            // 2. Garante que a janela ainda existe
             try {
-                if (profileWindowId) {
-                    await chrome.windows.get(profileWindowId);
-                } else {
-                    throw new Error("Initializing new window");
-                }
+                await chrome.windows.get(profileWindowId);
             } catch (e) {
-                log.info("[BATCH] Criando nova janela de extração base...");
-                const profileWindow = await chrome.windows.create({ 
-                    url: 'about:blank', 
+                log.warn("[BATCH] Janela fantasma fechada precocemente. Recriando...");
+                const newWindow = await chrome.windows.create({ 
+                    url: tabData.url, 
                     type: 'popup',
                     state: 'normal',
                     width: 1200,
                     height: 800,
                     focused: false
                 });
-                profileWindowId = profileWindow.id;
-                
-                // Pega a aba inicial (about:blank) para ser a primeira currentTabId
+                profileWindowId = newWindow.id;
                 const [tab] = await chrome.tabs.query({ windowId: profileWindowId });
                 currentTabId = tab.id;
-                log.info(`[BATCH] Janela ${profileWindowId} criada com aba base ${currentTabId}`);
             }
 
-            // 2. Rotatividade de Aba (Híbrida)
-            // Se for a primeira vez e a aba for about:blank, apenas navegamos
-            // Se já tiver uma aba de perfil, criamos uma nova para garantir limpeza
+            // 3. Rotatividade de Aba (Híbrida)
+            // Se for o primeiro (index já processado na criação da janela), apenas aguardamos.
+            // Se for do segundo em diante, criamos aba nova.
             const currentTab = await chrome.tabs.get(currentTabId).catch(() => null);
-            if (currentTab && (currentTab.url === 'about:blank' || currentTab.url === 'chrome://newtab/')) {
-                log.info(`[BATCH] Reutilizando aba base para: ${tabData.username}`);
-                await chrome.tabs.update(currentTabId, { url: tabData.url });
+            if (currentTab && currentTab.url.includes(tabData.username)) {
+                log.info(`[BATCH] Aba já posicionada para: ${tabData.username}`);
             } else {
-                log.info(`[BATCH] Rotacionando aba para: ${tabData.username}`);
+                log.info(`[BATCH] Rotacionando para nova aba: ${tabData.username}`);
                 const oldTabId = currentTabId;
+                // SEGURANÇA: Especificamos windowId SEMPRE para evitar cair na janela do usuário
                 const newTab = await chrome.tabs.create({ windowId: profileWindowId, url: tabData.url });
                 currentTabId = newTab.id;
                 if (oldTabId) chrome.tabs.remove(oldTabId).catch(() => {});
             }
-            
-            // Aguarda o início do carregamento no fundo
+
+            // 4. Fluxo de Extração Consciente (Sync)
             await new Promise(r => setTimeout(r, 6000));
-            
-            // 3. Extração e Sync Visibility (Stealth-Pop)
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/pdf_relay.js'] });
             await chrome.scripting.executeScript({ target: { tabId: currentTabId }, files: ['scripts/linkedin_pdf_scraper.js'], world: 'MAIN' });
 
-            // Acorda a janela para garantir renderização do conteúdo novo
             await wakeUpWindow(profileWindowId, 1000);
-
-            activeExtractionTabId = currentTabId; // Marca qual aba deve enviar o PDF
             
+            activeExtractionTabId = currentTabId; 
             await chrome.scripting.executeScript({
                 target: { tabId: currentTabId },
                 func: function () {
