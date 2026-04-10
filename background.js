@@ -11,7 +11,7 @@ import { extractProfileFromPdf, analyzeProfileWithAI } from './services/api.serv
 
 // --- Logger Padrão ---
 const PREFIX = '[BACKGROUND]';
-const VERSION = '1.5.5';
+const VERSION = '1.5.6';
 console.log(`${PREFIX} VERSION: ${VERSION} 🚀`);
 
 self.addEventListener('install', () => {
@@ -491,38 +491,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
-        batchState = { 
-            ...batchState, 
-            isRunning: true, 
-            tabs: message.tabs, 
-            scorecardId: message.scorecardId, 
-            jobId: message.jobId, 
-            currentIndex: 0, 
-            results: [],
-            callerTabId: sender.tab ? sender.tab.id : null,
-            callerWindowId: sender.tab ? sender.tab.windowId : null 
-        };
-        saveBatchState();
-        log.info(`[SAFETY] Sacred Lockdown Ativo. Tab: ${batchState.callerTabId}, Window: ${batchState.callerWindowId}`);
-        runBatchLoop();
+
+        // Recupera a janela do usuário de forma robusta (mesmo se vier do Sidepanel)
+        chrome.windows.getLastFocused({ populate: false }, (focusedWindow) => {
+            batchState = { 
+                ...batchState, 
+                isRunning: true, 
+                tabs: message.tabs, 
+                scorecardId: message.scorecardId, 
+                jobId: message.jobId, 
+                currentIndex: 0, 
+                results: [],
+                callerTabId: sender.tab ? sender.tab.id : null,
+                callerWindowId: focusedWindow ? focusedWindow.id : null 
+            };
+            saveBatchState();
+            log.info(`[SAFETY] Sacred Lockdown Ativo. User Window: ${batchState.callerWindowId}`);
+            runBatchLoop();
+        });
         sendResponse({ success: true });
     } else if (message.action === "START_SOURCING") {
         if (batchState.isRunning || batchState.isSourcing) {
             sendResponse({ success: false, error: "Já em execução." });
             return true;
         }
-        batchState = { 
-            ...batchState, 
-            scorecardId: message.scorecardId, 
-            jobId: message.jobId, 
-            results: [], 
-            currentIndex: 0,
-            callerTabId: sender.tab ? sender.tab.id : null,
-            callerWindowId: sender.tab ? sender.tab.windowId : null
-        };
-        saveBatchState();
-        log.info(`[SAFETY] Sacred Lockdown Ativo. Tab: ${batchState.callerTabId}, Window: ${batchState.callerWindowId}`);
-        runSourcingLoop(message.searchUrl, message.targetCount);
+        chrome.windows.getLastFocused({ populate: false }, (focusedWindow) => {
+            batchState = { 
+                ...batchState, 
+                isSourcing: true,
+                scorecardId: message.scorecardId, 
+                jobId: message.jobId, 
+                results: [], 
+                currentIndex: 0,
+                sourcingTarget: message.targetCount,
+                callerTabId: sender.tab ? sender.tab.id : null,
+                callerWindowId: focusedWindow ? focusedWindow.id : null
+            };
+            saveBatchState();
+            log.info(`[SAFETY] Sacred Lockdown Ativo. User Window: ${batchState.callerWindowId}`);
+            runSourcingLoop(message.searchUrl, message.targetCount);
+        });
         sendResponse({ success: true });
     } else if (message.action === "STOP_BATCH") {
         batchState.isRunning = false;
