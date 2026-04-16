@@ -83,9 +83,6 @@ const SettingsView = ({
         </section>
 
         <section className={styles.settingSection}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>⚙️ Geral</h3>
-          </div>
           <div className={styles.settingItem}>
             <label className={styles.settingLabel}>Persistência de Sessão</label>
             <label className={styles.toggleSwitch}>
@@ -102,9 +99,7 @@ const SettingsView = ({
           </p>
         </section>
 
-        </section>
-
-        {/* Removido o link duplicado aqui, agora está centralizado no Painel Admin na Sidebar */}
+        {/* Removido o link duplicado para Inteligência, agora está na Sidebar para Admins */}
 
       </main>
     </div>
