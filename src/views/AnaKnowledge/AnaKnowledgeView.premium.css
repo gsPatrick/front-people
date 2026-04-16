@@ -1,281 +1,340 @@
-/* src/views/AnaKnowledge/AnaKnowledgeView.premium.css */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* AnaKnowledgeView.premium.css */
+/* RESTAURADO PARA O PADRÃO DO SISTEMA (HIGH-TECH / CIANO) */
 
 :root {
-    --ios-bg: #000000;
-    --ios-card: #1c1c1e;
-    --ios-card-hover: #2c2c2e;
-    --ios-primary: #007aff;
-    --ios-text: #ffffff;
-    --ios-text-secondary: #8e8e93;
-    --ios-border: rgba(255, 255, 255, 0.1);
-    --ios-separator: rgba(255, 255, 255, 0.05);
+    --ios-bg: rgba(15, 23, 42, 0.98);
+    --ios-bg-secondary: rgba(30, 41, 59, 0.5);
+    --ios-primary: #22d3ee; /* Ciano original do sistema */
+    --ios-text: #f1f5f9;
+    --ios-text-secondary: #94a3b8;
+    --ios-card-bg: rgba(255, 255, 255, 0.04);
+    --ios-border: rgba(255, 255, 255, 0.08);
+    --ana-accent: #22d3ee;
+    --ana-gradient: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
 }
 
 .highTechContainer {
-    padding: 20px;
-    background: var(--ios-bg);
-    min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 24px;
+    height: 100%;
     color: var(--ios-text);
-    position: relative;
-    overflow-x: hidden;
+    background: var(--ana-gradient);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
-/* Minimalist Header */
+/* HEADER STYLE */
 .dashboardHeader {
-    margin-bottom: 24px;
-    padding: 10px 0;
+    margin-bottom: 32px;
 }
 
 .glowTitle {
-    font-size: 1.7rem;
-    font-weight: 700;
+    font-size: 1.8rem;
+    font-weight: 800;
     margin: 0;
-    letter-spacing: -0.02em;
-    color: var(--ios-text);
+    color: #fff;
+    text-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
 }
 
 .dashboardSubtitle {
+    color: var(--ios-primary);
+    margin: 4px 0 0 0;
     font-size: 0.9rem;
-    color: var(--ios-text-secondary);
-    margin-top: 4px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
-/* iOS Segmented Control (Tabs) */
+/* TABS (Segmented Control Style - Preserved but colored) */
 .premiumTabs {
     display: flex;
-    background: #1c1c1e;
-    padding: 3px;
-    border-radius: 10px;
-    margin: 20px 0;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    margin-top: 20px;
 }
 
 .premiumTab {
     flex: 1;
-    padding: 8px 0;
-    border-radius: 8px;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: var(--ios-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
-    font-weight: 500;
-    font-size: 0.85rem;
-    transition: all 0.2s ease-in-out;
+    border-radius: 10px;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: var(--ios-text-secondary);
-    border: none;
 }
 
 .premiumTab.active {
-    background: #636366;
-    color: #ffffff;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    background: rgba(34, 211, 238, 0.15);
+    color: var(--ios-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Grid & Cards (Mobile-first vertical list) */
+/* CARDS */
 .anaGrid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    padding-bottom: 80px;
 }
 
 .anaCard {
-    background: var(--ios-card);
+    background: var(--ios-card-bg);
+    border: 1px solid var(--ios-border);
     border-radius: 14px;
-    padding: 16px;
-    transition: background 0.2s;
+    padding: 20px;
     cursor: pointer;
-    border: none;
-    display: flex;
-    flex-direction: column;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
 }
 
-.anaCard:active {
-    background: var(--ios-card-hover);
+.anaCard:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--ios-primary);
+    transform: translateX(4px);
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+}
+
+.anaCard::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 2px;
+    height: 100%;
+    background: var(--ios-primary);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.anaCard:hover::after {
+    opacity: 1;
 }
 
 .instructionTitle {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--ios-text);
-}
-
-.instructionBadge {
-    font-size: 0.7rem;
-    color: var(--ios-primary);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
 }
 
 .masterInstruction {
-    margin-top: 10px;
     font-size: 0.85rem;
     color: var(--ios-text-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
+    margin-top: 10px;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    background: transparent;
-    padding: 0;
-    border: none;
 }
 
-/* Specialities Footer */
+.instructionBadge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--ios-primary);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* MODEL CARD SPECIFIC */
 .cardFooter {
+    margin-top: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
     padding-top: 12px;
-    border-top: 1px solid var(--ios-separator);
 }
 
 .manageLink {
     color: var(--ios-primary);
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* Premium Add Button (iOS Primary Style) */
-.premiumAddBtn {
-    margin: 30px auto;
-    width: 100%;
-    max-width: 300px;
+    font-size: 0.8rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px;
+    gap: 6px;
+}
+
+/* BUTTONS */
+.premiumAddBtn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
     background: var(--ios-primary);
-    color: white;
+    color: #0f172a;
     border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.95rem;
+    width: auto;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(34, 211, 238, 0.4);
     cursor: pointer;
-    transition: transform 0.1s;
+    z-index: 10;
+    transition: all 0.3s;
 }
 
-.premiumAddBtn:active {
-    transform: scale(0.98);
+.premiumAddBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(34, 211, 238, 0.5);
 }
 
-/* Immersive Wizard Simplificado */
+/* MODALS (Preserving logic, adjusting colors) */
+.iosOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+}
+
+.iosModal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #1e293b;
+    border-top: 1px solid var(--ios-primary);
+    border-radius: 20px 20px 0 0;
+    padding: 24px;
+    z-index: 101;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.iosInput, .iosTextarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+    color: white;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+}
+
+.iosInput:focus, .iosTextarea:focus {
+    border-color: var(--ios-primary);
+    outline: none;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.iosBtn {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    flex: 1;
+}
+
+.iosBtnPrimary {
+    background: var(--ios-primary);
+    color: #0f172a;
+}
+
+.iosBtnSecondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.iosActionButtons {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+/* WIZARD (Empty State) */
 .immersiveWizard {
-    padding: 60px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
     text-align: center;
 }
 
 .wizardIconContainer {
-    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    background: rgba(34, 211, 238, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
     color: var(--ios-primary);
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.2);
 }
 
 .wizardTitleLarge {
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 800;
     margin-bottom: 12px;
 }
 
 .wizardGridLarge {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-top: 40px;
+    gap: 12px;
+    width: 100%;
+    margin-top: 32px;
 }
 
 .wizardChoiceCard {
-    background: var(--ios-card);
-    border-radius: 16px;
-    padding: 24px;
     display: flex;
     align-items: center;
     gap: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: 16px;
+    cursor: pointer;
     text-align: left;
-    transition: background 0.2s;
+    transition: all 0.2s;
+}
+
+.wizardChoiceCard:hover {
+    background: rgba(34, 211, 238, 0.08);
+    border-color: var(--ios-primary);
+    transform: scale(1.02);
 }
 
 .wizardChoiceIcon {
-    font-size: 2rem;
+    font-size: 24px;
     color: var(--ios-primary);
 }
 
 .wizardCardTitle {
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
 }
 
 .wizardCardDesc {
     font-size: 0.8rem;
     color: var(--ios-text-secondary);
-    margin-top: 2px;
+    margin: 4px 0 0 0;
 }
-
-/* Modal and Forms (iOS Style) */
-.iosModal {
-    background: #1c1c1e;
-    border-radius: 20px 20px 0 0;
-    padding: 24px;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1001;
-    animation: slideInUp 0.3s ease-out;
-}
-
-@keyframes slideInUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
-}
-
-.iosOverlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 1000;
-}
-
-.iosFormGroup {
-    margin-bottom: 20px;
-}
-
-.iosInput, .iosTextarea {
-    width: 100%;
-    background: #2c2c2e;
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 10px;
-    padding: 12px;
-    color: white;
-    font-size: 1rem;
-    font-family: inherit;
-}
-
-.iosTextarea {
-    height: 120px;
-}
-
-.iosActionButtons {
-    display: flex;
-    gap: 12px;
-    margin-top: 30px;
-}
-
-.iosBtn {
-    flex: 1;
-    padding: 14px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    border: none;
-    cursor: pointer;
-}
-
-.iosBtnPrimary { background: var(--ios-primary); color: white; }
-.iosBtnSecondary { background: #3a3a3c; color: white; }

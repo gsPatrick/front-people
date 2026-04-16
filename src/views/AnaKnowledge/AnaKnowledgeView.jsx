@@ -3,7 +3,11 @@ import React, { useState, useEffect } from 'react';
 import styles from './AnaKnowledgeView.module.css';
 import { useAnaKnowledge } from '../../hooks/useAnaKnowledge';
 import Header from '../../components/Header/Header';
-import { BsPlus, BsBook, BsShieldLock, BsTrash, BsPencil, BsGearFill, BsLightbulbFill, BsMagic, BsPencilSquare, BsFilePdfFill, BsLinkedin } from 'react-icons/bs';
+import { 
+    BsPlus, BsBook, BsShieldLock, BsTrash, BsPencil, BsGearFill, 
+    BsLightbulbFill, BsMagic, BsPencilSquare, BsFilePdfFill, 
+    BsChevronRight, BsStars, BsCpu 
+} from 'react-icons/bs';
 import KnowledgeModelDetail from './KnowledgeModelDetail';
 import './AnaKnowledgeView.premium.css'; // Novo CSS Premium
 
@@ -105,10 +109,10 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                             )}
 
                             <div className="wizardChoiceCard" onClick={() => alert('Integração em breve')}>
-                                <BsLinkedin className="wizardChoiceIcon" style={{ color: '#0077b5' }} />
+                                <BsCpu className="wizardChoiceIcon" style={{ color: 'var(--ios-primary)' }} />
                                 <div>
-                                    <h3 className="wizardCardTitle">LinkedIn</h3>
-                                    <p className="wizardCardDesc">Sincronização de perfis</p>
+                                    <h3 className="wizardCardTitle">API / Web</h3>
+                                    <p className="wizardCardDesc">Conexão externa</p>
                                 </div>
                             </div>
                         </div>
@@ -141,9 +145,23 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                 models.map(model => (
                                     <div key={model.id} className="anaCard" onClick={() => setSelectedModel(model)}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div>
-                                                <h3 className="instructionTitle" style={{ margin: 0 }}>{model.name}</h3>
-                                                <p style={{ fontSize: '0.75rem', color: 'var(--ios-text-secondary)', margin: '4px 0 0 0' }}>{model.id.substring(0,8)}</p>
+                                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                                <div style={{ 
+                                                    width: '40px', 
+                                                    height: '40px', 
+                                                    borderRadius: '10px', 
+                                                    background: 'rgba(34, 211, 238, 0.1)', 
+                                                    display: 'flex', 
+                                                    alignItems: 'center', 
+                                                    justifyContent: 'center',
+                                                    color: 'var(--ios-primary)'
+                                                }}>
+                                                    <BsStars size={20} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="instructionTitle" style={{ margin: 0 }}>{model.name}</h3>
+                                                    <p style={{ fontSize: '0.7rem', color: 'var(--ios-text-secondary)', margin: '2px 0 0 0' }}>Core ID: {model.id.substring(0,8)}</p>
+                                                </div>
                                             </div>
                                             <button 
                                                 className={styles.deleteBtn} 
@@ -152,10 +170,14 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                                 <BsTrash />
                                             </button>
                                         </div>
+                                        
                                         <div className="cardFooter">
-                                            <span className="manageLink">Gerenciar Core</span>
-                                            <span style={{ fontSize: '0.7rem', color: model.isActive ? '#34c759' : '#ff3b30', fontWeight: 600 }}>
-                                                {model.isActive ? 'ONLINE' : 'OFFLINE'}
+                                            <div className="manageLink">
+                                                <span>Abrir Especialidade</span>
+                                                <BsChevronRight size={12} />
+                                            </div>
+                                            <span style={{ fontSize: '0.7rem', color: model.isActive ? '#34c759' : '#ff3b30', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                                ● {model.isActive ? 'ATIVO' : 'OFFLINE'}
                                             </span>
                                         </div>
                                     </div>
