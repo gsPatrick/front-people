@@ -13,7 +13,7 @@ export const useAnaKnowledge = () => {
         setIsLoading(true);
         try {
             const data = await apiService.getAnaRules();
-            setRules(data.rules || []);
+            setRules(data?.rules || []);
             return data;
         } catch (err) {
             console.error('Erro ao carregar regras:', err);
@@ -54,7 +54,7 @@ export const useAnaKnowledge = () => {
         setIsLoading(true);
         try {
             const data = await apiService.getAnaModels();
-            setModels(data.models || []);
+            setModels(data?.models || []);
             return data;
         } catch (err) {
             console.error('Erro ao carregar modelos:', err);
@@ -95,7 +95,7 @@ export const useAnaKnowledge = () => {
         setIsLoading(true);
         try {
             const data = await apiService.getAnaEntries(modelId);
-            setEntries(data.entries || []);
+            setEntries(data?.entries || []);
             return data;
         } catch (err) {
             console.error('Erro ao carregar entries:', err);
@@ -143,24 +143,6 @@ export const useAnaKnowledge = () => {
             setIsLoading(false);
         }
     };
-
-    return {
-        rules,
-        models,
-        entries,
-        isLoading,
-        loadRules,
-        saveRule,
-        deleteRule,
-        loadModels,
-        saveModel,
-        deleteModel,
-        loadEntries,
-        saveEntry,
-        deleteEntry,
-        extractPdfToBlocks
-    };
-};
 
     return {
         rules,
