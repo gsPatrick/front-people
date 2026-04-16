@@ -40,6 +40,7 @@ import CandidateListView from '../views/Manage/CandidateListView'; // IMPORTADO
 import EditJobView from '../views/Manage/EditJobView'; // NOVO
 import ExtractedTextView from '../views/Shared/ExtractedTextView';
 import ChatView from '../views/Chat/ChatView';
+import AnaKnowledgeView from '../views/AnaKnowledge/AnaKnowledgeView'; // Novo
 import ProfileStatusNotification from '../components/Layout/ProfileStatusNotification';
 import { ToastProvider, useToast } from '../contexts/ToastContext';
 
@@ -648,6 +649,9 @@ const Popup = () => {
 
         // CHAT ANA ISSIDORO
         case 'chat_ana': contentToRender = <ChatView onBack={() => navigateTo('dashboard_jobs')} />; break;
+
+        // INTELIGÊNCIA DA ANA (ADMIN)
+        case 'ana_knowledge': contentToRender = <AnaKnowledgeView onBack={goBack} />; break;
 
         default: contentToRender = <LoadingView />;
     }

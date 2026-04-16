@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import styles from './SettingsView.module.css';
 import Header from '../../components/Header/Header';
 import { useChat } from '../../hooks/useChat';
-import { BsCheck, BsPencil } from 'react-icons/bs';
+import { BsCheck, BsPencil, BsShieldLock } from 'react-icons/bs';
+import { loadAuthData } from '../../services/session.service';
 
 const SettingsView = ({
   settings,
@@ -14,6 +15,8 @@ const SettingsView = ({
   const [localSuggestions, setLocalSuggestions] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const authData = loadAuthData();
+  const isAdmin = authData?.user?.role === 'admin';
 
   useEffect(() => {
     setLocalSuggestions(suggestions || []);
@@ -110,6 +113,20 @@ const SettingsView = ({
             Ensine termos específicos para a IA melhorar a precisão dos Matches.
           </p>
         </section>
+
+        {isAdmin && (
+          <section className={styles.settingSection}>
+            <div className={styles.settingItem} onClick={() => onSettingChange('navigate', 'ana_knowledge')} style={{ cursor: 'pointer' }}>
+              <label className={styles.settingLabel} style={{ cursor: 'pointer', color: 'var(--primary)' }}>
+                📜 Inteligência da Ana
+              </label>
+              <span className={styles.arrow}>→</span>
+            </div>
+            <p className={styles.settingDescription}>
+              Configure as Regras de Ouro e Modelos de Conhecimento (Admin).
+            </p>
+          </section>
+        )}
 
       </main>
     </div>

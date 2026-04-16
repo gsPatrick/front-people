@@ -32,7 +32,10 @@ const ChatView = ({ onBack }) => {
         sendMessage,
         loadConversation,
         newConversation,
-        deleteConversation
+        deleteConversation,
+        models,
+        selectedModelId,
+        setSelectedModelId
     } = useChat();
 
     const [inputValue, setInputValue] = useState('');
@@ -105,9 +108,19 @@ const ChatView = ({ onBack }) => {
                 </button>
                 <div className={styles.headerInfo}>
                     <p className={styles.headerTitle}>Ana Issidoro</p>
-                    <p className={styles.headerSubtitle}>
-                        {isStreaming ? '✨ Pensando...' : '🟢 Online — CTO Assistant'}
-                    </p>
+                    <div className={styles.modelSelectorWrapper}>
+                        <BsBook className={styles.modelIcon} />
+                        <select 
+                            className={styles.modelSelector}
+                            value={selectedModelId || ''}
+                            onChange={(e) => setSelectedModelId(e.target.value || null)}
+                        >
+                            <option value="">🎯 Modelo Padrão</option>
+                            {models.map(m => (
+                                <option key={m.id} value={m.id}>🧠 {m.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
                 <div className={styles.headerActions}>
                     <button

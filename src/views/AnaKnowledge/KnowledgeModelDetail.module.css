@@ -1,0 +1,150 @@
+/* src/views/AnaKnowledge/KnowledgeModelDetail.module.css */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.headerInfo {
+    flex: 1;
+}
+
+.title {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+}
+
+.pdfBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #e6f7ff;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.entriesList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.entryCard {
+    display: flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.entryCard:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.entryMain {
+    flex: 1;
+    padding: 20px;
+    cursor: pointer;
+}
+
+.entryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.entryTitle {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.entryKeywords {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.keywordBadge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 20px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.entryContent {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.deleteBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    background: rgba(255, 77, 79, 0.05);
+    border: none;
+    border-left: 1px solid var(--border-color);
+    color: #ff4d4f;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+    background: #ff4d4f;
+    color: white;
+}
+
+.empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    border: 2px dashed var(--border-color);
+}

@@ -11,6 +11,8 @@ export const useChat = () => {
     const [conversations, setConversations] = useState([]);
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [models, setModels] = useState([]); // Novo
+    const [selectedModelId, setSelectedModelId] = useState(null); // Novo
     const [suggestions, setSuggestions] = useState([
         "📊 Quantas vagas temos abertas?",
         "👥 Liste os últimos candidatos",
@@ -86,7 +88,8 @@ export const useChat = () => {
                 },
                 body: JSON.stringify({
                     conversationId: activeConversation?.id || null,
-                    message: message
+                    message: message,
+                    modelId: selectedModelId // Envia o modelo selecionado
                 })
             });
 
@@ -233,6 +236,23 @@ export const useChat = () => {
         }
     }, []);
 
+    // Carregar modelos disponíveis
+    const loadAvailableModels = useCallback(async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/ana/models`, {
+                headers: { 'Authorization': `Bearer ${loadAuthData()?.token}` }
+            });
+            const data = await res.json();
+            if (data.success) setModels(data.models);
+        } catch (err) {
+            console.error('Erro ao buscar modelos:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAvailableModels();
+    }, [loadAvailableModels]);
+
     // Carregar conversas e settings ao montar
     useEffect(() => {
         loadConversations();
@@ -253,6 +273,9 @@ export const useChat = () => {
         newConversation,
         deleteConversation,
         loadSettings,
-        updateSuggestions
+        updateSuggestions,
+        models, // Exportar
+        selectedModelId, // Exportar
+        setSelectedModelId // Exportar
     };
 };
