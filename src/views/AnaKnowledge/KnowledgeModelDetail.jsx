@@ -1,10 +1,10 @@
 // src/views/AnaKnowledge/KnowledgeModelDetail.jsx
 import React, { useState, useEffect } from 'react';
-import styles from './AnaKnowledgeView.module.css'; // Reutilizando alguns estilos
-import detailStyles from './KnowledgeModelDetail.module.css';
+import styles from './AnaKnowledgeView.module.css';
 import { useAnaKnowledge } from '../../hooks/useAnaKnowledge';
-import { BsArrowLeft, BsPlus, BsFilePdf, BsTrash, BsTag, BsChevronRight, BsFilePdfFill, BsLinkedin, BsPencilSquare, BsMagic } from 'react-icons/bs';
+import { BsArrowLeft, BsPlus, BsFilePdf, BsTrash, BsFilePdfFill, BsMagic, BsPencilSquare } from 'react-icons/bs';
 import PdfImportModal from './PdfImportModal';
+import './AnaKnowledgeView.premium.css';
 
 const KnowledgeModelDetail = ({ model, onBack }) => {
     const { 
@@ -35,7 +35,7 @@ const KnowledgeModelDetail = ({ model, onBack }) => {
             setShowModal(false);
             setEditingEntry(null);
         } else {
-            alert('Erro ao salvar entry: ' + res.error);
+            alert('Erro ao salvar: ' + res.error);
         }
     };
 
@@ -159,19 +159,6 @@ const KnowledgeModelDetail = ({ model, onBack }) => {
                 </>
             )}
 
-            {showPdfModal && (
-                <PdfImportModal 
-                    modelId={model.id} 
-                    onClose={() => setShowPdfModal(false)} 
-                    onSuccess={() => { setShowPdfModal(false); loadEntries(model.id); }} 
-                />
-            )}
-        </div>
-    );
-};
-            )}
-
-            {/* MODAL DE IMPORTAÇÃO PDF */}
             {showPdfModal && (
                 <PdfImportModal 
                     modelId={model.id} 
