@@ -135,10 +135,36 @@ export const useAnaKnowledge = () => {
     const extractPdfToBlocks = async (file) => {
         setIsLoading(true);
         try {
-            const data = await apiService.extractAnaPdf(file);
+            console.log('[ANA] Iniciando extração local de PDF...');
+            
+            // Carregar o PDF localmente usando pdfjs-dist
+            const pdfjs = await import('pdfjs-dist');
+            const pdfWorker = await import('pdfjs-dist/build/pdf.worker.mjs?url');
+            pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker.default;
+            
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+            const pdf = await loadingTask.promise;
+            
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n\n';
+                
+                // Limitar para evitar payloads gigantes no início
+                if (fullText.length > 30000) break;
+            }
+            
+            console.log(`[ANA] Texto extraído (${fullText.length} caps). Enviando para IA...`);
+            
+            // Enviar texto extraído para o backend
+            const data = await apiService.extractAnaPdf(fullText);
             return data;
         } catch (err) {
-            return { error: err.message };
+            console.error('[ANA] Erro na extração local:', err);
+            return { error: 'Falha ao ler o PDF localmente: ' + err.message };
         } finally {
             setIsLoading(false);
         }

@@ -703,13 +703,9 @@ export const deleteAnaEntry = async (id) => {
   }
 };
 
-export const extractAnaPdf = async (file) => {
+export const extractAnaPdf = async (text) => {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await apiClient.post('/ana/extract-pdf', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await apiClient.post('/ana/extract-pdf', { text });
     return response.data;
   } catch (error) {
     handleError(error);
