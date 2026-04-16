@@ -34,10 +34,13 @@ const TalentProfileView = ({
     }
   };
 
-  // Filtra apenas as candidaturas que possuem resultado de avaliação (histórico)
-  const evaluationHistory = (talent.appliedJobs || [])
-    .filter(app => app.evaluationResult)
-    .sort((a, b) => new Date(b.evaluationResult.evaluatedAt) - new Date(a.evaluationResult.evaluatedAt));
+  // Histórico completo de eventos (Scorecards + Mudanças de Status)
+  const fullHistory = (talent.appliedJobs || [])
+    .map(app => ({
+      ...app,
+      eventDate: app.evaluationResult?.evaluatedAt || app.updatedAt || app.createdAt
+    }))
+    .sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
 
   return (
     <div className={styles.container}>
@@ -59,7 +62,7 @@ const TalentProfileView = ({
             className={`${styles.tabButton} ${activeTab === 'historico' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('historico')}
           >
-            <FaHistory /> Histórico ({evaluationHistory.length})
+            <FaHistory /> Histórico ({fullHistory.length})
           </button>
           <button 
             className={`${styles.tabButton} ${activeTab === 'vagas' ? styles.activeTab : ''}`}
@@ -117,17 +120,38 @@ const TalentProfileView = ({
 
         {activeTab === 'historico' && (
           <div className={styles.tabContent}>
-            <h3 className={styles.sectionTitle}>Avaliações Passadas</h3>
-            {evaluationHistory.length > 0 ? (
+            <h3 className={styles.sectionTitle}>Histórico de Candidaturas</h3>
+            {fullHistory.length > 0 ? (
               <div className={styles.historyList}>
-                {evaluationHistory.map((app, index) => (
-                  <HistoricalScorecard key={index} evaluationResult={app.evaluationResult} />
+                {fullHistory.map((app, index) => (
+                  app.evaluationResult ? (
+                    <HistoricalScorecard key={index} evaluationResult={app.evaluationResult} />
+                  ) : (
+                    <div key={index} className={styles.simpleHistoryCard}>
+                      <div className={styles.historyIcon}>
+                        <FaHistory />
+                      </div>
+                      <div className={styles.historyBody}>
+                        <div className={styles.historyRow}>
+                           <span className={styles.historyJob}>{app.jobName}</span>
+                           <span className={styles.historyDate}>
+                             {new Date(app.eventDate).toLocaleDateString('pt-BR')}
+                           </span>
+                        </div>
+                        <div className={styles.historyStatus}>
+                          Status alterado para: <span className={`${styles.statusBadge} ${styles['status_' + (app.status || 'applied').toLowerCase().replace(' ', '_')]}`}>
+                            {app.status || 'Inscrito'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 ))}
               </div>
             ) : (
               <div className={styles.emptyState}>
                 <FaHistory size={48} />
-                <p>Este talento ainda não possui avaliações detalhadas registradas.</p>
+                <p>Este talento ainda não possui histórico de candidaturas ou avaliações.</p>
               </div>
             )}
           </div>

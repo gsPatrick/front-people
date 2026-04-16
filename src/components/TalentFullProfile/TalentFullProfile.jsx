@@ -18,14 +18,15 @@ const TalentFullProfile = ({ profileData }) => {
     if (!profileData) return <div className={styles.emptyState}>Nenhum dado completo de perfil disponível.</div>;
 
     // Normalização de dados (suporta scraping novo e legado e estruturas aninhadas)
-    const root = profileData.data || profileData; // Às vezes vem embrulhado em 'data'
-    const perfil = root.perfil || root; // Às vezes os dados estão em 'perfil'
+    const root = profileData.data || profileData; 
+    const perfil = root.perfil || root; 
 
-    const experiences = root.experiencias || root.structureExperience || root.experience || perfil.experiencias || [];
-    const education = root.formacao || root.structureEducation || root.education || perfil.formacao || [];
-    const skills = root.skills || root.competencias || perfil.skills || [];
-    const certifications = root.certificacoes || root.certifications || perfil.certificacoes || [];
-    const summary = root.resumo || root.about || perfil.resumo || perfil.about;
+    // Mapeamento ultra-robusto para diferentes formatos de extração
+    const experiences = root.experiencias || root.experience || root.positions || root.history || root.workExperience || perfil.experiencias || perfil.experience || [];
+    const education = root.formacao || root.education || root.formacoes || root.academic || perfil.formacao || perfil.education || [];
+    const skills = root.skills || root.competencias || root.skills_and_endorsements || perfil.skills || perfil.competencias || [];
+    const certifications = root.certificacoes || root.certifications || root.certificates || perfil.certificacoes || perfil.certifications || [];
+    const summary = root.resumo || root.about || root.summary || perfil.resumo || perfil.about || perfil.summary;
 
     return (
         <div className={styles.container}>
@@ -44,8 +45,8 @@ const TalentFullProfile = ({ profileData }) => {
                         {experiences.map((exp, idx) => (
                             <div key={idx} className={styles.timelineItem}>
                                 <div className={styles.timelineContent}>
-                                    <h4 className={styles.roleTitle}>{exp.role || exp.title}</h4>
-                                    <span className={styles.companyName}>{exp.company || exp.companyName}</span>
+                                    <h4 className={styles.roleTitle}>{exp.role || exp.title || exp.cargo || exp.position}</h4>
+                                    <span className={styles.companyName}>{exp.company || exp.companyName || exp.empresa || exp.organization}</span>
                                     <div className={styles.metaRow}>
                                         <span className={styles.duration}>
                                             {exp.start || exp.inicio} - {exp.end || exp.fim || 'Atual'}
@@ -66,9 +67,9 @@ const TalentFullProfile = ({ profileData }) => {
                     <div className={styles.list}>
                         {education.map((edu, idx) => (
                             <div key={idx} className={styles.listItem}>
-                                <h4 className={styles.schoolName}>{edu.school || edu.instituicao}</h4>
+                                <h4 className={styles.schoolName}>{edu.school || edu.instituicao || edu.university || edu.college}</h4>
                                 <p className={styles.degreeInfo}>
-                                    {edu.degree || edu.curso} {edu.field && `• ${edu.field}`}
+                                    {edu.degree || edu.curso || edu.area} {edu.field && `• ${edu.field}`}
                                 </p>
                                 <span className={styles.duration}>
                                     {edu.start || edu.inicio} - {edu.end || edu.fim}
