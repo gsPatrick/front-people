@@ -77,14 +77,18 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
             </div>
 
             <section className={styles.content}>
-                {/* WIZARD IMERSIVO QUANDO VAZIO */}
-                {((activeTab === 'rules' && rules.length === 0) || (activeTab === 'models' && models.length === 0)) && !isLoading && (
+                {isLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
+                        <div className={styles.loader}>Carregando Núcleo de Inteligência...</div>
+                    </div>
+                ) : ((activeTab === 'rules' && rules.length === 0) || (activeTab === 'models' && models.length === 0)) ? (
+                    /* WIZARD IMERSIVO QUANDO VAZIO */
                     <div className="immersiveWizard">
                         <div className="wizardIconContainer">
                             {activeTab === 'rules' ? <BsShieldLock /> : <BsMagic />}
                         </div>
                         <h2 className="wizardTitleLarge">O Núcleo de Conhecimento está vazio</h2>
-                        <p style={{ fontSize: '1.2rem', color: '#8892b0', maxWidth: '600px', textAlign: 'center' }}>
+                        <p style={{ fontSize: '1.2rem', color: '#8892b0', maxWidth: '600px', textAlign: 'center', marginBottom: '40px' }}>
                             {activeTab === 'rules' 
                                 ? 'A Ana precisa de diretrizes de ouro para saber como agir. Defina as regras de comportamento agora.' 
                                 : 'Crie modelos de especialidade para que a Ana domine assuntos técnicos específicos via RAG.'}
@@ -105,69 +109,74 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                 </div>
                             )}
 
-                            <div className="wizardChoiceCard" onClick={() => { alert('Funcionalidade em desenvolvimento'); }}>
+                            <div className="wizardChoiceCard" onClick={() => { alert('Esta função requer integração com API de Scraping.'); }}>
                                 <div className="wizardChoiceIcon" style={{ color: '#0077b5' }}><BsLinkedin /></div>
                                 <h3 className="wizardCardTitle">Sincronizar LinkedIn</h3>
                                 <p className="wizardCardDesc">Puxe dados de perfis públicos para treinar a inteligência.</p>
                             </div>
                         </div>
                     </div>
-                )}
-
-                <div className={activeTab === 'rules' ? styles.rulesGrid : 'anaGrid'}>
-                    {activeTab === 'rules' ? (
-                        rules.map(rule => (
-                            <div key={rule.id} className="anaCard" onClick={() => handleOpenModal(rule)}>
-                                <div className="instructionHeader">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ padding: '8px', background: 'rgba(0, 210, 255, 0.1)', borderRadius: '8px' }}>
-                                            <BsLightbulbFill style={{ color: 'var(--ana-primary)' }} />
+                ) : (
+                    /* LISTAGEM NORMAL */
+                    <>
+                        <div className="anaGrid">
+                            {activeTab === 'rules' ? (
+                                rules.map(rule => (
+                                    <div key={rule.id} className="anaCard" onClick={() => handleOpenModal(rule)}>
+                                        <div className="instructionHeader" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <div style={{ padding: '8px', background: 'rgba(0, 210, 255, 0.1)', borderRadius: '8px' }}>
+                                                    <BsLightbulbFill style={{ color: 'var(--ana-primary)' }} />
+                                                </div>
+                                                <h3 className="instructionTitle" style={{ margin: 0, fontSize: '1.1rem' }}>{rule.title}</h3>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <span className="instructionBadge" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>PRIORITY_{rule.priority}</span>
+                                                <button 
+                                                    className={styles.deleteBtn} 
+                                                    onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir regra sistêmica?')) deleteRule(rule.id); }}
+                                                >
+                                                    <BsTrash />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <h3 className="instructionTitle">{rule.title}</h3>
+                                        <div className="masterInstruction">
+                                            {rule.content}
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span className="instructionBadge">PRIORITY_LVL_{rule.priority}</span>
-                                        <button 
-                                            className={styles.deleteBtn} 
-                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir regra sistêmica?')) deleteRule(rule.id); }}
-                                        >
-                                            <BsTrash />
-                                        </button>
+                                ))
+                            ) : (
+                                models.map(model => (
+                                    <div key={model.id} className="anaCard" onClick={() => setSelectedModel(model)}>
+                                        <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <h3 className={styles.cardTitle}>{model.name}</h3>
+                                                <p className={styles.cardDate}>ENTRY_HEX: {model.id.substring(0,8).toUpperCase()}</p>
+                                            </div>
+                                            <button 
+                                                className={styles.deleteBtn} 
+                                                onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir base de conhecimento?')) deleteModel(model.id); }}
+                                            >
+                                                <BsTrash />
+                                            </button>
+                                        </div>
+                                        <p className={styles.cardDesc} style={{ margin: '15px 0' }}>{model.description || 'Nenhum contexto descritivo disponível.'}</p>
+                                        <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+                                            <span className="manageLink" style={{ color: 'var(--ana-primary)', fontWeight: 700 }}>GERENCIAR_CORE →</span>
+                                            <span className={styles.badge} style={{ background: model.isActive ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)', color: model.isActive ? '#52c41a' : '#ff4d4f', padding: '4px 12px', borderRadius: '10px', fontSize: '0.8rem' }}>
+                                                {model.isActive ? 'ONLINE' : 'OFFLINE'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="masterInstruction">
-                                    {rule.content}
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        models.map(model => (
-                            <div key={model.id} className="anaCard" onClick={() => setSelectedModel(model)}>
-                                <div className={styles.cardHeader}>
-                                    <div>
-                                        <h3 className={styles.cardTitle}>{model.name}</h3>
-                                        <p className={styles.cardDate}>DATABASE_ID: {model.id.substring(0,8)}</p>
-                                    </div>
-                                    <div className={styles.cardActions}>
-                                        <button 
-                                            className={styles.deleteBtn} 
-                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir base de conhecimento?')) deleteModel(model.id); }}
-                                        >
-                                            <BsTrash />
-                                        </button>
-                                    </div>
-                                </div>
-                                <p className={styles.cardDesc}>{model.description || 'Nenhum contexto descritivo disponível.'}</p>
-                                <div className={styles.cardFooter}>
-                                    <span className="manageLink">EXECUTAR_HUB →</span>
-                                    <span className={styles.badge} style={{ background: model.isActive ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)', color: model.isActive ? '#52c41a' : '#ff4d4f' }}>
-                                        {model.isActive ? 'ONLINE' : 'OFFLINE'}
-                                    </span>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
+                                ))
+                            )}
+                        </div>
+                        <button className="premiumAddBtn" style={{ marginTop: '40px' }} onClick={() => handleOpenModal()}>
+                            <BsPlus size={24} /> {activeTab === 'rules' ? 'Nova Regra Sistêmica' : 'Criar Nova Especialidade'}
+                        </button>
+                    </>
+                )}
+            </section>
             </section>
 
             {/* MODAL PARA REGRAS / MODELOS */}
