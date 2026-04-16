@@ -461,7 +461,9 @@ async function runBatchLoop(ghostTabId) {
                     categories,
                     strengths: strengths.slice(0, 3),
                     weaknesses: weaknesses.slice(0, 3),
-                    success: true
+                    success: true,
+                    profileData: extractionResult.data,
+                    url: tabData.url
                 });
             } else {
                 batchState.results.push({ username: tabData.username, error: extractionResult.error, success: false });

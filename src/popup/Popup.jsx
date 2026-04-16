@@ -537,36 +537,33 @@ const Popup = () => {
                 }
             }
         }} onRejectProfile={(result) => {
-            console.log("[DEBUG] Rejecting and auto-saving to bank:", result.profileData.nome);
+            console.log("[DEBUG] Rejecting and auto-saving to bank:", result.profileData?.nome || result.username);
 
-            const toastId = addToast ? addToast(`Salvando rejeição: ${result.profileData.nome || 'candidato'}...`, 'loading', 0) : null;
+            const toastId = addToast ? addToast(`Salvando rejeição: ${result.profileData?.nome || result.username}...`, 'loading', 0) : null;
 
-            if (view.state?.job) {
-                workflow.handleCreateTalentInBackground(
-                    {
-                        ...result.profileData,
-                        status: 'REJECTED',
-                        linkedinUrl: result.url,
-                        linkedinUsername: result.username
-                    },
-                    view.state.job,
-                    null // No match data needed for rejection, or pass it if we want the score stored
-                ).then(() => {
-                    if (addToast) {
-                        if (toastId) removeToast(toastId);
-                        addToast(`${result.profileData.nome} salvo no Banco (Rejeitado)`, 'info');
-                    }
-                }).catch(err => {
-                    console.error("Error saving rejected profile:", err);
-                    if (addToast) {
-                        if (toastId) removeToast(toastId);
-                        addToast(`Erro ao salvar rejeitado: ${err.message}`, 'error');
-                    }
-                });
-            } else {
-                console.warn("Cannot save rejected profile: No job context.");
-                if (addToast && toastId) removeToast(toastId);
-            }
+            // Para Rejeição, o jobId pode ser nulo (Backend agora aceita)
+            // No fluxo de match, se não tiver view.state.job, salvamos no banco geral
+            workflow.handleCreateTalentInBackground(
+                {
+                    ...(result.profileData || {}),
+                    status: 'REJECTED',
+                    linkedinUrl: result.url,
+                    linkedinUsername: result.username
+                },
+                view.state?.job || null, // Permite null
+                null
+            ).then(() => {
+                if (addToast) {
+                    if (toastId) removeToast(toastId);
+                    addToast(`${result.profileData?.nome || result.username} salvo no Banco (Rejeitado)`, 'info');
+                }
+            }).catch(err => {
+                console.error("Error saving rejected profile:", err);
+                if (addToast) {
+                    if (toastId) removeToast(toastId);
+                    addToast(`Erro ao salvar rejeitado: ${err.message}`, 'error');
+                }
+            });
         }} onGoBack={goBack}
             onAutoSource={batchQueue.sourceProfilesFromSearch}
             onResetQueue={batchQueue.resetQueue}
