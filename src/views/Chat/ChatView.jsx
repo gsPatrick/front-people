@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '../../hooks/useChat';
 import styles from './ChatView.module.css';
-import { BsArrowLeft, BsChatDots, BsPlus, BsTrash, BsSend } from 'react-icons/bs';
+import { BsArrowLeft, BsChatDots, BsPlus, BsTrash, BsSend, BsBook } from 'react-icons/bs';
 
 // Simples parser de markdown para renderização básica
 const renderMarkdown = (text) => {
