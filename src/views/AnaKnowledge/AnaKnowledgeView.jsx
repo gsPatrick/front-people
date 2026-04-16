@@ -11,8 +11,7 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
     const { 
         rules, models, isLoading, 
         loadRules, saveRule, deleteRule,
-        loadModels, saveModel, deleteModel,
-        extractPdfToBlocks // Importado para uso no Wizard global
+        loadModels, saveModel, deleteModel
     } = useAnaKnowledge();
 
     const [activeTab, setActiveTab] = useState('rules');
@@ -34,7 +33,6 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
         if (editingItem?.id) data.id = editingItem.id;
 
         const res = activeTab === 'rules' ? await saveRule(data) : await saveModel(data);
@@ -52,118 +50,111 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
 
     return (
         <div className="highTechContainer">
-            {!isEmbedded && <Header title="Inteligência Artificial" subtitle="Controle as diretrizes e conhecimentos da Ana" />}
+            {!isEmbedded && <Header title="Inteligência" subtitle="Configurações da Ana" />}
 
             <div className="dashboardHeader">
-                <div>
-                    <h1 className="glowTitle">Centro de Comando</h1>
-                    <p style={{ margin: '8px 0 0 0', color: '#8892b0' }}>Gestão de Inteligência Sistêmica</p>
-                </div>
+                <h1 className="glowTitle">Centro de Comando</h1>
+                <p className="dashboardSubtitle">Gestão de Inteligência</p>
                 
                 <div className="premiumTabs">
-                    <div 
+                    <button 
                         className={`premiumTab ${activeTab === 'rules' ? 'active' : ''}`}
                         onClick={() => setActiveTab('rules')}
                     >
-                        <BsShieldLock size={20} /> Instruções Mestras
-                    </div>
-                    <div 
+                        <BsShieldLock size={18} /> Mestra
+                    </button>
+                    <button 
                         className={`premiumTab ${activeTab === 'models' ? 'active' : ''}`}
                         onClick={() => setActiveTab('models')}
                     >
-                        <BsBook size={20} /> Especialidades
-                    </div>
+                        <BsBook size={18} /> Especialista
+                    </button>
                 </div>
             </div>
 
             <section className={styles.content}>
                 {isLoading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}>
-                        <div className={styles.loader}>Carregando Núcleo de Inteligência...</div>
-                    </div>
+                    <div className={styles.loader}>Acessando Núcleo...</div>
                 ) : ((activeTab === 'rules' && rules.length === 0) || (activeTab === 'models' && models.length === 0)) ? (
-                    /* WIZARD IMERSIVO QUANDO VAZIO */
                     <div className="immersiveWizard">
                         <div className="wizardIconContainer">
-                            {activeTab === 'rules' ? <BsShieldLock /> : <BsMagic />}
+                            {activeTab === 'rules' ? <BsShieldLock /> : <BsGearFill />}
                         </div>
-                        <h2 className="wizardTitleLarge">O Núcleo de Conhecimento está vazio</h2>
-                        <p style={{ fontSize: '1.2rem', color: '#8892b0', maxWidth: '600px', textAlign: 'center', marginBottom: '40px' }}>
-                            {activeTab === 'rules' 
-                                ? 'A Ana precisa de diretrizes de ouro para saber como agir. Defina as regras de comportamento agora.' 
-                                : 'Crie modelos de especialidade para que a Ana domine assuntos técnicos específicos via RAG.'}
+                        <h2 className="wizardTitleLarge">Inicie a Inteligência</h2>
+                        <p style={{ color: 'var(--ios-text-secondary)', fontSize: '0.9rem' }}>
+                            Configure as bases para que a Ana saiba como operar.
                         </p>
                         
                         <div className="wizardGridLarge">
                             <div className="wizardChoiceCard" onClick={() => handleOpenModal()}>
-                                <div className="wizardChoiceIcon"><BsPencilSquare /></div>
-                                <h3 className="wizardCardTitle">Configuração Manual</h3>
-                                <p className="wizardCardDesc">Defina cada detalhe manualmente para controle total.</p>
+                                <BsPencilSquare className="wizardChoiceIcon" />
+                                <div>
+                                    <h3 className="wizardCardTitle">Manual</h3>
+                                    <p className="wizardCardDesc">Configuração detalhada</p>
+                                </div>
                             </div>
                             
                             {activeTab === 'models' && (
-                                <div className="wizardChoiceCard" style={{ borderColor: 'var(--ana-primary)' }} onClick={() => handleOpenModal()}>
-                                    <div className="wizardChoiceIcon"><BsFilePdfFill /></div>
-                                    <h3 className="wizardCardTitle">Extração Via PDF</h3>
-                                    <p className="wizardCardDesc">Deixe a IA ler seus documentos e extrair o conhecimento para você.</p>
+                                <div className="wizardChoiceCard" onClick={() => handleOpenModal()}>
+                                    <BsFilePdfFill className="wizardChoiceIcon" />
+                                    <div>
+                                        <h3 className="wizardCardTitle">Importar PDF</h3>
+                                        <p className="wizardCardDesc">Extração automática</p>
+                                    </div>
                                 </div>
                             )}
 
-                            <div className="wizardChoiceCard" onClick={() => { alert('Esta função requer integração com API de Scraping.'); }}>
-                                <div className="wizardChoiceIcon" style={{ color: '#0077b5' }}><BsLinkedin /></div>
-                                <h3 className="wizardCardTitle">Sincronizar LinkedIn</h3>
-                                <p className="wizardCardDesc">Puxe dados de perfis públicos para treinar a inteligência.</p>
+                            <div className="wizardChoiceCard" onClick={() => alert('Integração em breve')}>
+                                <BsLinkedin className="wizardChoiceIcon" style={{ color: '#0077b5' }} />
+                                <div>
+                                    <h3 className="wizardCardTitle">LinkedIn</h3>
+                                    <p className="wizardCardDesc">Sincronização de perfis</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    /* LISTAGEM NORMAL */
                     <>
                         <div className="anaGrid">
                             {activeTab === 'rules' ? (
                                 rules.map(rule => (
                                     <div key={rule.id} className="anaCard" onClick={() => handleOpenModal(rule)}>
-                                        <div className="instructionHeader" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ padding: '8px', background: 'rgba(0, 210, 255, 0.1)', borderRadius: '8px' }}>
-                                                    <BsLightbulbFill style={{ color: 'var(--ana-primary)' }} />
-                                                </div>
-                                                <h3 className="instructionTitle" style={{ margin: 0, fontSize: '1.1rem' }}>{rule.title}</h3>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <BsLightbulbFill style={{ color: 'var(--ios-primary)' }} />
+                                                <h3 className="instructionTitle" style={{ margin: 0 }}>{rule.title}</h3>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <span className="instructionBadge" style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.7rem' }}>PRIORITY_{rule.priority}</span>
-                                                <button 
-                                                    className={styles.deleteBtn} 
-                                                    onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir regra sistêmica?')) deleteRule(rule.id); }}
-                                                >
-                                                    <BsTrash />
-                                                </button>
-                                            </div>
+                                            <button 
+                                                className={styles.deleteBtn} 
+                                                onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir?')) deleteRule(rule.id); }}
+                                            >
+                                                <BsTrash />
+                                            </button>
                                         </div>
-                                        <div className="masterInstruction">
-                                            {rule.content}
+                                        <div className="masterInstruction">{rule.content}</div>
+                                        <div style={{ marginTop: '12px', fontSize: '0.7rem' }}>
+                                            <span className="instructionBadge">Prioridade {rule.priority}</span>
                                         </div>
                                     </div>
                                 ))
                             ) : (
                                 models.map(model => (
                                     <div key={model.id} className="anaCard" onClick={() => setSelectedModel(model)}>
-                                        <div className={styles.cardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <div>
-                                                <h3 className={styles.cardTitle}>{model.name}</h3>
-                                                <p className={styles.cardDate}>ENTRY_HEX: {model.id.substring(0,8).toUpperCase()}</p>
+                                                <h3 className="instructionTitle" style={{ margin: 0 }}>{model.name}</h3>
+                                                <p style={{ fontSize: '0.75rem', color: 'var(--ios-text-secondary)', margin: '4px 0 0 0' }}>{model.id.substring(0,8)}</p>
                                             </div>
                                             <button 
                                                 className={styles.deleteBtn} 
-                                                onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir base de conhecimento?')) deleteModel(model.id); }}
+                                                onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir?')) deleteModel(model.id); }}
                                             >
                                                 <BsTrash />
                                             </button>
                                         </div>
-                                        <p className={styles.cardDesc} style={{ margin: '15px 0' }}>{model.description || 'Nenhum contexto descritivo disponível.'}</p>
-                                        <div className={styles.cardFooter} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-                                            <span className="manageLink" style={{ color: 'var(--ana-primary)', fontWeight: 700 }}>GERENCIAR_CORE →</span>
-                                            <span className={styles.badge} style={{ background: model.isActive ? 'rgba(82, 196, 26, 0.1)' : 'rgba(255, 77, 79, 0.1)', color: model.isActive ? '#52c41a' : '#ff4d4f', padding: '4px 12px', borderRadius: '10px', fontSize: '0.8rem' }}>
+                                        <div className="cardFooter">
+                                            <span className="manageLink">Gerenciar Core</span>
+                                            <span style={{ fontSize: '0.7rem', color: model.isActive ? '#34c759' : '#ff3b30', fontWeight: 600 }}>
                                                 {model.isActive ? 'ONLINE' : 'OFFLINE'}
                                             </span>
                                         </div>
@@ -171,68 +162,70 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                 ))
                             )}
                         </div>
-                        <button className="premiumAddBtn" style={{ marginTop: '40px' }} onClick={() => handleOpenModal()}>
-                            <BsPlus size={24} /> {activeTab === 'rules' ? 'Nova Regra Sistêmica' : 'Criar Nova Especialidade'}
+                        <button className="premiumAddBtn" onClick={() => handleOpenModal()}>
+                            <BsPlus size={24} /> {activeTab === 'rules' ? 'Nova Regra' : 'Nova Especialidade'}
                         </button>
                     </>
                 )}
             </section>
 
-            {/* MODAL PARA REGRAS / MODELOS */}
             {showModal && (
                 <>
-                    <div className={styles.overlay} onClick={() => setShowModal(false)} />
-                    <div className={styles.modal}>
-                        <h3>{editingItem ? 'Editar' : 'Criar'} {activeTab === 'rules' ? 'Regra' : 'Modelo'}</h3>
+                    <div className="iosOverlay" onClick={() => setShowModal(false)} />
+                    <div className="iosModal">
+                        <h3 style={{ marginBottom: '20px', fontWeight: 700 }}>{editingItem ? 'Editar' : 'Adicionar'}</h3>
                         <form onSubmit={handleSave}>
-                            <div className={styles.formField}>
-                                <label className={styles.label}>{activeTab === 'rules' ? 'Título' : 'Nome do Modelo'}</label>
+                            <div className="iosFormGroup">
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Nome / Título</label>
                                 <input 
                                     name={activeTab === 'rules' ? 'title' : 'name'} 
-                                    className={styles.input} 
+                                    className="iosInput" 
                                     defaultValue={editingItem?.title || editingItem?.name} 
+                                    placeholder="Ex: Resumo de Perfil"
                                     required 
                                 />
                             </div>
                             
                             {activeTab === 'rules' ? (
                                 <>
-                                    <div className={styles.formField}>
-                                        <label className={styles.label}>Conteúdo da Regra</label>
+                                    <div className="iosFormGroup">
+                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Diretriz</label>
                                         <textarea 
                                             name="content" 
-                                            className={styles.textarea} 
+                                            className="iosTextarea" 
                                             defaultValue={editingItem?.content} 
+                                            placeholder="Descreva a regra..."
                                             required 
                                         />
                                     </div>
-                                    <div className={styles.formField}>
-                                        <label className={styles.label}>Prioridade (número alto = mais importante)</label>
+                                    <div className="iosFormGroup">
+                                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Prioridade (0-10)</label>
                                         <input 
                                             type="number" 
                                             name="priority" 
-                                            className={styles.input} 
+                                            className="iosInput" 
                                             defaultValue={editingItem?.priority || 0} 
                                         />
                                     </div>
                                 </>
                             ) : (
-                                <div className={styles.formField}>
-                                    <label className={styles.label}>Descrição</label>
+                                <div className="iosFormGroup">
+                                    <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Contexto</label>
                                     <textarea 
                                         name="description" 
-                                        className={styles.textarea} 
+                                        className="iosTextarea" 
                                         defaultValue={editingItem?.description} 
+                                        placeholder="Sobre o que é este modelo..."
                                     />
                                 </div>
                             )}
 
-                            <div className={styles.formActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
-                                    Cancelar
+                            <div className="iosActionButtons">
+                                <button type="button" className="iosBtn iosBtnSecondary" onClick={() => setShowModal(false)}>
+                                    Fechar
                                 </button>
-                                <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-                                    {isLoading ? 'Salvando...' : 'Salvar'}
+                                <button type="submit" className="iosBtn iosBtnPrimary" disabled={isLoading}>
+                                    {isLoading ? '...' : 'Salvar'}
                                 </button>
                             </div>
                         </form>

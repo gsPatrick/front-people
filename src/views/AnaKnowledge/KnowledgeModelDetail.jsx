@@ -24,7 +24,6 @@ const KnowledgeModelDetail = ({ model, onBack }) => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
-        // Tratar keywords de string para array
         if (data.keywords) {
             data.keywords = data.keywords.split(',').map(k => k.trim()).filter(k => k);
         }
@@ -46,119 +45,130 @@ const KnowledgeModelDetail = ({ model, onBack }) => {
     };
 
     return (
-        <div className={styles.container}>
-            <div className={detailStyles.header}>
-                <button className={detailStyles.backBtn} onClick={onBack}>
-                    <BsArrowLeft /> Voltar
+        <div className="highTechContainer">
+            <div className="dashboardHeader" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <button 
+                    onClick={onBack}
+                    style={{ background: 'none', border: 'none', color: 'var(--ios-primary)', cursor: 'pointer', padding: 0 }}
+                >
+                    <BsArrowLeft size={24} />
                 </button>
-                <div className={detailStyles.headerInfo}>
-                    <h2 className={detailStyles.title}>{model.name}</h2>
-                    <p className={detailStyles.subtitle}>{entries.length} blocos de conhecimento</p>
-                </div>
-                <div className={detailStyles.actions}>
-                    <button className={detailStyles.pdfBtn} onClick={() => setShowPdfModal(true)}>
-                        <BsFilePdf /> Importar PDF
-                    </button>
-                    <button className={styles.addBtn} onClick={() => handleOpenModal()}>
-                        <BsPlus /> Novo Bloco
-                    </button>
+                <div>
+                    <h2 className="glowTitle">{model.name}</h2>
+                    <p className="dashboardSubtitle">{entries.length} blocos de dados</p>
                 </div>
             </div>
 
-            <div className={detailStyles.entriesList}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+                <button className="iosBtn iosBtnSecondary" style={{ flex: 1, fontSize: '0.85rem' }} onClick={() => setShowPdfModal(true)}>
+                    <BsFilePdf /> PDF
+                </button>
+                <button className="iosBtn iosBtnPrimary" style={{ flex: 1, fontSize: '0.85rem' }} onClick={() => handleOpenModal()}>
+                    <BsPlus /> Novo Bloco
+                </button>
+            </div>
+
+            <div className="anaGrid">
                 {entries.length === 0 && !isLoading && (
-                    <div className="wizardContainer">
-                        <div className="wizardTitle">✨ Alimente a Inteligência</div>
-                        <p className={detailStyles.subtitle}>Escolha como deseja adicionar conhecimento ao modelo <b>{model.name}</b></p>
+                    <div className="immersiveWizard">
+                        <div className="wizardIconContainer"><BsMagic /></div>
+                        <h2 className="wizardTitleLarge">Base Vazia</h2>
+                        <p style={{ color: 'var(--ios-text-secondary)', fontSize: '0.9rem', textAlign: 'center' }}>
+                            Alimente este modelo com PDFs ou cadastro manual.
+                        </p>
                         
-                        <div className="wizardGrid">
-                            <div className="wizardCard" onClick={() => setShowPdfModal(true)}>
-                                <div className="wizardIcon"><BsFilePdfFill /></div>
-                                <div className="wizardCardTitle">Extrair de PDF</div>
-                                <div className="wizardCardDesc">Suba um documento e a Ana extrairá blocos de conhecimento automaticamente.</div>
+                        <div className="wizardGridLarge">
+                            <div className="wizardChoiceCard" onClick={() => setShowPdfModal(true)}>
+                                <BsFilePdfFill className="wizardChoiceIcon" />
+                                <div>
+                                    <h3 className="wizardCardTitle">Extrair de PDF</h3>
+                                    <p className="wizardCardDesc">Leitura automática de documentos</p>
+                                </div>
                             </div>
                             
-                            <div className="wizardCard" onClick={() => { alert('Funcionalidade sendo integrada: Puxar currículo do LinkedIn aberto.'); }}>
-                                <div className="wizardIcon" style={{ color: '#0077b5' }}><BsLinkedin /></div>
-                                <div className="wizardCardTitle">Puxar do LinkedIn</div>
-                                <div className="wizardCardDesc">Importe dados diretamente do perfil que você está visualizando agora.</div>
+                            <div className="wizardChoiceCard" onClick={() => handleOpenModal()}>
+                                <BsPencilSquare className="wizardChoiceIcon" />
+                                <div>
+                                    <h3 className="wizardCardTitle">Manual</h3>
+                                    <p className="wizardCardDesc">Cadastro direto de conhecimento</p>
+                                </div>
                             </div>
-
-                            <div className="wizardCard" onClick={() => handleOpenModal()}>
-                                <div className="wizardIcon" style={{ color: 'var(--text-secondary)' }}><BsPencilSquare /></div>
-                                <div className="wizardCardTitle">Cadastro Manual</div>
-                                <div className="wizardCardDesc">Digite você mesmo os blocos de conhecimento e palavras-chave.</div>
-                            </div>
-                        </div>
-
-                        <div style={{ marginTop: '40px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <BsMagic /> <span>Dica: Use PDFs de políticas internas para resultados mais precisos.</span>
                         </div>
                     </div>
                 )}
 
                 {entries.map(entry => (
-                    <div key={entry.id} className={detailStyles.entryCard}>
-                        <div className={detailStyles.entryMain} onClick={() => handleOpenModal(entry)}>
-                            <div className={detailStyles.entryHeader}>
-                                <h4 className={detailStyles.entryTitle}>{entry.title}</h4>
-                                <div className={detailStyles.entryKeywords}>
+                    <div key={entry.id} className="anaCard" onClick={() => handleOpenModal(entry)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div style={{ flex: 1 }}>
+                                <h4 className="instructionTitle" style={{ margin: 0 }}>{entry.title}</h4>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                                     {entry.keywords?.map((k, i) => (
-                                        <span key={i} className={detailStyles.keywordBadge}>
-                                            <BsTag /> {k}
+                                        <span key={i} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--ios-text-secondary)' }}>
+                                            #{k}
                                         </span>
                                     ))}
                                 </div>
                             </div>
-                            <p className={detailStyles.entryContent}>{entry.content}</p>
+                            <button 
+                                className={styles.deleteBtn}
+                                onClick={(e) => { e.stopPropagation(); if(window.confirm('Deletar?')) deleteEntry(entry.id, model.id); }}
+                            >
+                                <BsTrash />
+                            </button>
                         </div>
-                        <button 
-                            className={detailStyles.deleteBtn}
-                            onClick={() => { if(window.confirm('Deletar este bloco?')) deleteEntry(entry.id, model.id); }}
-                        >
-                            <BsTrash />
-                        </button>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--ios-text-secondary)', marginTop: '12px', lineHeight: 1.4 }}>{entry.content}</p>
                     </div>
                 ))}
             </div>
 
-            {/* MODAL DE ENTRY MANUAL */}
             {showModal && (
                 <>
-                    <div className={styles.overlay} onClick={() => setShowModal(false)} />
-                    <div className={styles.modal} style={{ maxWidth: '700px' }}>
-                        <h3>{editingEntry ? 'Editar' : 'Criar'} Bloco de Conhecimento</h3>
+                    <div className="iosOverlay" onClick={() => setShowModal(false)} />
+                    <div className="iosModal">
+                        <h3 style={{ marginBottom: '20px', fontWeight: 700 }}>Bloco de Conhecimento</h3>
                         <form onSubmit={handleSave}>
-                            <div className={styles.formField}>
-                                <label className={styles.label}>Título do Bloco</label>
-                                <input name="title" className={styles.input} defaultValue={editingEntry?.title} required />
+                            <div className="iosFormGroup">
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Título</label>
+                                <input name="title" className="iosInput" defaultValue={editingEntry?.title} required />
                             </div>
-                            <div className={styles.formField}>
-                                <label className={styles.label}>Palavras-chave (separadas por vírgula)</label>
+                            <div className="iosFormGroup">
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Keywords (vírgula)</label>
                                 <input 
                                     name="keywords" 
-                                    className={styles.input} 
+                                    className="iosInput" 
                                     defaultValue={editingEntry?.keywords?.join(', ')} 
-                                    placeholder="ex: salário, benefícios, home office"
+                                    placeholder="ex: salário, home office"
                                 />
-                                <small style={{ color: 'var(--text-secondary)' }}>A Ana usará estas palavras para recuperar este contexto.</small>
                             </div>
-                            <div className={styles.formField}>
-                                <label className={styles.label}>Conteúdo do Conhecimento</label>
-                                <textarea name="content" className={styles.textarea} style={{ height: '200px' }} defaultValue={editingEntry?.content} required />
+                            <div className="iosFormGroup">
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8e8e93', marginBottom: '8px' }}>Conteúdo</label>
+                                <textarea name="content" className="iosTextarea" style={{ height: '180px' }} defaultValue={editingEntry?.content} required />
                             </div>
 
-                            <div className={styles.formActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
-                                    Cancelar
+                            <div className="iosActionButtons">
+                                <button type="button" className="iosBtn iosBtnSecondary" onClick={() => setShowModal(false)}>
+                                    Fechar
                                 </button>
-                                <button type="submit" className={styles.submitBtn} disabled={isLoading}>
-                                    {isLoading ? 'Salvando...' : 'Salvar Bloco'}
+                                <button type="submit" className="iosBtn iosBtnPrimary" disabled={isLoading}>
+                                    Salvar
                                 </button>
                             </div>
                         </form>
                     </div>
                 </>
+            )}
+
+            {showPdfModal && (
+                <PdfImportModal 
+                    modelId={model.id} 
+                    onClose={() => setShowPdfModal(false)} 
+                    onSuccess={() => { setShowPdfModal(false); loadEntries(model.id); }} 
+                />
+            )}
+        </div>
+    );
+};
             )}
 
             {/* MODAL DE IMPORTAÇÃO PDF */}
