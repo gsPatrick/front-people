@@ -40,6 +40,7 @@ const ChatView = ({ onBack }) => {
 
     const [inputValue, setInputValue] = useState('');
     const [showHistory, setShowHistory] = useState(false);
+    const [showModelMenu, setShowModelMenu] = useState(false);
     const messagesEndRef = useRef(null);
     const textareaRef = useRef(null);
 
@@ -108,18 +109,46 @@ const ChatView = ({ onBack }) => {
                 </button>
                 <div className={styles.headerInfo}>
                     <p className={styles.headerTitle}>Ana Issidoro</p>
-                    <div className={styles.modelSelectorWrapper}>
-                        <BsBook className={styles.modelIcon} />
-                        <select 
-                            className={styles.modelSelector}
-                            value={selectedModelId || ''}
-                            onChange={(e) => setSelectedModelId(e.target.value || null)}
+                    <div className={styles.toolSelectorWrapper}>
+                        <button 
+                            className={styles.toolTrigger} 
+                            onClick={() => setShowModelMenu(!showModelMenu)}
                         >
-                            <option value="">🎯 Modelo Padrão</option>
-                            {models.map(m => (
-                                <option key={m.id} value={m.id}>🧠 {m.name}</option>
-                            ))}
-                        </select>
+                            <BsBook className={styles.toolIcon} />
+                            <span>{selectedModelId ? models.find(m => m.id === selectedModelId)?.name : 'Modelo Padrão'}</span>
+                            <BsPlus style={{ transform: showModelMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
+                        </button>
+
+                        {showModelMenu && (
+                            <>
+                                <div className={styles.toolMenuOverlay} onClick={() => setShowModelMenu(false)} />
+                                <div className={styles.toolMenu}>
+                                    <div 
+                                        className={`${styles.toolOption} ${!selectedModelId ? styles.activeTool : ''}`}
+                                        onClick={() => { setSelectedModelId(null); setShowModelMenu(false); }}
+                                    >
+                                        <span className={styles.toolEmoji}>🎯</span>
+                                        <div className={styles.toolInfo}>
+                                            <p className={styles.toolName}>Modelo Padrão</p>
+                                            <p className={styles.toolDesc}>Especialista Geral People AI</p>
+                                        </div>
+                                    </div>
+                                    {models.map(m => (
+                                        <div 
+                                            key={m.id} 
+                                            className={`${styles.toolOption} ${selectedModelId === m.id ? styles.activeTool : ''}`}
+                                            onClick={() => { setSelectedModelId(m.id); setShowModelMenu(false); }}
+                                        >
+                                            <span className={styles.toolEmoji}>🧠</span>
+                                            <div className={styles.toolInfo}>
+                                                <p className={styles.toolName}>{m.name}</p>
+                                                <p className={styles.toolDesc}>Conhecimento Mestre</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className={styles.headerActions}>
