@@ -177,7 +177,6 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                     </>
                 )}
             </section>
-            </section>
 
             {/* MODAL PARA REGRAS / MODELOS */}
             {showModal && (
