@@ -6,6 +6,7 @@ import Toast from './Toast';
 import ConfirmModal from './ConfirmModal';
 import * as api from '../../services/api.service';
 import AIMemoryView from '../Settings/AIMemoryView'; // Reutilizando a view
+import AnaKnowledgeView from '../AnaKnowledge/AnaKnowledgeView'; // Novo
 
 const AdminDashboardView = ({ onLogout }) => {
     const [activeTab, setActiveTab] = useState('users'); // 'users', 'config', 'logs', 'ai_memory'
@@ -25,6 +26,7 @@ const AdminDashboardView = ({ onLogout }) => {
 
     const tabs = [
         { id: 'users', label: 'Usuários' },
+        { id: 'ana_intelligence', label: 'Inteligência' },
         { id: 'ai_memory', label: 'Memória da IA' },
         { id: 'logs', label: 'Logs' }
     ];
@@ -170,6 +172,12 @@ const AdminDashboardView = ({ onLogout }) => {
                 {activeTab === 'ai_memory' && (
                     <div className={styles.embeddedView}>
                         <AIMemoryView isEmbedded={true} />
+                    </div>
+                )}
+
+                {activeTab === 'ana_intelligence' && (
+                    <div className={styles.embeddedView}>
+                        <AnaKnowledgeView isEmbedded={true} />
                     </div>
                 )}
 

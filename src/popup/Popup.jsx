@@ -375,10 +375,11 @@ const Popup = () => {
     if (showWelcome) return <WelcomeView userName={authState.user?.name} />;
     if (globalError) return <ErrorView error={globalError} onRetry={() => window.location.reload()} />;
     if (!authState.isAuthenticated) return <LoginView onLogin={handleLogin} error={authState.error} isLoading={authState.isLoading} />;
-    if (authState.user.role === 'admin') return <AdminDashboardView onLogout={handleLogout} />;
+    // Remova o redirect automático do admin para permitir que ele veja a tela normal
+    // if (authState.user.role === 'admin') return <AdminDashboardView onLogout={handleLogout} />;
 
     let contentToRender;
-    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue', 'edit_job', 'job_scorecard'];
+    const viewsWithSidebar = ['dashboard_jobs', 'dashboard_talents', 'settings', 'job_details', 'candidate_details', 'talent_profile', 'scorecard_hub', 'scorecard_edit', 'match_hub', 'match_select_scorecard', 'extracted_text_view', 'update_pdf', 'batch_queue', 'edit_job', 'job_scorecard', 'ana_knowledge', 'admin_dashboard'];
     const useLayout = viewsWithSidebar.includes(view.name);
 
     switch (view.name) {
@@ -653,6 +654,9 @@ const Popup = () => {
         // INTELIGÊNCIA DA ANA (ADMIN)
         case 'ana_knowledge': contentToRender = <AnaKnowledgeView onBack={goBack} />; break;
 
+        // PAINEL ADMINISTRATIVO (ADMIN)
+        case 'admin_dashboard': contentToRender = <AdminDashboardView onLogout={handleLogout} />; break;
+
         default: contentToRender = <LoadingView />;
     }
 
@@ -667,7 +671,7 @@ const Popup = () => {
                     onOpenInTab={settings?.isOpenInTabEnabled ? () => { if (window.chrome && chrome.runtime) { window.open(chrome.runtime.getURL('index.html')); window.close(); } } : null}
                     onCaptureProfile={handleCaptureProfileVisual}
                     onLogout={handleLogout}
-
+                    userRole={authState.user?.role}
                 >
                     <ProfileStatusNotification
                         status={validationResult}

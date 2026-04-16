@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import styles from './Layout.module.css';
 // Ícones atualizados com BsClipboardCheck e BsBullseye
-import { BsBriefcaseFill, BsLayoutSidebarInsetReverse, BsLayoutSidebarInset, BsBoxArrowUpRight, BsLinkedin, BsClipboardCheck, BsBullseye } from 'react-icons/bs';
-import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline, IoChatbubblesSharp } from 'react-icons/io5';
+import { BsBriefcaseFill, BsLayoutSidebarInsetReverse, BsLayoutSidebarInset, BsBoxArrowUpRight, BsLinkedin, BsClipboardCheck, BsBullseye, BsShieldLock } from 'react-icons/bs';
+import { IoPeopleSharp, IoSettingsSharp, IoLogOutOutline, IoChatbubblesSharp, IoShieldCheckmarkSharp } from 'react-icons/io5';
 
 // Adicionada a prop activeMatchScorecardName
-const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout }) => {
+const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggleSidebar, onOpenInTab, onCaptureProfile, onLogout, userRole }) => {
 
   const navItems = [
     { id: 'dashboard_jobs', label: 'Vagas', icon: <BsBriefcaseFill /> },
@@ -17,6 +17,10 @@ const Layout = ({ activeView, onNavigate, children, isSidebarCollapsed, onToggle
     },
     { id: 'settings', label: 'Configurações', icon: <IoSettingsSharp /> }
   ];
+
+  if (userRole === 'admin') {
+    navItems.push({ id: 'admin_dashboard', label: 'Admin', icon: <IoShieldCheckmarkSharp /> });
+  }
 
   return (
     <div className={`${styles.layout} ${isSidebarCollapsed ? styles.collapsed : ''}`}>

@@ -102,31 +102,9 @@ const SettingsView = ({
           </p>
         </section>
 
-        <section className={styles.settingSection}>
-          <div className={styles.settingItem} onClick={() => onSettingChange('navigate', 'ai_memory')} style={{ cursor: 'pointer' }}>
-            <label className={styles.settingLabel} style={{ cursor: 'pointer', color: 'var(--primary)' }}>
-              🧠 Gerenciar Memória da IA
-            </label>
-            <span className={styles.arrow}>→</span>
-          </div>
-          <p className={styles.settingDescription}>
-            Ensine termos específicos para a IA melhorar a precisão dos Matches.
-          </p>
         </section>
 
-        {isAdmin && (
-          <section className={styles.settingSection}>
-            <div className={styles.settingItem} onClick={() => onSettingChange('navigate', 'ana_knowledge')} style={{ cursor: 'pointer' }}>
-              <label className={styles.settingLabel} style={{ cursor: 'pointer', color: 'var(--primary)' }}>
-                📜 Inteligência da Ana
-              </label>
-              <span className={styles.arrow}>→</span>
-            </div>
-            <p className={styles.settingDescription}>
-              Configure as Regras de Ouro e Modelos de Conhecimento (Admin).
-            </p>
-          </section>
-        )}
+        {/* Removido o link duplicado aqui, agora está centralizado no Painel Admin na Sidebar */}
 
       </main>
     </div>

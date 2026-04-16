@@ -6,7 +6,7 @@ import Header from '../../components/Header/Header';
 import { BsPlus, BsBook, BsShieldLock, BsTrash, BsPencil } from 'react-icons/bs';
 import KnowledgeModelDetail from './KnowledgeModelDetail';
 
-const AnaKnowledgeView = () => {
+const AnaKnowledgeView = ({ isEmbedded = false }) => {
     const { 
         rules, models, isLoading, 
         loadRules, saveRule, deleteRule,
@@ -50,7 +50,7 @@ const AnaKnowledgeView = () => {
 
     return (
         <div className={styles.container}>
-            <Header title="Inteligência da Ana" subtitle="Configure as regras e o conhecimento especializado" />
+            {!isEmbedded && <Header title="Inteligência da Ana" subtitle="Configure as regras e o conhecimento especializado" />}
 
             <div className={styles.tabs}>
                 <div 
