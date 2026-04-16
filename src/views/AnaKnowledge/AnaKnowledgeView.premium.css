@@ -1,132 +1,214 @@
 /* src/views/AnaKnowledge/AnaKnowledgeView.premium.css */
 
-.premiumContainer {
-    padding: 24px;
-    background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1117 100%);
-    min-height: 100%;
-    color: var(--text-primary);
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+    --ana-primary: #00d2ff;
+    --ana-secondary: #3a7bd5;
+    --ana-accent: #7b2ff7;
+    --ana-bg: #05070a;
+    --ana-glass: rgba(255, 255, 255, 0.03);
+    --ana-border: rgba(255, 255, 255, 0.08);
 }
 
-.instructionCard {
-    background: var(--bg-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 20px;
+.highTechContainer {
+    padding: 30px;
+    background: radial-gradient(circle at top right, rgba(123, 47, 247, 0.1), transparent),
+                radial-gradient(circle at bottom left, rgba(0, 210, 255, 0.1), transparent),
+                var(--ana-bg);
+    min-height: 100vh;
+    font-family: 'Outfit', sans-serif;
+    color: #e0e6ed;
     position: relative;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-x: hidden;
 }
 
-.instructionCard::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--primary);
-    opacity: 0.8;
-}
-
-.instructionCard:hover {
-    border-color: var(--primary);
-    box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.15);
-    transform: translateY(-2px);
-}
-
-.instructionHeader {
+/* Dashboard Header */
+.dashboardHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 40px;
+    padding: 24px;
+    background: var(--ana-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--ana-border);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-.instructionTitle {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    font-size: 1.1rem;
+.glowTitle {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.03em;
+    background: linear-gradient(90deg, #fff, var(--ana-primary), var(--ana-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.3));
 }
 
-.instructionBadge {
-    font-family: 'JetBrains Mono', 'Courier New', monospace;
-    font-size: 0.75rem;
-    padding: 4px 10px;
-    background: rgba(var(--primary-rgb), 0.1);
-    color: var(--primary);
-    border-radius: 20px;
-    border: 1px solid rgba(var(--primary-rgb), 0.2);
+/* Tabs Redesign */
+.premiumTabs {
+    display: flex;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    border-radius: 16px;
+    border: 1px solid var(--ana-border);
 }
 
-.instructionContent {
-    font-family: 'JetBrains Mono', 'Courier New', monospace;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: #a3b3bc;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
+.premiumTab {
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #8892b0;
 }
 
-/* Wizard Styles */
-.wizardContainer {
+.premiumTab.active {
+    background: var(--ana-primary);
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+}
+
+/* Grid & Cards */
+.anaGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+    animation: fadeIn 0.6s ease-out;
+}
+
+.anaCard {
+    background: var(--ana-glass);
+    border: 1px solid var(--ana-border);
+    border-radius: 24px;
+    padding: 28px;
+    transition: all 0.4s;
+    cursor: pointer;
+    position: relative;
+}
+
+.anaCard:hover {
+    border-color: var(--ana-primary);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+}
+
+.anaCard::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    padding: 1px;
+    background: linear-gradient(135deg, transparent, var(--ana-primary), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.anaCard:hover::after {
+    opacity: 1;
+}
+
+/* Immersive Wizard */
+.immersiveWizard {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
+    padding: 100px 20px;
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wizardIconContainer {
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, var(--ana-primary) 0%, transparent 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-bottom: 30px;
+    font-size: 4rem;
+    color: white;
+}
+
+.wizardTitleLarge {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 16px;
     text-align: center;
 }
 
-.wizardTitle {
-    font-size: 2rem;
-    font-weight: 800;
-    margin-bottom: 12px;
-    background: linear-gradient(90deg, #fff 0%, var(--primary) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.wizardGrid {
+.wizardGridLarge {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
     width: 100%;
-    max-width: 800px;
-    margin-top: 40px;
+    max-width: 900px;
+    margin-top: 50px;
 }
 
-.wizardCard {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 32px;
+.wizardChoiceCard {
+    background: var(--ana-glass);
+    border: 1px solid var(--ana-border);
+    border-radius: 32px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.4s;
     cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
 }
 
-.wizardCard:hover {
-    background: rgba(var(--primary-rgb), 0.05);
-    border-color: var(--primary);
-    transform: scale(1.02);
+.wizardChoiceCard:hover {
+    border-color: var(--ana-accent);
+    background: rgba(var(--ana-accent-rgb), 0.05);
+    transform: scale(1.05);
 }
 
-.wizardIcon {
-    font-size: 3rem;
-    color: var(--primary);
+.wizardChoiceIcon {
+    font-size: 3.5rem;
+    margin-bottom: 20px;
+    color: var(--ana-primary);
 }
 
-.wizardCardTitle {
-    font-weight: 700;
-    font-size: 1.2rem;
-}
-
-.wizardCardDesc {
+/* Instructions Styling */
+.masterInstruction {
+    background: #000;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 20px;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    line-height: 1.6;
+    color: #4cd964;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.05);
+}
+
+.masterInstruction::before {
+    content: '>_';
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    opacity: 0.3;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
 }
