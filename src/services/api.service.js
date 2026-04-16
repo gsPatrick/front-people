@@ -14,7 +14,8 @@ const apiClient = axios.create({
 // INTERCEPTADOR: Adiciona o token de autenticação a cada requisição
 apiClient.interceptors.request.use(async (config) => {
   const authData = await loadAuthData();
-  if (authData?.token) {
+  // Blindagem contra tokens nulos ou strings "undefined"
+  if (authData?.token && authData.token !== 'undefined') {
     config.headers.Authorization = `Bearer ${authData.token}`;
   }
   return config;
@@ -556,6 +557,110 @@ export const deleteAIMemory = async (id) => {
   try {
     await apiClient.delete(`/ai-memory/${id}`);
     return true;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// ===================================================================
+//                          ANA INTELLIGENCE SERVICES
+// ===================================================================
+
+export const getAnaRules = async () => {
+  try {
+    const response = await apiClient.get('/ana/rules');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const saveAnaRule = async (ruleData) => {
+  try {
+    const method = ruleData.id ? 'put' : 'post';
+    const url = ruleData.id ? `/ana/rules/${ruleData.id}` : '/ana/rules';
+    const response = await apiClient[method](url, ruleData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteAnaRule = async (id) => {
+  try {
+    const response = await apiClient.delete(`/ana/rules/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getAnaModels = async () => {
+  try {
+    const response = await apiClient.get('/ana/models');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const saveAnaModel = async (modelData) => {
+  try {
+    const method = modelData.id ? 'put' : 'post';
+    const url = modelData.id ? `/ana/models/${modelData.id}` : '/ana/models';
+    const response = await apiClient[method](url, modelData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteAnaModel = async (id) => {
+  try {
+    const response = await apiClient.delete(`/ana/models/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getAnaEntries = async (modelId) => {
+  try {
+    const response = await apiClient.get(`/ana/models/${modelId}/entries`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const saveAnaEntry = async (modelId, entryData) => {
+  try {
+    const method = entryData.id ? 'put' : 'post';
+    const url = entryData.id ? `/ana/entries/${entryData.id}` : `/ana/models/${modelId}/entries`;
+    const response = await apiClient[method](url, entryData);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteAnaEntry = async (id) => {
+  try {
+    const response = await apiClient.delete(`/ana/entries/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const extractAnaPdf = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post('/ana/extract-pdf', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
   } catch (error) {
     handleError(error);
   }
