@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './AnaKnowledgeView.module.css'; // Reutilizando alguns estilos
 import detailStyles from './KnowledgeModelDetail.module.css';
 import { useAnaKnowledge } from '../../hooks/useAnaKnowledge';
-import { BsArrowLeft, BsPlus, BsFilePdf, BsTrash, BsTag, BsChevronRight } from 'react-icons/bs';
+import { BsArrowLeft, BsPlus, BsFilePdf, BsTrash, BsTag, BsChevronRight, BsFilePdfFill, BsLinkedin, BsPencilSquare, BsMagic } from 'react-icons/bs';
 import PdfImportModal from './PdfImportModal';
 
 const KnowledgeModelDetail = ({ model, onBack }) => {
@@ -67,9 +67,33 @@ const KnowledgeModelDetail = ({ model, onBack }) => {
 
             <div className={detailStyles.entriesList}>
                 {entries.length === 0 && !isLoading && (
-                    <div className={detailStyles.empty}>
-                        <p>Nenhum conhecimento cadastrado para este modelo.</p>
-                        <p>Adicione manualmente ou importe um PDF.</p>
+                    <div className="wizardContainer">
+                        <div className="wizardTitle">✨ Alimente a Inteligência</div>
+                        <p className={detailStyles.subtitle}>Escolha como deseja adicionar conhecimento ao modelo <b>{model.name}</b></p>
+                        
+                        <div className="wizardGrid">
+                            <div className="wizardCard" onClick={() => setShowPdfModal(true)}>
+                                <div className="wizardIcon"><BsFilePdfFill /></div>
+                                <div className="wizardCardTitle">Extrair de PDF</div>
+                                <div className="wizardCardDesc">Suba um documento e a Ana extrairá blocos de conhecimento automaticamente.</div>
+                            </div>
+                            
+                            <div className="wizardCard" onClick={() => { alert('Funcionalidade sendo integrada: Puxar currículo do LinkedIn aberto.'); }}>
+                                <div className="wizardIcon" style={{ color: '#0077b5' }}><BsLinkedin /></div>
+                                <div className="wizardCardTitle">Puxar do LinkedIn</div>
+                                <div className="wizardCardDesc">Importe dados diretamente do perfil que você está visualizando agora.</div>
+                            </div>
+
+                            <div className="wizardCard" onClick={() => handleOpenModal()}>
+                                <div className="wizardIcon" style={{ color: 'var(--text-secondary)' }}><BsPencilSquare /></div>
+                                <div className="wizardCardTitle">Cadastro Manual</div>
+                                <div className="wizardCardDesc">Digite você mesmo os blocos de conhecimento e palavras-chave.</div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '40px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <BsMagic /> <span>Dica: Use PDFs de políticas internas para resultados mais precisos.</span>
+                        </div>
                     </div>
                 )}
 

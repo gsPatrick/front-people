@@ -61,6 +61,12 @@
     gap: 20px;
 }
 
+.rulesGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 .card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);

@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import styles from './AnaKnowledgeView.module.css';
 import { useAnaKnowledge } from '../../hooks/useAnaKnowledge';
 import Header from '../../components/Header/Header';
-import { BsPlus, BsBook, BsShieldLock, BsTrash, BsPencil } from 'react-icons/bs';
+import { BsPlus, BsBook, BsShieldLock, BsTrash, BsPencil, BsGearFill, BsLightbulbFill } from 'react-icons/bs';
 import KnowledgeModelDetail from './KnowledgeModelDetail';
+import './AnaKnowledgeView.premium.css'; // Novo CSS Premium
 
 const AnaKnowledgeView = ({ isEmbedded = false }) => {
     const { 
@@ -57,13 +58,13 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                     className={`${styles.tab} ${activeTab === 'rules' ? styles.active : ''}`}
                     onClick={() => setActiveTab('rules')}
                 >
-                    <BsShieldLock /> Regras de Ouro
+                    <BsShieldLock /> Instruções Mestras
                 </div>
                 <div 
                     className={`${styles.tab} ${activeTab === 'models' ? styles.active : ''}`}
                     onClick={() => setActiveTab('models')}
                 >
-                    <BsBook /> Modelos de Conhecimento
+                    <BsBook /> Modelos de Especialidade
                 </div>
             </div>
 
@@ -77,23 +78,28 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                     </button>
                 </div>
 
-                <div className={styles.grid}>
+                <div className={activeTab === 'rules' ? styles.rulesGrid : styles.grid}>
                     {activeTab === 'rules' ? (
                         rules.map(rule => (
-                            <div key={rule.id} className={styles.card} onClick={() => handleOpenModal(rule)}>
-                                <div className={styles.cardHeader}>
-                                    <div>
-                                        <h3 className={styles.cardTitle}>{rule.title}</h3>
-                                        <div className={styles.badge}>Prioridade {rule.priority}</div>
+                            <div key={rule.id} className="instructionCard" onClick={() => handleOpenModal(rule)}>
+                                <div className="instructionHeader">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <BsLightbulbFill style={{ color: 'var(--primary)' }} />
+                                        <h3 className="instructionTitle">{rule.title}</h3>
                                     </div>
-                                    <button 
-                                        className={styles.deleteBtn} 
-                                        onClick={(e) => { e.stopPropagation(); deleteRule(rule.id); }}
-                                    >
-                                        <BsTrash />
-                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span className="instructionBadge">PRIORIDADE {rule.priority}</span>
+                                        <button 
+                                            className={styles.deleteBtn} 
+                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir regra?')) deleteRule(rule.id); }}
+                                        >
+                                            <BsTrash />
+                                        </button>
+                                    </div>
                                 </div>
-                                <p className={styles.cardDesc}>{rule.content}</p>
+                                <div className="instructionContent">
+                                    {rule.content}
+                                </div>
                             </div>
                         ))
                     ) : (
@@ -106,7 +112,7 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                     <div className={styles.cardActions}>
                                         <button 
                                             className={styles.deleteBtn} 
-                                            onClick={(e) => { e.stopPropagation(); deleteModel(model.id); }}
+                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Excluir modelo?')) deleteModel(model.id); }}
                                         >
                                             <BsTrash />
                                         </button>
@@ -114,7 +120,7 @@ const AnaKnowledgeView = ({ isEmbedded = false }) => {
                                 </div>
                                 <p className={styles.cardDesc}>{model.description || 'Sem descrição'}</p>
                                 <div className={styles.cardFooter}>
-                                    <span>Clique para gerenciar entradas</span>
+                                    <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Gerenciar Conhecimento →</span>
                                     <span className={styles.badge}>{model.isActive ? 'Ativo' : 'Inativo'}</span>
                                 </div>
                             </div>

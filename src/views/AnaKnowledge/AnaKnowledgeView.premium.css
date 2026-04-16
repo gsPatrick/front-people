@@ -1,0 +1,132 @@
+/* src/views/AnaKnowledge/AnaKnowledgeView.premium.css */
+
+.premiumContainer {
+    padding: 24px;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1117 100%);
+    min-height: 100%;
+    color: var(--text-primary);
+}
+
+.instructionCard {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.instructionCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary);
+    opacity: 0.8;
+}
+
+.instructionCard:hover {
+    border-color: var(--primary);
+    box-shadow: 0 8px 32px rgba(var(--primary-rgb), 0.15);
+    transform: translateY(-2px);
+}
+
+.instructionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.instructionTitle {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 1.1rem;
+}
+
+.instructionBadge {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
+    border-radius: 20px;
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+.instructionContent {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #a3b3bc;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Wizard Styles */
+.wizardContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.wizardTitle {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(90deg, #fff 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.wizardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 40px;
+}
+
+.wizardCard {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 32px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.wizardCard:hover {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.wizardIcon {
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+.wizardCardTitle {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.wizardCardDesc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}

@@ -141,11 +141,11 @@ const PdfImportModal = ({ modelId, onClose, onSuccess }) => {
 
                 {phase === 'finishing' && (
                     <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                        <div style={{ fontSize: '4rem', color: '#52c41a', marginBottom: '20px' }}>
+                        <div style={{ fontSize: '4rem', color: '#52c41a', marginBottom: '20px', animation: 'bounce 2s infinite' }}>
                             <BsCheck2Circle />
                         </div>
-                        <h3>Processando Importação</h3>
-                        <p>A Ana está salvando os blocos no modelo...</p>
+                        <h3 className="wizardTitle" style={{ fontSize: '1.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>Processando Inteligência</h3>
+                        <p style={{ color: 'var(--text-secondary)' }}>A Ana está integrando o conhecimento ao modelo de especialidade...</p>
                     </div>
                 )}
             </div>
