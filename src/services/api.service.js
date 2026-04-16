@@ -563,8 +563,58 @@ export const deleteAIMemory = async (id) => {
 };
 
 // ===================================================================
+//                          CHAT SERVICES
+// ===================================================================
+
+export const getChatConversations = async () => {
+  try {
+    const response = await apiClient.get('/chat/conversations');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getChatConversation = async (id) => {
+  try {
+    const response = await apiClient.get(`/chat/conversations/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteChatConversation = async (id) => {
+  try {
+    const response = await apiClient.delete(`/chat/conversations/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getChatSettings = async () => {
+  try {
+    const response = await apiClient.get('/chat/settings');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateChatSettings = async (settings) => {
+  try {
+    const response = await apiClient.post('/chat/settings', settings);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// ===================================================================
 //                          ANA INTELLIGENCE SERVICES
 // ===================================================================
+// ... (existing ana services)
 
 export const getAnaRules = async () => {
   try {

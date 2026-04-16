@@ -4,6 +4,14 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { loadAuthData } from '../services/session.service';
+import { 
+    getChatConversations, 
+    getChatConversation, 
+    deleteChatConversation, 
+    getChatSettings, 
+    updateChatSettings,
+    getAnaModels
+} from '../services/api.service';
 
 const API_BASE_URL = 'https://geral-people-api.r954jc.easypanel.host/api';
 
@@ -11,8 +19,8 @@ export const useChat = () => {
     const [conversations, setConversations] = useState([]);
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [models, setModels] = useState([]); // Novo
-    const [selectedModelId, setSelectedModelId] = useState(null); // Novo
+    const [models, setModels] = useState([]);
+    const [selectedModelId, setSelectedModelId] = useState(null);
     const [suggestions, setSuggestions] = useState([
         "📊 Quantas vagas temos abertas?",
         "👥 Liste os últimos candidatos",
@@ -27,14 +35,7 @@ export const useChat = () => {
     // Carregar lista de conversas
     const loadConversations = useCallback(async () => {
         try {
-            const authData = await loadAuthData();
-            const res = await fetch(`${API_BASE_URL}/chat/conversations`, {
-                headers: {
-                    'Authorization': `Bearer ${authData?.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await res.json();
+            const data = await getChatConversations();
             if (data.success) {
                 setConversations(data.conversations || []);
             }
@@ -46,14 +47,7 @@ export const useChat = () => {
     // Carregar histórico de uma conversa
     const loadConversation = useCallback(async (conversationId) => {
         try {
-            const authData = await loadAuthData();
-            const res = await fetch(`${API_BASE_URL}/chat/conversations/${conversationId}`, {
-                headers: {
-                    'Authorization': `Bearer ${authData?.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await res.json();
+            const data = await getChatConversation(conversationId);
             if (data.success) {
                 setActiveConversation(data.conversation);
                 setMessages(data.conversation.messages || []);
@@ -79,7 +73,7 @@ export const useChat = () => {
         try {
             const authData = await loadAuthData();
 
-            // Usar fetch para SSE (axios não suporta streaming)
+            // Usar fetch para SSE (axios não suporta streaming nativo tão fácil quanto fetch + reader)
             const response = await fetch(`${API_BASE_URL}/chat/message`, {
                 method: 'POST',
                 headers: {
@@ -89,7 +83,7 @@ export const useChat = () => {
                 body: JSON.stringify({
                     conversationId: activeConversation?.id || null,
                     message: message,
-                    modelId: selectedModelId // Envia o modelo selecionado
+                    modelId: selectedModelId
                 })
             });
 
@@ -108,7 +102,7 @@ export const useChat = () => {
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
-                buffer = lines.pop() || ''; // Mantém linha incompleta no buffer
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
@@ -116,7 +110,6 @@ export const useChat = () => {
                             const data = JSON.parse(line.slice(6));
 
                             if (data.type === 'conversationId') {
-                                // Se for uma nova conversa, atualizar o activeConversation
                                 const convId = data.conversationId;
                                 setActiveConversation(prev => {
                                     if (!prev || prev.id !== convId) {
@@ -139,7 +132,6 @@ export const useChat = () => {
                 }
             }
 
-            // Finalizar: adicionar mensagem do assistant
             const assistantMsg = {
                 id: assistantMsgId,
                 role: 'assistant',
@@ -149,7 +141,6 @@ export const useChat = () => {
             setMessages(prev => [...prev, assistantMsg]);
             setStreamingContent('');
 
-            // Se não tinha conversa ativa, recarregar a lista
             if (!activeConversation) {
                 await loadConversations();
             }
@@ -167,7 +158,7 @@ export const useChat = () => {
             setIsStreaming(false);
             setStreamingContent('');
         }
-    }, [activeConversation, isStreaming, loadConversations]);
+    }, [activeConversation, isStreaming, loadConversations, selectedModelId]);
 
     // Criar nova conversa
     const newConversation = useCallback(() => {
@@ -179,11 +170,7 @@ export const useChat = () => {
     // Deletar conversa
     const deleteConversation = useCallback(async (conversationId) => {
         try {
-            const authData = await loadAuthData();
-            await fetch(`${API_BASE_URL}/chat/conversations/${conversationId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${authData?.token}` }
-            });
+            await deleteChatConversation(conversationId);
             setConversations(prev => prev.filter(c => c.id !== conversationId));
             if (activeConversation?.id === conversationId) {
                 newConversation();
@@ -196,14 +183,7 @@ export const useChat = () => {
     // Carregar configurações (sugestões)
     const loadSettings = useCallback(async () => {
         try {
-            const authData = await loadAuthData();
-            const res = await fetch(`${API_BASE_URL}/chat/settings`, {
-                headers: {
-                    'Authorization': `Bearer ${authData?.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await res.json();
+            const data = await getChatSettings();
             if (data.success && data.settings?.suggestions) {
                 setSuggestions(data.settings.suggestions);
             }
@@ -215,16 +195,7 @@ export const useChat = () => {
     // Atualizar configurações (sugestões)
     const updateSuggestions = useCallback(async (newSuggestions) => {
         try {
-            const authData = await loadAuthData();
-            const res = await fetch(`${API_BASE_URL}/chat/settings`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${authData?.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ suggestions: newSuggestions })
-            });
-            const data = await res.json();
+            const data = await updateChatSettings({ suggestions: newSuggestions });
             if (data.success) {
                 setSuggestions(data.settings.suggestions);
                 return { success: true };
@@ -239,13 +210,12 @@ export const useChat = () => {
     // Carregar modelos disponíveis
     const loadAvailableModels = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/ana/models`, {
-                headers: { 'Authorization': `Bearer ${loadAuthData()?.token}` }
-            });
-            const data = await res.json();
-            if (data.success) setModels(data.models);
+            const data = await getAnaModels();
+            if (data.success) {
+                setModels(data.models || []);
+            }
         } catch (err) {
-            console.error('Erro ao buscar modelos:', err);
+            console.error('[CHAT] Erro ao buscar modelos:', err);
         }
     }, []);
 
@@ -253,7 +223,6 @@ export const useChat = () => {
         loadAvailableModels();
     }, [loadAvailableModels]);
 
-    // Carregar conversas e settings ao montar
     useEffect(() => {
         loadConversations();
         loadSettings();
@@ -263,7 +232,7 @@ export const useChat = () => {
         conversations,
         activeConversation,
         messages,
-        suggestions, // Expondo sugestões dinâmicas
+        suggestions,
         isLoading,
         isStreaming,
         streamingContent,
@@ -274,8 +243,8 @@ export const useChat = () => {
         deleteConversation,
         loadSettings,
         updateSuggestions,
-        models, // Exportar
-        selectedModelId, // Exportar
-        setSelectedModelId // Exportar
+        models,
+        selectedModelId,
+        setSelectedModelId
     };
 };
